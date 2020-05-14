@@ -1,29 +1,34 @@
 -- pad variables
-pad_speed = 1.5
+local pad_speed = 1.5
 
 -- ball variables
-ball_speed = 1.5
+local ball_speed = 1.5
 
 -- brick variables
-num_bricks_x = 14
-num_bricks_y = 25
-brick_width = 8
-brick_height = 4
-brick_gap = 1
-bricks = {}
+local num_bricks_x = 14
+local num_bricks_y = 25
+local brick_width = 8
+local brick_height = 4
+local brick_gap = 1
+local bricks = {}
+
+-- level transitions
+local render_offset = 0
+local transition_render_offset = 192
 
 -- game management variables
 -- 0 = menu, 1 = game, 2 = editor
-game_mode = 0
-level = 1
-current_music = -1
+local game_mode = 0
+local level = 1
+local current_music = -1
 
 -- stats
-start_time = 0
-num_resets = 0
+local start_time = 0
+local num_resets = 0
 
 -- level editor variables; made in editor
-levels = {
+local levels = {
+  'r259ka196', -- debug
   'a112b42a196',
   'a58ji8ja32nb8na6b6a9k4a215',
   'a35la11b5a8b7a8b5a11la108ca5ca6b3apab3a128',
@@ -47,13 +52,13 @@ levels = {
   'a42b5ebpbeb4a42bebpbebqbebpbea3ba7ba5ba7ba5ea7ea5ba7ba5qbebpbebqa5ba7ba5ea7ea5ba7ba5ba7ba2bebpbeb3ebpbea98',
   'a15rara6rara3oa8oa58bcdef2ghijklmna4f2a12f2a51qa2pa7qa155'
 }
-level_buffer = nil -- level editor buffer
+local level_buffer = nil -- level editor buffer
 
 -- Save 100-150 tokens by parsing brick data as string
-editor_bricks_data = "a,0,erase,b,1,regular,c,2,6 ball,d,3,one-way,e,4,3 hits,f,5,big,g,6,green balls,h,7,expander,i,8,move (vertical),j,9,move (horizontal),k,10,powerup (blue safety),l,26,powerup (green safety),m,42,powerup (paddle glue),n,58,powerup (wider paddle),o,11,teleport,p,12,laser (horizontal),q,44,laser (vertical),r,13,invulnerable,"
-editor_bricks = {}           -- straight list
-editor_bricks_by_sprite = {} -- map of sprite -> config
-editor_bricks_by_symbol = {} -- map of symbol -> config
+local editor_bricks_data = "a,0,erase,b,1,regular,c,2,6 ball,d,3,one-way,e,4,3 hits,f,5,big,g,6,green balls,h,7,expander,i,8,move (vertical),j,9,move (horizontal),k,10,powerup (blue safety),l,26,powerup (green safety),m,42,powerup (paddle glue),n,58,powerup (wider paddle),o,11,teleport,p,12,laser (horizontal),q,44,laser (vertical),r,13,invulnerable,"
+local editor_bricks = {}           -- straight list
+local editor_bricks_by_sprite = {} -- map of sprite -> config
+local editor_bricks_by_symbol = {} -- map of symbol -> config
 
 do
   local left, right = 1, 1
@@ -84,8 +89,6 @@ gradients = {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 
 -- engine stuff
 paused = false
-pause_every_step = false
-ticks_per_step = 1
 ticks = 0
 screen_shake = 0
 
@@ -173,7 +176,7 @@ function spriterenderer:draw()
        flr(self.sprite / 16) * 8 + 2,
        8,
        4,
-       self.go.x - self.width  / 2,
+       self.go.x - self.width  / 2 + render_offset,
        self.go.y - self.height / 2,
        self.width,
        self.height,
@@ -204,7 +207,7 @@ function ssprrenderer:draw()
        self.sy,
        self.sw,
        self.sh,
-       self.go.x - self.sw  / 2,
+       self.go.x - self.sw / 2 + render_offset,
        self.go.y - self.sh / 2,
        self.dw,
        self.dh,
@@ -254,8 +257,6 @@ end
 function _update60()
   if (paused) then
     return
-  elseif (pause_every_step) then
-    paused = true
   end
 
   camera(-(screen_shake % 2), 0)
@@ -294,14 +295,16 @@ function _draw()
     end
 
     if (i == 1 and game_mode ~= 0) then
-      map(0, 0, 0, 0, 16, 16)
+      map(0, 14, -8 + (render_offset/2 % 8), 112, 17, 1)
     end
   end
 
   -- hide the rightmost column to keep the border even on both sides
   rectfill(127,0,127,128,0)
 
-  --print((stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 0, 6, 0)
+  print('mem: '..stat(0), 1, 1, 0)
+  print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 7, 0)
+  print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 13, 0)
   --print(dget(2))
 end
 
@@ -455,11 +458,13 @@ function clear_level()
   end
 
   clear_balls()
-  for layer in all(gameobjects) do
-    for go in all(layer) do
-      if (go:get_component(brick) ~= nil 
-        or go:get_component(powerup) ~= nil) then
-        destroy(go)
+  if (render_offset == 0) then
+    for layer in all(gameobjects) do
+      for go in all(layer) do
+        if (go:get_component(brick) ~= nil 
+          or go:get_component(powerup) ~= nil) then
+          destroy(go)
+        end
       end
     end
   end
@@ -513,6 +518,67 @@ level_manager = gameobject:new{
   num_bricks = 0 -- only destructible bricks!
 }
 
+-- All end of level effects
+function transition_level()
+  if (render_offset ~= 0) then
+    return -- debugging
+  end
+
+  for layer in all(gameobjects) do
+    for go in all(layer) do
+      -- Explode all the balls
+      if (go:get_component(ball) ~= nil) then
+        for i = 1, 6 do
+          pm:add_voxel(go.x, go.y, rnd(1)-0.5, -(rnd(1)+2), 0, 0.1, flr(10 + rnd(2)), 100, 4)
+        end
+        destroy(go)
+      -- Move all bricks/powerups so that they can slide out with offset
+      elseif (go:get_component(brick) ~= nil or go:get_component(powerup) ~= nil) then
+        go.x -= transition_render_offset
+      end
+    end
+  end
+
+  bgp.go.x -= transition_render_offset
+
+  render_offset = transition_render_offset
+
+  -- Add some "wind"
+   --add_particle(x, y, vx, vy, ax, ay, color, frames, layer, shadow)
+  for i=1, 30 do
+    local x = rnd(128 + transition_render_offset)
+    local y = rnd(128)
+    local frames = rnd(30) + 50
+    local t = frames / 60
+    for j=1, 10 do
+      -- todo: optimize down once the effect is right
+      -- a = -2 * v_0 / t_1
+      -- v_0 = 2 * j / t_0.5 -> v_0 = 4 * j / t
+      local v0 = (-4 * j / t) / 60
+      local a = (-2*v0/t) / 60
+      pm:add_particle(x, y, v0 - 3, 0, a, 0, 7, frames, 3, false)
+    end
+  end
+
+  add(actions, cocreate(function()
+    local vel = 0
+    while (render_offset > 0) do
+      vel += 0.15 * (render_offset > transition_render_offset / 2 and 1 or -1)
+      render_offset = max(0, render_offset - vel)
+      yield()
+    end
+    bgp:start()
+    for layer in all(gameobjects) do
+      for go in all(layer) do
+        if (go:get_component(brick) ~= nil and go.x < 0) then
+          destroy(go)
+        end
+      end
+    end
+  end))
+
+end
+
 function level_manager:update()
   if (game_mode ~= 1) then
     return
@@ -531,6 +597,7 @@ function level_manager:update()
     if (level_buffer == nil) then
       cb:interrupt_action()
       if (level < #levels) then
+        transition_level()
         level += 1
         init_level(levels[level])
       else
@@ -889,7 +956,7 @@ function brick:draw()
          32 + 14 * (self.health % 2),
          17,
          14,
-         self.go.x-17/2,
+         self.go.x-17/2 + render_offset,
          self.go.y-14/2)
   end
 end
@@ -1042,7 +1109,7 @@ function sprite_particles(sx, sy, sw, sh, spawn_x, spawn_y, skips)
     pm:add_particle(x+1, y+1, vx, vy, -vx/90, -vy/90, gradients[color], rnd(60), 2)
     
     if (i % 6 == 0) then
-      --bgp:add_debris(x, y, color, vx, vy)
+      bgp:add_debris(x, y, color, vx, vy)
     end
 
   end
@@ -1074,65 +1141,65 @@ function brick:update()
   end
   
   if (self.go.renderer.sprite == 7) then
-    -- expand horizontal
-    self.ticks += 1
-    if (self.ticks > 4*0) then
-      self.ticks = 0
-
-      local x_index = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
-      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
-
-      if (self.go.x + self.go.col.width / 2 < 126 
-          and (static_bricks[x_index][y_index] == nil
-          or  static_bricks[x_index][y_index] == self.go)) then
-        static_bricks[x_index][y_index] = self.go
-        self.go.renderer.width += 1
-        self.go.col.width += 1
-        self.go.x += 0.5
-      end
-
-      x_index = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
-
-      if (self.go.x - self.go.col.width / 2 > 1
-          and (static_bricks[x_index][y_index] == nil
-          or  static_bricks[x_index][y_index] == self.go)) then
-        static_bricks[x_index][y_index] = self.go
-        self.go.renderer.width += 1
-        self.go.col.width += 1
-        self.go.x -= 0.5
-      end
-
-    end
-
-    if (self.size_damage > 0) then
-      self.size_damage -= 1
-
-      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
-      local right_x_index_before = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
-      local left_x_index_before = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
-
-      self.go.renderer.width -= 1
-      self.go.col.width -= 1
-
-      local right_x_index_after = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
-      local left_x_index_after = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
-
-      if (right_x_index_before <= num_bricks_x and right_x_index_before ~= right_x_index_after and static_bricks[right_x_index_before][y_index] == self.go) then
-        static_bricks[right_x_index_before][y_index] = nil
-      end
-      if (left_x_index_before > 0 and left_x_index_before ~= left_x_index_after and static_bricks[left_x_index_before][y_index] == self.go) then
-        static_bricks[left_x_index_before][y_index] = nil
-      end
-
-      if (self.go.col.width <= 0) then
-        self.health = 0
-        self:hit_particles(self.go.x, self.go.y)
-        self:destroy()
-      else
-        self.health = 4
-        self.ticks = -120
-      end
-    end
+--    -- expand horizontal
+--    self.ticks += 1
+--    if (self.ticks > 4*0) then
+--      self.ticks = 0
+--
+--      local x_index = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+--      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
+--
+--      if (self.go.x + self.go.col.width / 2 < 126 
+--          and (static_bricks[x_index][y_index] == nil
+--          or  static_bricks[x_index][y_index] == self.go)) then
+--        static_bricks[x_index][y_index] = self.go
+--        self.go.renderer.width += 1
+--        self.go.col.width += 1
+--        self.go.x += 0.5
+--      end
+--
+--      x_index = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+--
+--      if (self.go.x - self.go.col.width / 2 > 1
+--          and (static_bricks[x_index][y_index] == nil
+--          or  static_bricks[x_index][y_index] == self.go)) then
+--        static_bricks[x_index][y_index] = self.go
+--        self.go.renderer.width += 1
+--        self.go.col.width += 1
+--        self.go.x -= 0.5
+--      end
+--
+--    end
+--
+--    if (self.size_damage > 0) then
+--      self.size_damage -= 1
+--
+--      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
+--      local right_x_index_before = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+--      local left_x_index_before = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+--
+--      self.go.renderer.width -= 1
+--      self.go.col.width -= 1
+--
+--      local right_x_index_after = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+--      local left_x_index_after = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+--
+--      if (right_x_index_before <= num_bricks_x and right_x_index_before ~= right_x_index_after and static_bricks[right_x_index_before][y_index] == self.go) then
+--        static_bricks[right_x_index_before][y_index] = nil
+--      end
+--      if (left_x_index_before > 0 and left_x_index_before ~= left_x_index_after and static_bricks[left_x_index_before][y_index] == self.go) then
+--        static_bricks[left_x_index_before][y_index] = nil
+--      end
+--
+--      if (self.go.col.width <= 0) then
+--        self.health = 0
+--        self:hit_particles(self.go.x, self.go.y)
+--        self:destroy()
+--      else
+--        self.health = 4
+--        self.ticks = -120
+--      end
+--    end
   elseif (self.go.renderer.sprite % 16 == 8 or self.go.renderer.sprite == 9) then
     -- move vertically / horizontally
     bgp:near_particle(self.go, self.dir_x, self.dir_y)
@@ -1387,7 +1454,6 @@ paddle = gameobject:new({
 })
 
 function paddle:reset()
-  self.go.x = 64
   self.target_sides = 0
   self.glue = false
   self.glued_balls = {}
@@ -1442,7 +1508,7 @@ function paddle:update()
   for ball_ref in all(self.glued_balls) do
     ball_ref.obj.x = self.go.x + ball_ref.dx
     ball_ref.obj.y = flr(self.go.y - self.go.col.height / 2 - ball_ref.obj.col.height / 2)
-    if (btn(5)) then
+    if (btn(5) and render_offset == 0) then
       ball_ref.obj.x += rnd(1) - 0.5
       ball_ref.obj.rb.vy = ball_speed
       local b = ball_ref.obj:get_component(ball)
@@ -1451,15 +1517,17 @@ function paddle:update()
       b:on_collision(self.go)
     end
   end
-  if (btn(5)) then
+  if (btn(5) and render_offset == 0) then
     self.glued_balls = {}
   end
 
   -- wind particles
-  if (abs(self.go.rb.vx) > 1) then
-    for i = 1, btn(4) and 2 or 1 do
+  local transitioning = render_offset > 0
+  local vx = self.go.rb.vx * 0.25 - (transitioning and 2 or 0)
+  if (abs(vx) > 0) then
+    for i = 1, (btn(4) or transitioning) and 2 or 1 do
       pm:add_particle(self.go.x, self.go.y + (rnd(1) > 0.5 and 1 or -2), 
-        self.go.rb.vx * 0.25, 0, 0, 0, 8 + flr(rnd(2)), 12+rnd(5), 2)
+        vx, 0, 0, 0, 8 + flr(rnd(2)), 12+rnd(5), 2)
     end
   end
   bgp:near_particle(self.go, self.go.rb.vx, 0)
@@ -1468,6 +1536,8 @@ function paddle:update()
   if (self.animation_ticks > 0) then
     self.animation = 'surprise'
     self.animation_ticks -= 1
+  elseif (transitioning) then
+    self.animation = 'right_boost'
   else
     if (btn(0)) then
       self.animation = 'left' .. (btn(4) and '_boost' or '')
@@ -1539,19 +1609,20 @@ background_particles = gameobject:new({
 })
 
 function background_particles:start()
+  self.go.x = 0
   self.particles = {}
   for j=0, 7 do
     for i=0, 7 do
-      --add(self.particles, {})
-      add(self.particles, {{
-        base_x=i*16,
-        base_y=j*16,
-        x=rnd(16),
-        y=rnd(16),
-        vx=0,
-        vy=0,
-        c=13
-      }})
+      add(self.particles, {})
+      --add(self.particles, {{
+      --  base_x=i*16,
+      --  base_y=j*16,
+      --  x=rnd(16),
+      --  y=rnd(16),
+      --  vx=0,
+      --  vy=0,
+      --  c=13
+      --}})
     end
   end
 end
@@ -1572,9 +1643,10 @@ function background_particles:draw()
     return
   end
 
+  local offset = self.go.x + render_offset
   for layer in all(self.particles) do
     for p in all(layer) do
-      pset(p.base_x + p.x, p.base_y + p.y, p.c)
+      pset(p.base_x + p.x + offset, p.base_y + p.y, p.c)
     end
   end
 end
@@ -1741,6 +1813,9 @@ end
 
 function reset_bgp()
   if (bgp ~= nil) then
+    if (render_offset > 0) then
+      return
+    end
     destroy(bgp.go)
   end
   local bgp_obj = gameobject:new{layer=1}
