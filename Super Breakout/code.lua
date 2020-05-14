@@ -3,6 +3,7 @@ local pad_speed = 1.5
 
 -- ball variables
 local ball_speed = 1.5
+local ball_size = 2
 
 -- brick variables
 local num_bricks_x = 14
@@ -28,7 +29,6 @@ local num_resets = 0
 
 -- level editor variables; made in editor
 local levels = {
-  'r259ka196', -- debug
   'a112b42a196',
   'a58ji8ja32nb8na6b6a9k4a215',
   'a35la11b5a8b7a8b5a11la108ca5ca6b3apab3a128',
@@ -255,9 +255,9 @@ function destroy(gameobject)
 end
 
 function _update60()
-  if (paused) then
-    return
-  end
+--  if (paused) then
+--    return
+--  end
 
   camera(-(screen_shake % 2), 0)
   if (screen_shake > 0) then
@@ -302,9 +302,9 @@ function _draw()
   -- hide the rightmost column to keep the border even on both sides
   rectfill(127,0,127,128,0)
 
-  print('mem: '..stat(0), 1, 1, 0)
-  print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 7, 0)
-  print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 13, 0)
+  --print('mem: '..stat(0), 1, 1, 0)
+  --print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 7, 0)
+  --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 13, 0)
   --print(dget(2))
 end
 
@@ -328,9 +328,9 @@ end
 
 -- utilities
 
-function round(n)
-  return n%1 < 0.5 and flr(n) or -flr(-n)
-end
+--function round(n)
+--  return n%1 < 0.5 and flr(n) or -flr(-n)
+--end
 
 function dist(x1, y1, x2, y2)
   return sqrt((x2 - x1)^2 + (y2 - y1)^2)
@@ -347,8 +347,8 @@ function instanceof(obj, typ)
 end
 
 -- end engine code
-x_offset = -4
-y_offset = -2
+local x_offset = -4
+local y_offset = -2
 
 function brick_pos_to_index(x, y)
   local x_index = (x - x_offset) / (brick_width + brick_gap)
@@ -793,13 +793,13 @@ function angle_vector(theta, magnitude)
          magnitude * sin(0.25 + (theta/360))
 end
 
-function rotate_vector(x, y, theta)
-  local st = sin(theta/360)
-  local ct = cos(theta/360)
-  return 
-    x * ct - y * st,
-    y * st + y * ct
-end
+--function rotate_vector(x, y, theta)
+--  local st = sin(theta/360)
+--  local ct = cos(theta/360)
+--  return 
+--    x * ct - y * st,
+--    y * st + y * ct
+--end
 
 function ball:on_collision(other)
   local pad = other:get_component(paddle)
@@ -821,9 +821,8 @@ function ball:on_collision(other)
       if (self.paddle_flag) then
         self.next_ball -= 1
 
-        for i=1, 5 do
-          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 4, rnd(15)+5, 2)
-          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 9, rnd(15)+5, 2)
+        for i=1, 10 do
+          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 4 + 5 * i%2, rnd(15)+5, 2)
         end
       end
       self.paddle_flag = false
@@ -831,9 +830,8 @@ function ball:on_collision(other)
       if (self.next_ball <= 0) then
         make_ball(self.go.x, self.go.y)
         self.next_ball = 5
-        for i=1, 10 do
-          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 10, rnd(30)+10, 2)
-          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 11, rnd(30)+10, 2)
+        for i=1, 20 do
+          pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 10 + i%2, rnd(30)+10, 2)
         end
       end
 
@@ -842,11 +840,12 @@ function ball:on_collision(other)
     return
   end
 
+  -- teleport brick
   if (other.renderer.sprite == 11) then
     return
-  else
-    self.last_brick = other
   end
+
+  self.last_brick = other
 
   -- one-way brick
   if (other.renderer.sprite % 16 == 3 and self.go.rb.vy < 0) then
@@ -904,7 +903,7 @@ function ball:on_collision(other)
     end
   end
 
-  -- flip velocity
+  -- flip velocity with slight random so we don't get stuck in loops
   if (collided_x) then
     self.go.rb.vx *= (-0.975 - rnd(0.05))
   end
@@ -929,9 +928,9 @@ function brick:start()
     self.health = 8
     self.go.x += 5
     self.go.y += 5
-    self.go.renderer.width =  0
+    self.go.renderer.width  = 0
     self.go.renderer.height = 0
-    self.go.col.width = 17
+    self.go.col.width  = 17
     self.go.col.height = 14
   elseif (brick_type == 8) then
     self.dir_y = 1
@@ -968,7 +967,7 @@ function brick:on_collision(other)
 
   -- special brick that turns balls green
   local b = other:get_component(ball)
-  if (b ~= nil and (sr.sprite == 6 or sr.sprite == 22 or sr.sprite == 38)) then
+  if (b ~= nil and sr.sprite % 16 == 6) then
     b.next_ball = 1
   end
 
@@ -978,7 +977,7 @@ function brick:on_collision(other)
       if (i ~= 2 and i ~= 6) then
         b = make_ball(self.go.x, self.go.y)
         local rb = b:get_component(rigidbody)
-        rb.vx, rb.vy = angle_vector(360/8*i, ball_speed)
+        rb.vx, rb.vy = angle_vector(45*i, ball_speed) -- 360/8
       end
     end
   end
@@ -1002,8 +1001,8 @@ function brick:on_collision(other)
       local c = rnd(1) > 0.5 and 8 or 12
       local f = i * 1.5 + 2
       pm:add_voxel(self.go.x + to_target_x * (distance/21) * i,
-                    self.go.y + to_target_y * (distance/21) * i,
-                    vx, vy, -vx/f/2, -vy/f/2, c, f, 2)
+                   self.go.y + to_target_y * (distance/21) * i,
+                   vx, vy, -vx/f/2, -vy/f/2, c, f, 2)
     end
     self:hit_particles(self.other_tp.x, self.other_tp.y)
     return
@@ -1012,18 +1011,11 @@ function brick:on_collision(other)
   -- special brick that drops powerups
   if (sr.sprite % 16 == 10) then
     local power_obj = gameobject:new{x=self.go.x, y=self.go.y, layer=3}
-    power_obj:add_component(powerup:new{kind=flr(sr.sprite/16)})
+    local kind = flr(sr.sprite/16)
+    power_obj:add_component(powerup:new{kind=kind})
     power_obj:add_component(rigidbody:new{vy=-0.5})
     power_obj:add_component(rectcollider:new{width=3, height=4})
-    if (sr.sprite == 10) then
-      power_obj:add_component(ssprrenderer:new{sx=88, sy=8, sw=3, sh=4})
-    elseif (sr.sprite == 26) then
-      power_obj:add_component(ssprrenderer:new{sx=92, sy=8, sw=3, sh=4})
-    elseif (sr.sprite == 42) then
-      power_obj:add_component(ssprrenderer:new{sx=88, sy=12, sw=3, sh=4})
-    elseif (sr.sprite == 58) then
-      power_obj:add_component(ssprrenderer:new{sx=92, sy=12, sw=3, sh=4})
-    end
+    power_obj:add_component(ssprrenderer:new{sx=112 + kind*4, sy=20, sw=3, sh=4})
     instantiate(power_obj)
   end
 
@@ -1045,7 +1037,7 @@ function brick:on_collision(other)
         local laser_obj = gameobject:new{x=self.go.x+1, y=self.go.y - self.go.col.height/2}
         laser_obj:add_component(laser:new{dir_y=-1, ticks=self.ticks})
         instantiate(laser_obj)
-        local laser_obj = gameobject:new{x=self.go.x+1, y=self.go.y + self.go.col.height/2}
+        laser_obj = gameobject:new{x=self.go.x+1, y=self.go.y + self.go.col.height/2}
         laser_obj:add_component(laser:new{dir_y=1, ticks=self.ticks})
         instantiate(laser_obj)
       end
@@ -1141,65 +1133,65 @@ function brick:update()
   end
   
   if (self.go.renderer.sprite == 7) then
---    -- expand horizontal
---    self.ticks += 1
---    if (self.ticks > 4*0) then
---      self.ticks = 0
---
---      local x_index = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
---      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
---
---      if (self.go.x + self.go.col.width / 2 < 126 
---          and (static_bricks[x_index][y_index] == nil
---          or  static_bricks[x_index][y_index] == self.go)) then
---        static_bricks[x_index][y_index] = self.go
---        self.go.renderer.width += 1
---        self.go.col.width += 1
---        self.go.x += 0.5
---      end
---
---      x_index = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
---
---      if (self.go.x - self.go.col.width / 2 > 1
---          and (static_bricks[x_index][y_index] == nil
---          or  static_bricks[x_index][y_index] == self.go)) then
---        static_bricks[x_index][y_index] = self.go
---        self.go.renderer.width += 1
---        self.go.col.width += 1
---        self.go.x -= 0.5
---      end
---
---    end
---
---    if (self.size_damage > 0) then
---      self.size_damage -= 1
---
---      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
---      local right_x_index_before = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
---      local left_x_index_before = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
---
---      self.go.renderer.width -= 1
---      self.go.col.width -= 1
---
---      local right_x_index_after = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
---      local left_x_index_after = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
---
---      if (right_x_index_before <= num_bricks_x and right_x_index_before ~= right_x_index_after and static_bricks[right_x_index_before][y_index] == self.go) then
---        static_bricks[right_x_index_before][y_index] = nil
---      end
---      if (left_x_index_before > 0 and left_x_index_before ~= left_x_index_after and static_bricks[left_x_index_before][y_index] == self.go) then
---        static_bricks[left_x_index_before][y_index] = nil
---      end
---
---      if (self.go.col.width <= 0) then
---        self.health = 0
---        self:hit_particles(self.go.x, self.go.y)
---        self:destroy()
---      else
---        self.health = 4
---        self.ticks = -120
---      end
---    end
+    -- expand horizontal
+    self.ticks += 1
+    if (self.ticks > 4*0) then
+      self.ticks = 0
+
+      local x_index = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
+
+      if (self.go.x + self.go.col.width / 2 < 126 
+          and (static_bricks[x_index][y_index] == nil
+          or  static_bricks[x_index][y_index] == self.go)) then
+        static_bricks[x_index][y_index] = self.go
+        self.go.renderer.width += 1
+        self.go.col.width += 1
+        self.go.x += 0.5
+      end
+
+      x_index = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+
+      if (self.go.x - self.go.col.width / 2 > 1
+          and (static_bricks[x_index][y_index] == nil
+          or  static_bricks[x_index][y_index] == self.go)) then
+        static_bricks[x_index][y_index] = self.go
+        self.go.renderer.width += 1
+        self.go.col.width += 1
+        self.go.x -= 0.5
+      end
+
+    end
+
+    if (self.size_damage > 0) then
+      self.size_damage -= 1
+
+      local y_index = (self.go.y - y_offset) / (brick_height + brick_gap)
+      local right_x_index_before = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+      local left_x_index_before = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+
+      self.go.renderer.width -= 1
+      self.go.col.width -= 1
+
+      local right_x_index_after = -flr(-((self.go.x + self.go.col.width / 2 - x_offset - 3) / (brick_width + brick_gap)))
+      local left_x_index_after = flr((self.go.x - self.go.col.width / 2 - x_offset + 3) / (brick_width + brick_gap))
+
+      if (right_x_index_before <= num_bricks_x and right_x_index_before ~= right_x_index_after and static_bricks[right_x_index_before][y_index] == self.go) then
+        static_bricks[right_x_index_before][y_index] = nil
+      end
+      if (left_x_index_before > 0 and left_x_index_before ~= left_x_index_after and static_bricks[left_x_index_before][y_index] == self.go) then
+        static_bricks[left_x_index_before][y_index] = nil
+      end
+
+      if (self.go.col.width <= 0) then
+        self.health = 0
+        self:hit_particles(self.go.x, self.go.y)
+        self:destroy()
+      else
+        self.health = 4
+        self.ticks = -120
+      end
+    end
   elseif (self.go.renderer.sprite % 16 == 8 or self.go.renderer.sprite == 9) then
     -- move vertically / horizontally
     bgp:near_particle(self.go, self.dir_x, self.dir_y)
@@ -1322,7 +1314,7 @@ end
 
 function powerup:on_collision()
   sfx(1)
-  if (self.kind == 0 or self.kind == 1) then
+  if (self.kind <= 1) then
     -- safety bricks. 0 = blue, 1 = green
     local safety_sprite = self.kind == 0 and 4 or 6
     add(actions, cocreate(function()
@@ -1482,23 +1474,18 @@ function paddle:update()
   end
 
   -- border detection
+  local max_dx = (self.go.col.width - ball_size) / 2
   if (self.go.x <= self.go.col.width / 2 + 1) then
     self.go.x = self.go.col.width / 2 + 1
     for ball_ref in all(self.glued_balls) do
       if (btn(0)) then
-        ball_ref.dx -= 1
-      end
-      if (ball_ref.dx < -(self.go.col.width - ball_ref.obj.col.width)/ 2) then
-        ball_ref.dx = -(self.go.col.width - ball_ref.obj.col.width) / 2
+        ball_ref.dx = max(-max_dx-1, ball_ref.dx - 1)
       end
     end
   elseif (self.go.x >= 127 - self.go.col.width / 2) then
     for ball_ref in all(self.glued_balls) do
       if (btn(1)) then
-        ball_ref.dx += 1
-      end
-      if (ball_ref.dx > (self.go.col.width - ball_ref.obj.col.width)/ 2) then
-        ball_ref.dx = (self.go.col.width - ball_ref.obj.col.width) / 2
+        ball_ref.dx = min(max_dx, ball_ref.dx + 1)
       end
     end
     self.go.x = 127 - self.go.col.width / 2
@@ -1593,7 +1580,7 @@ function make_ball(x, y, glued)
   lm.num_balls += 1
   local ball_obj = gameobject:new{x=x, y=y, layer=3}
   ball_obj:add_component(ball:new())
-  ball_obj:add_component(rectcollider:new{width=2, height=2})
+  ball_obj:add_component(rectcollider:new{width=ball_size, height=ball_size})
   local vx, vy = angle_vector(rnd(90) - 45, ball_speed)
   ball_obj:add_component(rigidbody:new{vx=vx, vy=vy})
   if (glued) then
