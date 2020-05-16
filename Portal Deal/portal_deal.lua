@@ -5,16 +5,16 @@
 -- global vars
 -------------------
 -- gameobject management / main loops
-_to_start = {} -- all gameobjects that still haven't had start() called
-gameobjects = {} -- global list of all objects
-actions = {} -- coroutines
+local _to_start = {} -- all gameobjects that still haven't had start() called
+local gameobjects = {} -- global list of all objects
+local actions = {} -- coroutines
 for i=1,4 do
   add(gameobjects, {}) -- 4 layers: background, default, foreground, UI
 end
 
 -- game data
-level = 0
-walls = { -- indexed by sprite number
+local level = 0
+local walls = { -- indexed by sprite number
   [1]={up=true, right=true, down=true, left=true},
   [2]={up=false, right=false, down=false, left=false},
   [3]={up=false, right=true, down=false, left=true},
@@ -25,8 +25,8 @@ walls = { -- indexed by sprite number
   [8]={up=false, right=false, down=false, left=true},
 }
 
--- singletons
-
+-- singletons (_m == manager)
+local portals_m = nil
 
 -------------------
 -- main methods
@@ -38,12 +38,12 @@ function _init()
 
   poke(0x5f2d, 1) -- enable mouse
 
-  portal_manager = gameobject:new()
-  portal_manager:add_component(portal_manager_t:new())
-  instantiate(portal_manager)
+  portals_m = gameobject:new()
+  portals_m:add_component(portal_manager_t:new())
+  instantiate(portals_m)
 
-  cash = gameobject:new{x=38, y=10}
-  cash:add_component(rigidbody_t:new{width=3, height=3})
+  cash = gameobject:new{x=42, y=10}
+  cash:add_component(rigidbody_t:new{width=3, height=3, vx=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
 end
@@ -182,23 +182,12 @@ function destroy(gameobject)
 end
 
 -------------------
--- game-specific helper methods
+-- generic helper methods
 -------------------
 function cell_at_point(x, y)
   x, y = flr(x), flr(y)
 
   return x / 8 + level % 16, y / 8 + level / 16
-end
-
--- sorting network, ascending
-function sort_dirs(a, b, c, d)
-  if (a.dist > b.dist) then a, b = b, a end
-  if (c.dist > d.dist) then c, d = d, c end
-  if (a.dist > c.dist) then a, c = c, a end
-  if (b.dist > d.dist) then b, d = d, b end
-  if (b.dist > c.dist) then b, c = c, b end
-
-  return {a, b, c, d}
 end
 
 function check_int(i, name)
@@ -212,6 +201,10 @@ function round(n)
   return n%1 < 0.5 and flr(n) or -flr(-n)
 end
 
+function dist(x1, y1, x2, y2)
+  return sqrt((x2 - x1)^2 + (y2 - y1)^2)
+end
+
 function printh_nums(prefix, hex, n1, n2, n3, n4)
   local s = (prefix ~= nil and prefix or '') .. ' '
   s = n1 ~= nil and s..tostr(n1, hex)..' ' or s
@@ -220,6 +213,21 @@ function printh_nums(prefix, hex, n1, n2, n3, n4)
   s = n4 ~= nil and s..tostr(n4, hex)..' ' or s
   printh(s)
 end
+-------------------
+-- game-specific helper methods
+-------------------
+
+-- sorting network, ascending
+function sort_dirs(a, b, c, d)
+  if (a.dist > b.dist) then a, b = b, a end
+  if (c.dist > d.dist) then c, d = d, c end
+  if (a.dist > c.dist) then a, c = c, a end
+  if (b.dist > d.dist) then b, d = d, b end
+  if (b.dist > c.dist) then b, c = c, b end
+
+  return {a, b, c, d}
+end
+
 
 -- checks if aabb overlaps any solid geometry at the given position
 function overlaps_solids(x, y, w, h)
@@ -239,6 +247,8 @@ function overlaps_solids(x, y, w, h)
     --printh('checking map at '..x_map..' '..y_map)
 
     if (mget(x_map / 8, y_map / 8, 1) > 0) then
+      -- returns x, y of direction to wall
+      --return i%2 == 0 and -1 or 1, flr(i/2) == 0 and -1 or 1
       return true
     end
 
@@ -400,6 +410,7 @@ function rigidbody_t:update()
   local t_max_x = self.vx > 0 and ((1 - (x % 1)) / self.vx) or ((x % 1) / abs(self.vx))
   local t_max_y = self.vy > 0 and ((1 - (y % 1)) / self.vy) or ((y % 1) / abs(self.vy))
 
+  local mag = dist(0, 0, self.vx, self.vy)
   local t_delta_x = 1 / abs(self.vx)
   local t_delta_y = 1 / abs(self.vy)
 
@@ -419,15 +430,22 @@ function rigidbody_t:update()
       t_max_x += dt
       t += dt
       x += self.vx * dt
+      y += self.vy * dt
     else
       dt = min(1 - t, t_delta_y)
       t_max_y += dt
       t += dt
       y += self.vy * dt
+      x += self.vx * dt
     end
 
+    -- check pixel threshold + collision
     if (flr(x) > self.go.x or flr(y) > self.go.y) then
       if (overlaps_solids(flr(x), flr(y), self.width, self.height)) then
+        -- check if we've hit a portal
+
+
+        -- nope. stop for now (make fancy later :))
         x = self.go.x
         y = self.go.y
         self.vx = 0
