@@ -385,9 +385,10 @@ rigidbody_t = gameobject:new{
   height = 1,
   ay = 0.1, -- acceleration
   friction = 0.9,
-  bounciness = 0.9,
-  max_vx = 3, -- max velocity
-  max_vy = 3
+  bounciness = 0.4,
+  bounce_friction = 0.9, -- bounciness on the tangent
+  max_vx = 9, -- max velocity
+  max_vy = 9
 }
 
 function rigidbody_t:start()
@@ -415,15 +416,30 @@ function rigidbody_t:update()
   end
 
   -- movement
-  self:move_x(self.vx, 
-    function()
-      self.vx *= -self.bounciness
-    end)
+  local x = flr(abs(self.vx)) + 1
+  local y = flr(abs(self.vy)) + 1
+  for i=1, max(x, y) do
+    if (x > 0) then
+      x -= 1
+      self:move_x(sgn(self.vx) * (x > 0 and 1 or (abs(self.vx) % 1)),
+        function()
+          self.vx *= -self.bounciness
+          self.vy *= self.bounce_friction
+          x = 0
+        end)
+    end
 
-  self:move_y(self.vy,
-    function()
-      self.vy *= -self.bounciness
-    end)
+    if (y > 0) then
+      y -= 1
+      self:move_y(sgn(self.vy) * (y > 0 and 1 or (abs(self.vy) % 1)),
+        function()
+          self.vy *= -self.bounciness
+          self.vx *= self.bounce_friction
+          y = 0
+        end)
+    end
+  end
+
 
 end
 
