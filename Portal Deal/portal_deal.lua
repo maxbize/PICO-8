@@ -42,8 +42,8 @@ function _init()
   portals_m:add_component(portal_manager_t:new())
   instantiate(portals_m)
 
-  cash = gameobject:new{x=42, y=10}
-  cash:add_component(rigidbody_t:new{width=3, height=3, vx=3})
+  cash = gameobject:new{x=10, y=90}
+  cash:add_component(rigidbody_t:new{width=3, height=3, vx=3, vy=-3})
   cash:add_component(cash_t:new())
   instantiate(cash)
 end
@@ -190,6 +190,11 @@ function cell_at_point(x, y)
   return x / 8 + level % 16, y / 8 + level / 16
 end
 
+function solid_at_point(x, y)
+
+  return fget(mget(cell_at_point(x, y)), 0)
+end
+
 function check_int(i, name)
   if (flr(i) ~= i) then
     printh('Error! '..name..' is not an int: '..i)
@@ -205,12 +210,12 @@ function dist(x1, y1, x2, y2)
   return sqrt((x2 - x1)^2 + (y2 - y1)^2)
 end
 
-function printh_nums(prefix, hex, n1, n2, n3, n4)
+function printh_nums(prefix, n1, n2, n3, n4)
   local s = (prefix ~= nil and prefix or '') .. ' '
-  s = n1 ~= nil and s..tostr(n1, hex)..' ' or s
-  s = n2 ~= nil and s..tostr(n2, hex)..' ' or s
-  s = n3 ~= nil and s..tostr(n3, hex)..' ' or s
-  s = n4 ~= nil and s..tostr(n4, hex)..' ' or s
+  s = n1 ~= nil and s..tostr(n1)..' ' or s
+  s = n2 ~= nil and s..tostr(n2)..' ' or s
+  s = n3 ~= nil and s..tostr(n3)..' ' or s
+  s = n4 ~= nil and s..tostr(n4)..' ' or s
   printh(s)
 end
 -------------------
@@ -246,7 +251,8 @@ function overlaps_solids(x, y, w, h)
 
     --printh('checking map at '..x_map..' '..y_map)
 
-    if (mget(x_map / 8, y_map / 8, 1) > 0) then
+    --if (fget(mget(x_map / 8, y_map / 8), 0)) then
+    if (fget(mget(x_map / 8, y_map / 8), 0)) then
       -- returns x, y of direction to wall
       --return i%2 == 0 and -1 or 1, flr(i/2) == 0 and -1 or 1
       return true
@@ -371,25 +377,36 @@ end
 -- rigidbody is any freefalling object in the world.
 -- handles dynamic pixel-perfect movement
 rigidbody_t = gameobject:new{
-  x_exact = 0, -- fractional movement. gameobject x, y only allowed ints
-  y_exact = 0,
+  x_remainder = 0, -- fractional movement. gameobject x, y only allowed ints
+  y_remainder = 0,
   vx = 0, -- velocity
   vy = 0,
   width = 1, -- collider size
   height = 1,
   ay = 0.1, -- acceleration
+  friction = 0.9,
+  bounciness = 0.9,
   max_vx = 3, -- max velocity
   max_vy = 3
 }
 
 function rigidbody_t:start()
-  self.x_exact = self.go.x
-  self.y_exact = self.go.y
+  --self.x_remainder = self.go.x
+  --self.y_remainder = self.go.y
 end
 
 function rigidbody_t:update()
-  -- acceleration and max velocity
-  self.vy += self.ay
+  -- apply ground friction and gravity
+  local grounded = solid_at_point(self.go.x + flr(self.width / 2), self.go.y + self.height)
+  if (grounded) then
+    self.vx *= self.friction
+  end
+  if (not grounded or self.vy < 0) then
+    self.vy += self.ay
+  end
+
+
+  -- acceleration and velocity cap
   if (abs(self.vy) > self.max_vy) then
     self.vy = self.max_vy * sgn(self.vy)
   end
@@ -397,68 +414,61 @@ function rigidbody_t:update()
     self.vx = self.max_vx * sgn(self.vx)
   end
 
-  -------------------------------------------------------
-  -- voxelised raycast to find the collision point
-  -- adapted from http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
-  -------------------------------------------------------
-  local x = self.x_exact
-  local y = self.y_exact
+  -- movement
+  self:move_x(self.vx, 
+    function()
+      self.vx *= -self.bounciness
+    end)
 
-  local step_x = sgn(self.vx)
-  local step_y = sgn(self.vy)
+  self:move_y(self.vy,
+    function()
+      self.vy *= -self.bounciness
+    end)
 
-  local t_max_x = self.vx > 0 and ((1 - (x % 1)) / self.vx) or ((x % 1) / abs(self.vx))
-  local t_max_y = self.vy > 0 and ((1 - (y % 1)) / self.vy) or ((y % 1) / abs(self.vy))
+end
 
-  local mag = dist(0, 0, self.vx, self.vy)
-  local t_delta_x = 1 / abs(self.vx)
-  local t_delta_y = 1 / abs(self.vy)
+function rigidbody_t:move_x(amount, callback)
+  self.x_remainder += amount
+  local move = round(self.x_remainder)
 
-  local t = 0
-  local steps = 0
-  local dt = 0
+  if (move ~= 0) then
+    self.x_remainder -= move
+    sign = sgn(move)
 
---  printh_nums('exact, vel:', true, x, y, self.vx, self.vy)
---  printh_nums('exact, vel:', false, y, self.vy)
---  printh_nums('deltas, maxes:', false, t_delta_y, t_max_y)
-
-  while t < 1 do
-    steps += 1
-
-    if (t_max_x < t_max_y) then
-      dt = min(1 - t, t_delta_x)
-      t_max_x += dt
-      t += dt
-      x += self.vx * dt
-      y += self.vy * dt
-    else
-      dt = min(1 - t, t_delta_y)
-      t_max_y += dt
-      t += dt
-      y += self.vy * dt
-      x += self.vx * dt
-    end
-
-    -- check pixel threshold + collision
-    if (flr(x) > self.go.x or flr(y) > self.go.y) then
-      if (overlaps_solids(flr(x), flr(y), self.width, self.height)) then
-        -- check if we've hit a portal
-
-
-        -- nope. stop for now (make fancy later :))
-        x = self.go.x
-        y = self.go.y
-        self.vx = 0
-        self.vy = 0
+    while (move ~= 0) do
+      if (overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)) then
+        if (callback ~= nil) then
+          callback()
+        end
+        break
       else
-        self.go.x = flr(x)
-        self.go.y = flr(y)
+        self.go.x += sign
+        move -= sign
       end
     end
   end
+end
 
-  self.x_exact = x
-  self.y_exact = y
+function rigidbody_t:move_y(amount, callback)
+  self.y_remainder += amount
+  local move = round(self.y_remainder)
+
+  if (move ~= 0) then
+    self.y_remainder -= move
+    sign = sgn(move)
+
+    while (move ~= 0) do
+      if (overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)) then
+        if (callback ~= nil) then
+          callback()
+        end
+        break
+      else
+        self.go.y += sign
+        move -= sign
+      end
+    end
+  end
 end
 
 -- the main object the player has to get to the end
