@@ -26,7 +26,7 @@ local walls = { -- indexed by sprite number
 }
 
 -- singletons (_m == manager)
-local portals_m = nil
+local portal_m = nil
 
 -------------------
 -- main methods
@@ -38,12 +38,12 @@ function _init()
 
   poke(0x5f2d, 1) -- enable mouse
 
-  portals_m = gameobject:new()
-  portals_m:add_component(portal_manager_t:new())
-  instantiate(portals_m)
+  local portal = gameobject:new()
+  portal_m = portal:add_component(portal_manager_t:new())
+  instantiate(portal)
 
-  cash = gameobject:new{x=10, y=90}
-  cash:add_component(rigidbody_t:new{width=3, height=3, vx=3, vy=-3})
+  cash = gameobject:new{x=60, y=70}
+  cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
 end
@@ -184,14 +184,19 @@ end
 -------------------
 -- generic helper methods
 -------------------
+-- returns the cell index at x, y
 function cell_at_point(x, y)
   x, y = flr(x), flr(y)
 
-  return x / 8 + level % 16, y / 8 + level / 16
+  return flr(x / 8 + level % 16), flr(y / 8 + level / 16)
+end
+
+-- returns the top-left corner of the cell at index
+function cell_location(cell_x, cell_y)
+  return cell_x * 8, cell_y * 8
 end
 
 function solid_at_point(x, y)
-
   return fget(mget(cell_at_point(x, y)), 0)
 end
 
@@ -235,6 +240,10 @@ end
 
 
 -- checks if aabb overlaps any solid geometry at the given position
+-- returns:
+--   0 - no overlaps
+--   1 - overlaps portals
+--   2 - overlaps walls
 function overlaps_solids(x, y, w, h)
   -- sanity check all inputs are integers. can remove before shipping
   --check_int(x, 'x')
@@ -242,35 +251,80 @@ function overlaps_solids(x, y, w, h)
   --check_int(w, 'w')
   --check_int(h, 'h')
 
-  --printh('original '..x..' '..y..' '..w..' '..h)
   -- run check for each corner
   for i= 0, 3 do
     -- check against the map (-1 since that's the edge of the collider)
     local x_map = x + (w - 1) * (i%2)
     local y_map = y + (h - 1) * flr(i/2)
 
-    --printh('checking map at '..x_map..' '..y_map)
+    local cell_x, cell_y = cell_at_point(x_map, y_map)
 
-    --if (fget(mget(x_map / 8, y_map / 8), 0)) then
-    if (fget(mget(x_map / 8, y_map / 8), 0)) then
-      -- returns x, y of direction to wall
-      --return i%2 == 0 and -1 or 1, flr(i/2) == 0 and -1 or 1
-      return true
+    if (fget(mget(cell_x, cell_y), 0)) then
+      -- collides with a wall. Let's see if it's a portal
+      local in_portal = false
+      if (portal_m.left_portal ~= nil and portal_m.right_portal ~= nil) then
+        local portal = portal_m.left_portal
+        if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
+          in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
+        end
+        portal = portal_m.right_portal
+        if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
+          in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
+        end
+      end
+
+      -- hit a solid wall. no need to check anything else
+      if (not in_portal) then
+        return 2
+      end
     end
+
 
     -- check against moving platforms
   end
 
-  return false
+  return in_portal and 1 or 0
+end
+
+-- checks if the collider overlaps with the given portal
+function overlaps_portal(portal, x, y, w, h)
+  local x1, y1, x2, y2 = portal_positions(portal)
+
+  local px = (x1 + x2) / 2
+  local py = (y1 + y2) / 2
+  local pw = abs(x1 - x2) + 1
+  local ph = abs(y1 - y2) + 1
+
+  local dx = abs((x + w/2) - px)
+  local dy = abs((y + h/2) - py)
+
+  return dx <= (pw + w)/2 and dy <= (ph + h)/2
+end
+
+function portal_positions(portal)
+  local x, y = cell_location(portal.cell_x, portal.cell_y)
+  local x1, x2, y1, y2
+  if (portal.dir_x ~= 0) then
+    x1 = x + (portal.dir_x == 1 and 7 or 0)
+    x2 = x + (portal.dir_x == 1 and 7 or 0)
+    y1 = y + 0
+    y2 = y + 7
+  else
+    x1 = x + 0
+    x2 = x + 7
+    y1 = y + (portal.dir_y == 1 and 7 or 0)
+    y2 = y + (portal.dir_y == 1 and 7 or 0)
+  end
+  return x1, y1, x2, y2
 end
 
 -------------------
 -- game types
 -------------------
 portal_manager_t = gameobject:new{
-  candidate = nil,   -- x1, y1, x2, y2
-  left_portal = nil, -- x1, y1, x2, y2
-  right_portal = nil -- x1, y1, x2, y2
+  candidate = nil,   -- cell_x, cell_y, x_dir, y_dir
+  left_portal = nil, -- cell_x, cell_y, x_dir, y_dir
+  right_portal = nil -- cell_x, cell_y, x_dir, y_dir
 }
 
 function portal_manager_t:update()
@@ -299,14 +353,10 @@ function portal_manager_t:update()
     local wall = walls[mget(cell_x, cell_y)]
     if (wall ~= nil) then
       if ((dir.dir_x == 1 and wall.right) or (dir.dir_x == -1 and wall.left)) then
-        local x = self.go.x + dir.dist * dir.dir_x
-        local y = flr(self.go.y / 8) * 8
-        self.candidate = {x1=x, y1=y, x2=x, y2=y + 7}
+        self.candidate = {cell_x=cell_x, cell_y=cell_y, dir_x = dir.dir_x, dir_y = dir.dir_y}
         break
       elseif ((dir.dir_y == 1 and wall.down) or (dir.dir_y == -1 and wall.up)) then
-        local x = flr(self.go.x / 8) * 8
-        local y = self.go.y + dir.dist * dir.dir_y
-        self.candidate = {x1=x, y1=y, x2=x + 7, y2=y}
+        self.candidate = {cell_x=cell_x, cell_y=cell_y, dir_x = dir.dir_x, dir_y = dir.dir_y}
         break
       end
     end
@@ -314,22 +364,16 @@ function portal_manager_t:update()
     -- check exterior walls of neighboring cell. not exact copy/paste from above
     wall = walls[mget(cell_x + dir.dir_x, cell_y + dir.dir_y)]
     if (wall ~= nil) then
-      dir.dist += 1
       if ((dir.dir_x == 1 and wall.left) or (dir.dir_x == -1 and wall.right)) then
-        local x = self.go.x + dir.dist * dir.dir_x
-        local y = flr(self.go.y / 8) * 8
-        self.candidate = {x1=x, y1=y, x2=x, y2=y + 7}
+        self.candidate = {cell_x=cell_x + dir.dir_x, cell_y=cell_y + dir.dir_y, dir_x = -dir.dir_x, dir_y = -dir.dir_y}
         break
       elseif ((dir.dir_y == 1 and wall.up) or (dir.dir_y == -1 and wall.down)) then
-        local x = flr(self.go.x / 8) * 8
-        local y = self.go.y + dir.dist * dir.dir_y
-        self.candidate = {x1=x, y1=y, x2=x + 7, y2=y}
+        self.candidate = {cell_x=cell_x + dir.dir_x, cell_y=cell_y + dir.dir_y, dir_x = -dir.dir_x, dir_y = -dir.dir_y}
         break
       end
     end
   end
 
-  -- place portals if requested
   if (stat(34) & 0x1 == 1) then
     self:place_portal(0, self.candidate)
   elseif (stat(34) & 0x2 == 2) then
@@ -348,30 +392,23 @@ end
 
 function portal_manager_t:draw()
   if (self.candidate ~= nil) then
-    line(self.candidate.x1,
-         self.candidate.y1,
-         self.candidate.x2,
-         self.candidate.y2,
-         11)
+    self:draw_portal(self.candidate, 11)
   end
 
   if (self.left_portal ~= nil) then
-    line(self.left_portal.x1,
-         self.left_portal.y1,
-         self.left_portal.x2,
-         self.left_portal.y2,
-         9)
+    self:draw_portal(self.left_portal, 9)
   end
 
   if (self.right_portal ~= nil) then
-    line(self.right_portal.x1,
-         self.right_portal.y1,
-         self.right_portal.x2,
-         self.right_portal.y2,
-         12)
+    self:draw_portal(self.right_portal, 12)
   end
 
   sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+end
+
+function portal_manager_t:draw_portal(portal, color)
+  local x1, y1, x2, y2 = portal_positions(portal)
+  line(x1, y1, x2, y2, color)
 end
 
 -- rigidbody is any freefalling object in the world.
@@ -402,6 +439,7 @@ function rigidbody_t:update()
   if (grounded) then
     self.vx *= self.friction
   end
+
   if (not grounded or self.vy < 0) then
     self.vy += self.ay
   end
@@ -452,7 +490,7 @@ function rigidbody_t:move_x(amount, callback)
     sign = sgn(move)
 
     while (move ~= 0) do
-      if (overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)) then
+      if (overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height) == 2) then
         if (callback ~= nil) then
           callback()
         end
@@ -474,7 +512,7 @@ function rigidbody_t:move_y(amount, callback)
     sign = sgn(move)
 
     while (move ~= 0) do
-      if (overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)) then
+      if (overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height) == 2) then
         if (callback ~= nil) then
           callback()
         end
