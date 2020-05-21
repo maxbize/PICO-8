@@ -42,7 +42,7 @@ function _init()
   portal_m = portal:add_component(portal_manager_t:new())
   instantiate(portal)
 
-  cash = gameobject:new{x=60, y=70}
+  cash = gameobject:new{x=60, y=92}
   cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
@@ -251,6 +251,11 @@ function overlaps_solids(x, y, w, h)
   --check_int(w, 'w')
   --check_int(h, 'h')
 
+  -- need to keep track of individual corners separately to not conflate
+  -- an overlap from one brick with a non-overlap from another brick that has
+  -- a portal
+  local any_in_portal = false
+
   -- run check for each corner
   for i= 0, 3 do
     -- check against the map (-1 since that's the edge of the collider)
@@ -272,6 +277,7 @@ function overlaps_solids(x, y, w, h)
           in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
         end
       end
+      any_in_portal = any_in_portal or in_portal
 
       -- hit a solid wall. no need to check anything else
       if (not in_portal) then
@@ -283,39 +289,34 @@ function overlaps_solids(x, y, w, h)
     -- check against moving platforms
   end
 
-  return in_portal and 1 or 0
+  return any_in_portal and 1 or 0
 end
 
 -- checks if the collider overlaps with the given portal
 function overlaps_portal(portal, x, y, w, h)
-  local x1, y1, x2, y2 = portal_positions(portal)
 
-  local px = (x1 + x2) / 2
-  local py = (y1 + y2) / 2
-  local pw = abs(x1 - x2) + 1
-  local ph = abs(y1 - y2) + 1
+  local px, py, pw, ph = portal_positions(portal)
 
-  local dx = abs((x + w/2) - px)
-  local dy = abs((y + h/2) - py)
+  return not (x > px + pw-1 
+           or y > py + ph-1 
+           or x +  w-1 < px 
+           or y +  h-1 < py)
 
-  return dx <= (pw + w)/2 and dy <= (ph + h)/2
 end
 
 function portal_positions(portal)
   local x, y = cell_location(portal.cell_x, portal.cell_y)
-  local x1, x2, y1, y2
+  local w, h
   if (portal.dir_x ~= 0) then
-    x1 = x + (portal.dir_x == 1 and 7 or 0)
-    x2 = x + (portal.dir_x == 1 and 7 or 0)
-    y1 = y + 0
-    y2 = y + 7
+    x += (portal.dir_x == 1 and 7 or 0)
+    w = 1
+    h = 8
   else
-    x1 = x + 0
-    x2 = x + 7
-    y1 = y + (portal.dir_y == 1 and 7 or 0)
-    y2 = y + (portal.dir_y == 1 and 7 or 0)
+    y += (portal.dir_y == 1 and 7 or 0)
+    w = 8
+    h = 1
   end
-  return x1, y1, x2, y2
+  return x, y, w, h
 end
 
 -------------------
@@ -407,8 +408,8 @@ function portal_manager_t:draw()
 end
 
 function portal_manager_t:draw_portal(portal, color)
-  local x1, y1, x2, y2 = portal_positions(portal)
-  line(x1, y1, x2, y2, color)
+  local x, y, w, h = portal_positions(portal)
+  line(x, y, x + w - 1, y + h - 1, color)
 end
 
 -- rigidbody is any freefalling object in the world.
@@ -444,7 +445,6 @@ function rigidbody_t:update()
     self.vy += self.ay
   end
 
-
   -- acceleration and velocity cap
   if (abs(self.vy) > self.max_vy) then
     self.vy = self.max_vy * sgn(self.vy)
@@ -461,6 +461,11 @@ function rigidbody_t:update()
       x -= 1
       self:move_x(sgn(self.vx) * (x > 0 and 1 or (abs(self.vx) % 1)),
         function()
+          self:handle_portal()
+          x = 0
+          y = 0
+        end,
+        function()
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
@@ -470,6 +475,11 @@ function rigidbody_t:update()
     if (y > 0) then
       y -= 1
       self:move_y(sgn(self.vy) * (y > 0 and 1 or (abs(self.vy) % 1)),
+        function()
+          self:handle_portal()
+          x = 0
+          y = 0
+        end,
         function()
           self.vy *= -self.bounciness
           self.vx *= self.bounce_friction
@@ -481,7 +491,7 @@ function rigidbody_t:update()
 
 end
 
-function rigidbody_t:move_x(amount, callback)
+function rigidbody_t:move_x(amount, portal_callback, wall_callback)
   self.x_remainder += amount
   local move = round(self.x_remainder)
 
@@ -490,10 +500,13 @@ function rigidbody_t:move_x(amount, callback)
     sign = sgn(move)
 
     while (move ~= 0) do
-      if (overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height) == 2) then
-        if (callback ~= nil) then
-          callback()
-        end
+      overlap_state = overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)
+      if (overlap_state == 1) then
+        self.go.x += sign
+        portal_callback()
+        break
+      elseif (overlap_state == 2) then
+        wall_callback()
         break
       else
         self.go.x += sign
@@ -503,7 +516,7 @@ function rigidbody_t:move_x(amount, callback)
   end
 end
 
-function rigidbody_t:move_y(amount, callback)
+function rigidbody_t:move_y(amount, portal_callback, wall_callback)
   self.y_remainder += amount
   local move = round(self.y_remainder)
 
@@ -512,10 +525,13 @@ function rigidbody_t:move_y(amount, callback)
     sign = sgn(move)
 
     while (move ~= 0) do
-      if (overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height) == 2) then
-        if (callback ~= nil) then
-          callback()
-        end
+      overlap_state = overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)
+      if (overlap_state == 1) then
+        self.go.y += sign
+        portal_callback()
+        break
+      elseif (overlap_state == 2) then
+        wall_callback()
         break
       else
         self.go.y += sign
@@ -523,6 +539,33 @@ function rigidbody_t:move_y(amount, callback)
       end
     end
   end
+end
+
+function rigidbody_t:handle_portal()
+  printh('handle portal')
+
+  local center_in_left_portal   = overlaps_portal(portal_m.left_portal, self.go.x + flr(self.width/2), self.go.y + flr(self.height/2), 1, 1)
+  local center_in_right_portal = overlaps_portal(portal_m.right_portal, self.go.x + flr(self.width/2), self.go.y + flr(self.height/2), 1, 1)
+
+  if (not center_in_left_portal and not center_in_right_portal) then
+    return false
+  end
+
+  local p1 = center_in_left_portal and portal_m.left_portal or portal_m.right_portal
+  local p2 = center_in_left_portal and portal_m.right_portal or portal_m.left_portal
+
+  local p2x, p2y, p2w, p2h = portal_positions(p2)
+  self.go.x = flr(p2x + p2w/2 - self.width/2)
+  self.go.y = flr(p2y + p2h/2 - self.height/2)
+
+  local speed = dist(0, 0, self.vx, self.vy)
+  self.vx = speed * p2.dir_x
+  self.vy = speed * p2.dir_y
+
+  printh_nums('go', self.vx, self.vy)
+
+  return true
+
 end
 
 -- the main object the player has to get to the end
