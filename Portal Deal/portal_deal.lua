@@ -383,10 +383,20 @@ function portal_manager_t:update()
 end
 
 function portal_manager_t:place_portal(side, candidate)
+  if (candidate == nil) then
+    return
+  end
+
   if (side == 0) then
     self.left_portal = candidate
+    --if (self.right_portal ~= nil and self.right_portal.x == candidate.x and self.right_portal.y == candidate.y) then
+    --  self.right_portal = nil
+    --end
   else
     self.right_portal = candidate
+    --if (self.left_portal ~= nil and self.left_portal.x == candidate.x and self.left_portal.y == candidate.y) then
+    --  self.left_portal = nil
+    --end
   end
 
 end
@@ -436,7 +446,7 @@ end
 
 function rigidbody_t:update()
   -- apply ground friction and gravity
-  local grounded = solid_at_point(self.go.x + flr(self.width / 2), self.go.y + self.height)
+  local grounded = self:is_grounded()
   if (grounded) then
     self.vx *= self.friction
   end
@@ -469,7 +479,8 @@ function rigidbody_t:update()
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
-        end)
+        end
+      )
     end
 
     if (y > 0) then
@@ -482,13 +493,38 @@ function rigidbody_t:update()
         end,
         function()
           self.vy *= -self.bounciness
+          if (abs(self.vy) < 0.5) then
+            self.vy = 0
+          end
           self.vx *= self.bounce_friction
           y = 0
-        end)
+        end
+      )
     end
   end
+end
 
+function rigidbody_t:is_grounded()
 
+  -- if there's nothing below us, we're grounded
+  if (not solid_at_point(self.go.x + flr(self.width / 2), self.go.y + self.height)) then
+    return false
+  end
+
+  -- if we're in or above an active portal, we're not grounded
+  if (portal_m.left_portal == nil or portal_m.right_portal == nil) then
+    return true
+  end
+
+  if (overlaps_portal(portal_m.left_portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
+    return false
+  end
+
+  if (overlaps_portal(portal_m.right_portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
+    return false
+  end
+
+  return true
 end
 
 function rigidbody_t:move_x(amount, portal_callback, wall_callback)
@@ -560,7 +596,8 @@ function rigidbody_t:handle_portal()
 
   local speed = dist(0, 0, self.vx, self.vy)
   self.vx = speed * p2.dir_x
-  self.vy = speed * p2.dir_y
+  -- add self.ay for the velocity to perfectly pendulum between two portals
+  self.vy = (speed + self.ay) * p2.dir_y
 
   printh_nums('go', self.vx, self.vy)
 
