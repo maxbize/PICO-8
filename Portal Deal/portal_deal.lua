@@ -26,7 +26,8 @@ local walls = { -- indexed by sprite number
 }
 
 -- singletons (_m == manager)
-local portal_m = nil
+local portal_m = nil -- type portal_manager_t
+local cash = nil     -- type gameobject
 
 -------------------
 -- main methods
@@ -42,8 +43,8 @@ function _init()
   portal_m = portal:add_component(portal_manager_t:new())
   instantiate(portal)
 
-  cash = gameobject:new{x=60, y=92}
-  cash:add_component(rigidbody_t:new{width=3, height=3})
+  cash = gameobject:new{x=60, y=91}
+  cash:add_component(rigidbody_t:new{width=3, height=3, vx=-3})
   cash:add_component(cash_t:new())
   instantiate(cash)
 end
@@ -319,14 +320,27 @@ function portal_positions(portal)
   return x, y, w, h
 end
 
+function portals_equal(p1, p2)
+  return p1.cell_x == p2.cell_x
+     and p1.cell_y == p2.cell_y
+     and p1.dir_x == p2.dir_x
+     and p1.dir_y == p2.dir_y
+end
+
 -------------------
 -- game types
 -------------------
 portal_manager_t = gameobject:new{
-  candidate = nil,   -- cell_x, cell_y, x_dir, y_dir
-  left_portal = nil, -- cell_x, cell_y, x_dir, y_dir
-  right_portal = nil -- cell_x, cell_y, x_dir, y_dir
+  candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
+  left_portal = nil, -- cell_x, cell_y, dir_x, dir_x
+  right_portal = nil -- cell_x, cell_y, dir_x, dir_x
 }
+
+-- debugging
+function portal_manager_t:start()
+  self.left_portal = {cell_x=3, cell_y=12, dir_y=-1, dir_x=0}
+  self.right_portal = {cell_x=8, cell_y=4, dir_y=0, dir_x=-1}
+end
 
 function portal_manager_t:update()
   -- update mouse position
@@ -388,17 +402,28 @@ function portal_manager_t:place_portal(side, candidate)
   end
 
   if (side == 0) then
+    if (self.left_portal ~= nil and not portals_equal(self.left_portal, candidate)) then
+      while (overlaps_portal(self.left_portal, cash.x, cash.y, cash.rb.width, cash.rb.height)) do
+        cash.x += self.left_portal.dir_x
+        cash.y += self.left_portal.dir_y
+      end
+    end
     self.left_portal = candidate
-    --if (self.right_portal ~= nil and self.right_portal.x == candidate.x and self.right_portal.y == candidate.y) then
-    --  self.right_portal = nil
-    --end
+    if (self.right_portal ~= nil and portals_equal(self.left_portal, self.right_portal)) then
+      self.right_portal = nil
+    end
   else
+    if (self.right_portal ~= nil and not portals_equal(self.right_portal, candidate)) then
+      while (overlaps_portal(self.right_portal, cash.x, cash.y, cash.rb.width, cash.rb.height)) do
+        cash.x += self.right_portal.dir_x
+        cash.y += self.right_portal.dir_y
+      end
+    end
     self.right_portal = candidate
-    --if (self.left_portal ~= nil and self.left_portal.x == candidate.x and self.left_portal.y == candidate.y) then
-    --  self.left_portal = nil
-    --end
+    if (self.left_portal ~= nil and portals_equal(self.left_portal, self.right_portal)) then
+      self.left_portal = nil
+    end
   end
-
 end
 
 function portal_manager_t:draw()
@@ -471,9 +496,10 @@ function rigidbody_t:update()
       x -= 1
       self:move_x(sgn(self.vx) * (x > 0 and 1 or (abs(self.vx) % 1)),
         function()
-          self:handle_portal()
-          x = 0
-          y = 0
+          if (self:handle_portal()) then
+            x = 0
+            y = 0
+          end
         end,
         function()
           self.vx *= -self.bounciness
@@ -487,9 +513,10 @@ function rigidbody_t:update()
       y -= 1
       self:move_y(sgn(self.vy) * (y > 0 and 1 or (abs(self.vy) % 1)),
         function()
-          self:handle_portal()
-          x = 0
-          y = 0
+          if (self:handle_portal()) then
+            x = 0
+            y = 0
+          end
         end,
         function()
           self.vy *= -self.bounciness
@@ -578,10 +605,8 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
 end
 
 function rigidbody_t:handle_portal()
-  printh('handle portal')
-
-  local center_in_left_portal   = overlaps_portal(portal_m.left_portal, self.go.x + flr(self.width/2), self.go.y + flr(self.height/2), 1, 1)
-  local center_in_right_portal = overlaps_portal(portal_m.right_portal, self.go.x + flr(self.width/2), self.go.y + flr(self.height/2), 1, 1)
+  local center_in_left_portal  = self:edge_in_portal(portal_m.left_portal)
+  local center_in_right_portal = self:edge_in_portal(portal_m.right_portal)
 
   if (not center_in_left_portal and not center_in_right_portal) then
     return false
@@ -596,13 +621,32 @@ function rigidbody_t:handle_portal()
 
   local speed = dist(0, 0, self.vx, self.vy)
   self.vx = speed * p2.dir_x
-  -- add self.ay for the velocity to perfectly pendulum between two portals
-  self.vy = (speed + self.ay) * p2.dir_y
-
-  printh_nums('go', self.vx, self.vy)
+  -- needed to preserve momentum if the teleport threshold is in the center
+  --self.vy = (speed + self.ay) * p2.dir_y
+  self.vy = speed * p2.dir_y
 
   return true
+end
 
+-- checks to see if the outer middle pixel overlaps the portal
+function rigidbody_t:edge_in_portal(p)
+  if (p.dir_x ~= 0) then
+    local x = self.go.x + (p.dir_x == 1 and self.width - 1 or 0)
+    for i=0, self.height-1 do
+      if (overlaps_portal(p, x, self.go.y + i, 1, 1)) then
+        return true
+      end
+    end
+  else
+    local y = self.go.y + (p.dir_y == 1 and self.height - 1 or 0)
+    for i=0, self.width-1 do
+      if (overlaps_portal(p, self.go.x + i, y, 1, 1)) then
+        return true
+      end
+    end
+  end
+
+  return false
 end
 
 -- the main object the player has to get to the end
