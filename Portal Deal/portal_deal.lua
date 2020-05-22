@@ -13,7 +13,7 @@ for i=1,4 do
 end
 
 -- game data
-local level = 0
+local level = 1
 local walls = { -- indexed by sprite number
   [1]={up=true, right=true, down=true, left=true},
   [2]={up=false, right=false, down=false, left=false},
@@ -44,7 +44,7 @@ function _init()
   instantiate(portal)
 
   cash = gameobject:new{x=60, y=91}
-  cash:add_component(rigidbody_t:new{width=3, height=3, vx=-3})
+  cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
 end
@@ -82,8 +82,7 @@ end
 function _draw()
   cls(5)
 
-  map(0, 0, 0, 0, 16, 16)
-
+  draw_map()
 
   for i=1,count(gameobjects) do
     for go in all(gameobjects[i]) do
@@ -187,9 +186,7 @@ end
 -------------------
 -- returns the cell index at x, y
 function cell_at_point(x, y)
-  x, y = flr(x), flr(y)
-
-  return flr(x / 8 + level % 16), flr(y / 8 + level / 16)
+  return flr(x / 8), flr(y / 8)
 end
 
 -- returns the top-left corner of the cell at index
@@ -198,7 +195,7 @@ function cell_location(cell_x, cell_y)
 end
 
 function solid_at_point(x, y)
-  return fget(mget(cell_at_point(x, y)), 0)
+  return fget(mget2(cell_at_point(x, y)), 0)
 end
 
 function check_int(i, name)
@@ -227,6 +224,20 @@ end
 -------------------
 -- game-specific helper methods
 -------------------
+-- level aware mget
+function mget2(cell_x, cell_y)
+  cell_x += 16 * (level % 8)
+  cell_y += 16 * flr(level / 8)
+
+  return mget(cell_x, cell_y)
+end
+
+function draw_map()
+  local cell_x = 16 * (level % 8)
+  local cell_y = 16 * flr(level / 8)
+
+  map(cell_x, cell_y, 0, 0, 16, 16)
+end
 
 -- sorting network, ascending
 function sort_dirs(a, b, c, d)
@@ -265,7 +276,7 @@ function overlaps_solids(x, y, w, h)
 
     local cell_x, cell_y = cell_at_point(x_map, y_map)
 
-    if (fget(mget(cell_x, cell_y), 0)) then
+    if (fget(mget2(cell_x, cell_y), 0)) then
       -- collides with a wall. Let's see if it's a portal
       local in_portal = false
       if (portal_m.left_portal ~= nil and portal_m.right_portal ~= nil) then
@@ -336,12 +347,6 @@ portal_manager_t = gameobject:new{
   right_portal = nil -- cell_x, cell_y, dir_x, dir_x
 }
 
--- debugging
-function portal_manager_t:start()
-  self.left_portal = {cell_x=3, cell_y=12, dir_y=-1, dir_x=0}
-  self.right_portal = {cell_x=8, cell_y=4, dir_y=0, dir_x=-1}
-end
-
 function portal_manager_t:update()
   -- update mouse position
   self.go.x = stat(32)
@@ -365,7 +370,7 @@ function portal_manager_t:update()
 
   for dir in all(dirs) do
     -- check interior walls of current cell
-    local wall = walls[mget(cell_x, cell_y)]
+    local wall = walls[mget2(cell_x, cell_y)]
     if (wall ~= nil) then
       if ((dir.dir_x == 1 and wall.right) or (dir.dir_x == -1 and wall.left)) then
         self.candidate = {cell_x=cell_x, cell_y=cell_y, dir_x = dir.dir_x, dir_y = dir.dir_y}
@@ -377,7 +382,7 @@ function portal_manager_t:update()
     end
 
     -- check exterior walls of neighboring cell. not exact copy/paste from above
-    wall = walls[mget(cell_x + dir.dir_x, cell_y + dir.dir_y)]
+    wall = walls[mget2(cell_x + dir.dir_x, cell_y + dir.dir_y)]
     if (wall ~= nil) then
       if ((dir.dir_x == 1 and wall.left) or (dir.dir_x == -1 and wall.right)) then
         self.candidate = {cell_x=cell_x + dir.dir_x, cell_y=cell_y + dir.dir_y, dir_x = -dir.dir_x, dir_y = -dir.dir_y}
