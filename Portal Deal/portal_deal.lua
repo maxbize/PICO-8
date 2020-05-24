@@ -8,6 +8,7 @@
 local _to_start = {} -- all gameobjects that still haven't had start() called
 local gameobjects = {} -- global list of all objects
 local actions = {} -- coroutines
+local time_scale = 1
 for i=1,4 do
   add(gameobjects, {}) -- 4 layers: background, default, foreground, UI
 end
@@ -24,10 +25,14 @@ local walls = { -- indexed by sprite number
   [7]={up=false, right=false, down=true, left=false},
   [8]={up=false, right=false, down=false, left=true},
 }
+local levels = {
+  {start_x=60, start_y=90, start_vx=1, start_vy=0}
+}
 
 -- singletons (_m == manager)
 local portal_m = nil -- type portal_manager_t
 local cash = nil     -- type gameobject
+local level_m = nil  -- type level_manager_t
 
 -------------------
 -- main methods
@@ -47,6 +52,11 @@ function _init()
   cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
+
+  level_manager = gameobject:new()
+  level_m = level_manager:add_component(level_manager_t:new())
+  instantiate(level_manager)
+  level_m:restart_level()
 end
 
 function _update60()
@@ -54,7 +64,7 @@ function _update60()
     return
   end
 
-  if (not btnp(4)) then
+  if (not btnp(5) and time_scale == 1) then
     --return
   end
 
@@ -91,8 +101,8 @@ function _draw()
   end
 
   print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
-  --print('mem: '..stat(0), 1, 7, 0)
-  --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 13, 0)
+  --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 7, 0)
+  --print('mem: '..stat(0), 1, 13, 0)
 end
 
 -------------------
@@ -236,7 +246,7 @@ function draw_map()
   local cell_x = 16 * (level % 8)
   local cell_y = 16 * flr(level / 8)
 
-  map(cell_x, cell_y, 0, 0, 16, 16)
+  map(cell_x, cell_y, 0, 0, 16, 16, 1)
 end
 
 -- sorting network, ascending
@@ -279,16 +289,15 @@ function overlaps_solids(x, y, w, h)
     if (fget(mget2(cell_x, cell_y), 0)) then
       -- collides with a wall. Let's see if it's a portal
       local in_portal = false
-      if (portal_m.left_portal ~= nil and portal_m.right_portal ~= nil) then
-        local portal = portal_m.left_portal
-        if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
-          in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
-        end
-        portal = portal_m.right_portal
-        if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
-          in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
+
+      if (#portal_m.chain > 1) then
+        for portal in all(portal_m.chain) do
+          if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
+            in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
+          end
         end
       end
+
       any_in_portal = any_in_portal or in_portal
 
       -- hit a solid wall. no need to check anything else
@@ -343,9 +352,12 @@ end
 -------------------
 portal_manager_t = gameobject:new{
   candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
-  left_portal = nil, -- cell_x, cell_y, dir_x, dir_x
-  right_portal = nil -- cell_x, cell_y, dir_x, dir_x
+  chain = nil -- [{cell_x, cell_y, dir_x, dir_x}]
 }
+
+function portal_manager_t:start()
+  self.chain = {}
+end
 
 function portal_manager_t:update()
   -- update mouse position
@@ -396,39 +408,21 @@ function portal_manager_t:update()
 
   if (stat(34) & 0x1 == 1) then
     self:place_portal(0, self.candidate)
-  elseif (stat(34) & 0x2 == 2) then
-    self:place_portal(1, self.candidate)
   end
 end
 
 function portal_manager_t:place_portal(side, candidate)
-  if (candidate == nil) then
+  if (candidate == nil or time_scale ~= 0) then
     return
   end
 
-  if (side == 0) then
-    if (self.left_portal ~= nil and not portals_equal(self.left_portal, candidate)) then
-      while (overlaps_portal(self.left_portal, cash.x, cash.y, cash.rb.width, cash.rb.height)) do
-        cash.x += self.left_portal.dir_x
-        cash.y += self.left_portal.dir_y
-      end
-    end
-    self.left_portal = candidate
-    if (self.right_portal ~= nil and portals_equal(self.left_portal, self.right_portal)) then
-      self.right_portal = nil
-    end
-  else
-    if (self.right_portal ~= nil and not portals_equal(self.right_portal, candidate)) then
-      while (overlaps_portal(self.right_portal, cash.x, cash.y, cash.rb.width, cash.rb.height)) do
-        cash.x += self.right_portal.dir_x
-        cash.y += self.right_portal.dir_y
-      end
-    end
-    self.right_portal = candidate
-    if (self.left_portal ~= nil and portals_equal(self.left_portal, self.right_portal)) then
-      self.left_portal = nil
+  for portal in all(self.chain) do
+    if (portals_equal(candidate, portal)) then
+      return
     end
   end
+
+  add(self.chain, candidate)
 end
 
 function portal_manager_t:draw()
@@ -436,12 +430,8 @@ function portal_manager_t:draw()
     self:draw_portal(self.candidate, 11)
   end
 
-  if (self.left_portal ~= nil) then
-    self:draw_portal(self.left_portal, 9)
-  end
-
-  if (self.right_portal ~= nil) then
-    self:draw_portal(self.right_portal, 12)
+  for portal in all(self.chain) do
+    self:draw_portal(portal, 9)
   end
 
   sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
@@ -465,8 +455,8 @@ rigidbody_t = gameobject:new{
   friction = 0.9,
   bounciness = 0.4,
   bounce_friction = 0.9, -- bounciness on the tangent
-  max_vx = 9, -- max velocity
-  max_vy = 9
+  max_vx = 5, -- max velocity
+  max_vy = 5
 }
 
 function rigidbody_t:start()
@@ -474,7 +464,12 @@ function rigidbody_t:start()
   --self.y_remainder = self.go.y
 end
 
+local iii = 0
 function rigidbody_t:update()
+  if (time_scale == 1) then
+    iii += 1
+    --printh_nums('cv', iii, self.vx, self.vy)
+  end
   -- apply ground friction and gravity
   local grounded = self:is_grounded()
   if (grounded) then
@@ -482,7 +477,7 @@ function rigidbody_t:update()
   end
 
   if (not grounded or self.vy < 0) then
-    self.vy += self.ay
+    self.vy += self.ay * time_scale
   end
 
   -- acceleration and velocity cap
@@ -494,12 +489,14 @@ function rigidbody_t:update()
   end
 
   -- movement
-  local x = flr(abs(self.vx)) + 1
-  local y = flr(abs(self.vy)) + 1
+  local vx = self.vx * time_scale
+  local vy = self.vy * time_scale
+  local x = flr(abs(vx)) + 1
+  local y = flr(abs(vy)) + 1
   for i=1, max(x, y) do
     if (x > 0) then
       x -= 1
-      self:move_x(sgn(self.vx) * (x > 0 and 1 or (abs(self.vx) % 1)),
+      self:move_x(sgn(vx) * (x > 0 and 1 or (abs(vx) % 1)),
         function()
           if (self:handle_portal()) then
             x = 0
@@ -516,7 +513,7 @@ function rigidbody_t:update()
 
     if (y > 0) then
       y -= 1
-      self:move_y(sgn(self.vy) * (y > 0 and 1 or (abs(self.vy) % 1)),
+      self:move_y(sgn(vy) * (y > 0 and 1 or (abs(vy) % 1)),
         function()
           if (self:handle_portal()) then
             x = 0
@@ -544,16 +541,13 @@ function rigidbody_t:is_grounded()
   end
 
   -- if we're in or above an active portal, we're not grounded
-  if (portal_m.left_portal == nil or portal_m.right_portal == nil) then
+  if (#portal_m.chain < 2) then
     return true
   end
-
-  if (overlaps_portal(portal_m.left_portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
-    return false
-  end
-
-  if (overlaps_portal(portal_m.right_portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
-    return false
+  for portal in all(portal_m.chain) do
+    if (overlaps_portal(portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
+      return false
+    end
   end
 
   return true
@@ -610,27 +604,32 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
 end
 
 function rigidbody_t:handle_portal()
-  local center_in_left_portal  = self:edge_in_portal(portal_m.left_portal)
-  local center_in_right_portal = self:edge_in_portal(portal_m.right_portal)
+  local num_portals = #portal_m.chain
+  for i = 1, num_portals do
+    if (self:edge_in_portal(portal_m.chain[i])) then
+      p1 = portal_m.chain[i]
+      p2 = portal_m.chain[(i%num_portals)+1]
+      local p2x, p2y, p2w, p2h = portal_positions(p2)
+      self.go.x = flr(p2x + p2w/2 - self.width/2)
+      self.go.y = flr(p2y + p2h/2 - self.height/2)
 
-  if (not center_in_left_portal and not center_in_right_portal) then
-    return false
+      local v_normal  = p1.dir_x == 0 and self.vy or self.vx
+      local v_tangent = p1.dir_x == 0 and self.vx or self.vy
+
+      self.vx = p2.dir_x == 0 and v_tangent or p2.dir_x * v_normal
+      self.vy = p2.dir_x == 0 and p2.dir_y * v_normal or v_tangent
+      
+--      local speed = dist(0, 0, self.vx, self.vy)
+--      self.vx = speed * p2.dir_x
+--      -- needed to preserve momentum if the teleport threshold is in the center
+--      --self.vy = (speed + self.ay) * p2.dir_y
+--      self.vy = speed * p2.dir_y
+
+      return true
+    end
   end
 
-  local p1 = center_in_left_portal and portal_m.left_portal or portal_m.right_portal
-  local p2 = center_in_left_portal and portal_m.right_portal or portal_m.left_portal
-
-  local p2x, p2y, p2w, p2h = portal_positions(p2)
-  self.go.x = flr(p2x + p2w/2 - self.width/2)
-  self.go.y = flr(p2y + p2h/2 - self.height/2)
-
-  local speed = dist(0, 0, self.vx, self.vy)
-  self.vx = speed * p2.dir_x
-  -- needed to preserve momentum if the teleport threshold is in the center
-  --self.vy = (speed + self.ay) * p2.dir_y
-  self.vy = speed * p2.dir_y
-
-  return true
+  return false
 end
 
 -- checks to see if the outer middle pixel overlaps the portal
@@ -659,6 +658,89 @@ cash_t = gameobject:new{
 
 }
 
+function cash_t:update()
+  -- time slow. this should prbably be handled somewhere else
+--  if (btn(4)) then
+--    time_scale = max(0.1, time_scale * 0.7)
+--  else
+--    time_scale = min(1, time_scale * 1.1)
+--  end
+end
+
 function cash_t:draw()
   sspr(11, 18, 3, 3, self.go.x, self.go.y)
+end
+
+level_manager_t = gameobject:new{
+
+}
+
+function level_manager_t:start()
+  time_scale = 0
+end
+
+function level_manager_t:update()
+  if (btnp(4) and time_scale == 0) then
+    time_scale = 1
+  elseif (btnp(4) and time_scale == 1) then
+    self:restart_level()
+  elseif (btnp(5) and time_scale == 0) then
+    portal_m.chain = {}
+  end
+end
+
+function level_manager_t:restart_level()
+  -- reset time
+  time_scale = 0
+  iii = 0
+
+  -- reset cash
+  l = levels[level]
+  cash.x = l.start_x
+  cash.y = l.start_y
+  cash.rb.vx = l.start_vx
+  cash.rb.vy = l.start_vy
+  cash.rb.x_remainder = 0
+  cash.rb.y_remainder = 0
+
+  -- clear remaining pickups
+  for layer in all(gameobjects) do
+    for go in all(layer) do
+      if (go:get_component(pickup_t) ~= nil) then
+        destroy(go)
+      end
+    end
+  end  
+
+  -- create new pickups
+  for x = 0, 15 do
+    for y = 0, 15 do
+      -- 34 == pickup sprite
+      if (mget2(x, y) == 34) then
+        pickup = gameobject:new{x=x*8, y=y*8}
+        pickup:add_component(pickup_t:new())
+        instantiate(pickup)
+      end
+    end
+  end
+end
+
+pickup_t = gameobject:new{
+  spawn_x = 0,
+  spawn_y = 0
+}
+
+function pickup_t:start()
+  self.spawn_x = self.go.x
+  self.spawn_y = self.go.y
+end
+
+function pickup_t:update()
+  if (dist(self.go.x, self.go.y, cash.x, cash.y) < 5) then
+    destroy(self.go)
+  end
+end
+
+function pickup_t:draw()
+  spr(34, self.spawn_x + sin(time() - self.spawn_x/128), self.spawn_y + cos(time() - self.spawn_y/128))
 end
