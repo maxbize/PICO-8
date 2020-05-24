@@ -33,6 +33,7 @@ local levels = {
 local portal_m = nil -- type portal_manager_t
 local cash = nil     -- type gameobject
 local level_m = nil  -- type level_manager_t
+local particle_m = nil -- type particle_manager_t
 
 -------------------
 -- main methods
@@ -57,6 +58,10 @@ function _init()
   level_m = level_manager:add_component(level_manager_t:new())
   instantiate(level_manager)
   level_m:restart_level()
+
+  particle_manager = gameobject:new()
+  particle_m = particle_manager:add_component(particle_manager_t:new())
+  instantiate(particle_manager)
 end
 
 function _update60()
@@ -368,6 +373,72 @@ end
 -------------------
 -- game types
 -------------------
+particle_manager_t = gameobject:new({
+  particles = {},
+  index = 1,
+  max_particles = 1000
+})
+
+function particle_manager_t:start()
+  for i=1,self.max_particles do
+    self.particles[i] = {
+      x = -1,
+      y = -1,
+      vx = 0,
+      vy = 0,
+      ax = 0,
+      ay = 0,
+      frames = 0,
+      color = 0
+    }
+  end
+end
+
+function particle_manager_t:update()
+  for p in all(self.particles) do
+    if (p.frames > 0) then
+      p.vx += p.ax
+      p.vy += p.ay
+      p.x += p.vx
+      p.y += p.vy
+      p.frames -= 1
+    end
+  end
+end
+
+function particle_manager_t:draw()
+  for p in all(self.particles) do
+    if (p.frames > 0) then
+      pset(p.x, p.y, p.color)
+    end
+  end
+end
+
+function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames, layer)
+  local seek = 10
+  while (seek > 0) do
+    seek -= 1
+    self.index += 1
+    if (self.index > self.max_particles) then
+      self.index = 1
+    end
+    if (self.particles[self.index].frames < 5) then
+      seek = 0
+    end
+  end
+
+  local p = self.particles[self.index]
+
+  p.x = x
+  p.y = y
+  p.vx = vx
+  p.vy = vy
+  p.ax = ax
+  p.ay = ay
+  p.color = color
+  p.frames = frames
+end
+
 portal_manager_t = gameobject:new{
   candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
   chain = nil, -- [{cell_x, cell_y, dir_x, dir_x}]
@@ -427,6 +498,10 @@ function portal_manager_t:update()
   end
 
   -- handle user input
+  if (time_scale == 1) then
+    return
+  end
+
   local this_mouse = stat(34)
   local left_mouse       = this_mouse & 0x1 == 1
   local left_mouse_down  = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
@@ -438,16 +513,16 @@ function portal_manager_t:update()
   
   if (left_mouse_down) then
     local existing, index = self:find_in_chain(self.candidate)
-    if (existing == nil) then
+    if (existing == nil and self.candidate ~= nil) then
       self:place_portal(self.candidate)
       self.move_index = #self.chain
     else
       self.move_index = index
     end
-  elseif (right_mouse_down) then
-    self:remove_portal(self.candidate)
   elseif (self.move_index ~= 0) then
     self:move_portal(self.candidate, self.move_index)
+  elseif (right_mouse_down) then
+    self:remove_portal(self.candidate)
   end
   self.last_mouse = this_mouse
 end
@@ -469,7 +544,7 @@ function portal_manager_t:remove_portal(candidate)
 end
 
 function portal_manager_t:place_portal(candidate)
-  if (candidate == nil or time_scale ~= 0) then
+  if (candidate == nil) then
     return
   end
 
@@ -797,8 +872,7 @@ function level_manager_t:restart_level()
 end
 
 pickup_t = gameobject:new{
-  spawn_x = 0,
-  spawn_y = 0
+  chase_time = 0
 }
 
 function pickup_t:start()
@@ -807,11 +881,30 @@ function pickup_t:start()
 end
 
 function pickup_t:update()
-  if (dist(self.go.x, self.go.y, cash.x, cash.y) < 5) then
+  -- 4 == half sprite width/height
+  local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
+  
+
+  if (self.chase_time == 0 and distance < 5) then
+    self.chase_time = time()
+  end
+
+  if (self.chase_time > 0) then
+    self.go.x += (cash.x + cash.rb.width/2  - self.go.x - 4) * (time() - self.chase_time) * 2
+    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 4) * (time() - self.chase_time) * 2
+  end
+
+  local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
+
+  if (distance < 1) then
+    for i = 1, 20 do
+--(x, y, vx, vy, ax, ay, color, frames, layer)
+      particle_m:add_particle(self.go.x + 4, self.go.y + 4, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(10)+10)
+    end
     destroy(self.go)
   end
 end
 
 function pickup_t:draw()
-  spr(34, self.spawn_x + sin(time() - self.spawn_x/128), self.spawn_y + cos(time() - self.spawn_y/128))
+  spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
 end
