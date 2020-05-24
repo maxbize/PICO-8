@@ -370,7 +370,9 @@ end
 -------------------
 portal_manager_t = gameobject:new{
   candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
-  chain = nil -- [{cell_x, cell_y, dir_x, dir_x}]
+  chain = nil, -- [{cell_x, cell_y, dir_x, dir_x}]
+  last_mouse = 0, -- stat(34) from last frame
+  move_index = 0 -- if we're moving a portal, this is the index of that portal
 }
 
 function portal_manager_t:start()
@@ -424,23 +426,60 @@ function portal_manager_t:update()
     end
   end
 
-  if (stat(34) & 0x1 == 1) then
-    self:place_portal(0, self.candidate)
+  -- handle user input
+  local this_mouse = stat(34)
+  local left_mouse       = this_mouse & 0x1 == 1
+  local left_mouse_down  = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
+  local right_mouse_down = self.last_mouse & 0x2 == 0 and this_mouse & 0x2 == 2
+  
+  if (self.move_index ~= 0 and not left_mouse) then
+    self.move_index = 0
+  end
+  
+  if (left_mouse_down) then
+    local existing, index = self:find_in_chain(self.candidate)
+    if (existing == nil) then
+      self:place_portal(self.candidate)
+      self.move_index = #self.chain
+    else
+      self.move_index = index
+    end
+  elseif (right_mouse_down) then
+    self:remove_portal(self.candidate)
+  elseif (self.move_index ~= 0) then
+    self:move_portal(self.candidate, self.move_index)
+  end
+  self.last_mouse = this_mouse
+end
+
+function portal_manager_t:find_in_chain(candidate)
+  if (candidate == nil) then
+    return
+  end
+
+  for i = 1, #self.chain do
+    if (portals_equal(self.chain[i], self.candidate)) then
+      return self.chain[i], i
+    end
   end
 end
 
-function portal_manager_t:place_portal(side, candidate)
+function portal_manager_t:remove_portal(candidate)
+  del(self.chain, self:find_in_chain(candidate))
+end
+
+function portal_manager_t:place_portal(candidate)
   if (candidate == nil or time_scale ~= 0) then
     return
   end
 
-  for portal in all(self.chain) do
-    if (portals_equal(candidate, portal)) then
-      return
-    end
-  end
-
   add(self.chain, candidate)
+end
+
+function portal_manager_t:move_portal(candidate, index)
+  if (candidate ~= nil) then
+    self.chain[index] = candidate
+  end
 end
 
 function portal_manager_t:draw()
