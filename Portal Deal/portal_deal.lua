@@ -231,6 +231,24 @@ function printh_nums(prefix, n1, n2, n3, n4)
   s = n4 ~= nil and s..tostr(n4)..' ' or s
   printh(s)
 end
+
+-- draws a dotted line, animated by tweaking phase (0-1)
+function draw_dotted_line(x1, y1, x2, y2, color)
+  local length = dist(x1, y1, x2, y2)
+  local dx = x2 - x1
+  local dy = y2 - y1
+  local phase = time() * 2 % 1
+  local num_dots = 10 -- not really ;)
+  local skip = 4
+  for i = -1, num_dots, skip do
+    local t1 = (i + phase*skip)     / (num_dots)
+    local t2 = (i + phase*skip + 1) / (num_dots)
+    t2 = max(0, min(1, t2))
+    t1 = max(0, min(1, t1))
+    line(x1 + dx * t1, y1 + dy * t1, x1 + dx * t2, y1 + dy * t2, color)
+  end
+end
+
 -------------------
 -- game-specific helper methods
 -------------------
@@ -430,8 +448,22 @@ function portal_manager_t:draw()
     self:draw_portal(self.candidate, 11)
   end
 
-  for portal in all(self.chain) do
-    self:draw_portal(portal, 9)
+  local highlighted_portal = nil
+
+  for i = 1, #self.chain do
+    self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
+    if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
+      highlighted_portal = i
+    end
+  end
+
+  if (highlighted_portal ~= nil and #self.chain > 1) then
+    local p0x, p0y, p0w, p0h = portal_positions(self.chain[highlighted_portal == 1 and #self.chain or highlighted_portal-1])
+    local p1x, p1y, p1w, p1h = portal_positions(self.chain[highlighted_portal])
+    local p2x, p2y, p2w, p2h = portal_positions(self.chain[(highlighted_portal%#self.chain)+1])
+    
+    draw_dotted_line(p0x + flr(p0w/2), p0y + flr(p0h/2), p1x + flr(p1w/2), p1y + flr(p1h/2), 14, time()*5%1, 5)
+    draw_dotted_line(p1x + flr(p1w/2), p1y + flr(p1h/2), p2x + flr(p2w/2), p2y + flr(p2h/2), 15, time()*5%1, 5)
   end
 
   sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
