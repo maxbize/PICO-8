@@ -24,9 +24,20 @@ local walls = { -- indexed by sprite number
   [6]={up=false, right=true, down=false, left=false},
   [7]={up=false, right=false, down=true, left=false},
   [8]={up=false, right=false, down=false, left=true},
+  [9]={up=false, right=true, down=true, left=true},
+  [10]={up=true, right=false, down=true, left=true},
+  [11]={up=true, right=true, down=false, left=true},
+  [12]={up=true, right=true, down=true, left=false},
+  [13]={up=true, right=false, down=false, left=true},
+  [14]={up=true, right=true, down=false, left=false},
+  [15]={up=false, right=true, down=true, left=false},
+  [16]={up=false, right=false, down=true, left=true},
 }
 local levels = {
-  {start_x=60, start_y=105, start_vx=1, start_vy=0}
+  {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
+  {start_x=100, start_y=48, start_vx=2, start_vy=0, gold=7, silver=14, bronze=21}, -- very hard
+  {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=12, bronze=18}, -- medium
+  {start_x=60, start_y=105, start_vx=1, start_vy=0, gold=5, silver=10, bronze=15}, -- hard
 }
 
 -- singletons (_m == manager)
@@ -49,7 +60,7 @@ function _init()
   portal_m = portal:add_component(portal_manager_t:new())
   instantiate(portal)
 
-  cash = gameobject:new{x=60, y=91}
+  cash = gameobject:new{x=60, y=91, layer=3}
   cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
   instantiate(cash)
@@ -59,7 +70,7 @@ function _init()
   instantiate(level_manager)
   level_m:restart_level()
 
-  particle_manager = gameobject:new()
+  particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
   instantiate(particle_manager)
 end
@@ -97,13 +108,16 @@ end
 function _draw()
   cls(5)
 
-  draw_map()
-
   for i=1,count(gameobjects) do
     for go in all(gameobjects[i]) do
       go:draw_components()
     end
+
+    if (i == 1) then
+      draw_map()
+    end
   end
+
 
   print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
   --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 7, 0)
@@ -610,12 +624,7 @@ function rigidbody_t:start()
   --self.y_remainder = self.go.y
 end
 
-local iii = 0
 function rigidbody_t:update()
-  if (time_scale == 1) then
-    iii += 1
-    --printh_nums('cv', iii, self.vx, self.vy)
-  end
   -- apply ground friction and gravity
   local grounded = self:is_grounded()
   if (grounded) then
@@ -824,7 +833,7 @@ function cash_t:draw()
 end
 
 level_manager_t = gameobject:new{
-
+  num_pickups = 0
 }
 
 function level_manager_t:start()
@@ -832,19 +841,28 @@ function level_manager_t:start()
 end
 
 function level_manager_t:update()
+  -- handle input
   if (btnp(4) and time_scale == 0) then
     time_scale = 1
   elseif (btnp(4) and time_scale == 1) then
     self:restart_level()
-  elseif (btnp(5) and time_scale == 0) then
-    portal_m.chain = {}
+--elseif (btnp(5) and time_scale == 0) then
+--  portal_m.chain = {}
   end
+
+  -- check/advance to next level
+  if (self.num_pickups == 0) then
+    self:restart_level()
+  end
+end
+
+function level_manager_t:notify_pickup()
+  self.num_pickups -= 1
 end
 
 function level_manager_t:restart_level()
   -- reset time
   time_scale = 0
-  iii = 0
 
   -- reset cash
   l = levels[level]
@@ -865,10 +883,12 @@ function level_manager_t:restart_level()
   end  
 
   -- create new pickups
+  self.num_pickups = 0
   for x = 0, 15 do
     for y = 0, 15 do
       -- 34 == pickup sprite
       if (mget2(x, y) == 34) then
+        self.num_pickups += 1
         pickup = gameobject:new{x=x*8, y=y*8}
         pickup:add_component(pickup_t:new())
         instantiate(pickup)
@@ -904,8 +924,9 @@ function pickup_t:update()
 
   if (distance < 1) then
     for i = 1, 20 do
-      particle_m:add_particle(self.go.x + 4, self.go.y + 4, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(10)+10)
+      particle_m:add_particle(self.go.x + 4, self.go.y + 4, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(5)+5)
     end
+    level_m:notify_pickup()
     destroy(self.go)
   end
 end
