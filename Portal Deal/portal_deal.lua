@@ -13,6 +13,8 @@ for i=1,4 do
   add(gameobjects, {}) -- 4 layers: background, default, foreground, UI
 end
 
+local gradients = {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
+
 -- game data
 local walls = { -- indexed by sprite number
   [1]={up=true, right=true, down=true, left=true},
@@ -32,6 +34,7 @@ local walls = { -- indexed by sprite number
   [15]={up=false, right=true, down=true, left=false},
   [16]={up=false, right=false, down=true, left=true},
 }
+
 local level = 10
 local levels = {
   {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
@@ -47,10 +50,11 @@ local levels = {
 }
 
 -- singletons (_m == manager)
-local portal_m = nil -- type portal_manager_t
-local cash = nil     -- type gameobject
-local level_m = nil  -- type level_manager_t
+local portal_m = nil   -- type portal_manager_t
+local cash = nil       -- type gameobject
+local level_m = nil    -- type level_manager_t
 local particle_m = nil -- type particle_manager_t
+local menu_m = nil     -- type menu_manager_t
 
 -------------------
 -- main methods
@@ -75,6 +79,10 @@ function _init()
   level_m = level_manager:add_component(level_manager_t:new())
   instantiate(level_manager)
   level_m:restart_level()
+
+  menu_manager = gameobject:new{layer=4}
+  menu_m = menu_manager:add_component(menu_manager_t:new())
+  instantiate(menu_manager)
 
   particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
@@ -125,7 +133,7 @@ function _draw()
   end
 
 
-  print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
+  --print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
   --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 7, 0)
   --print('mem: '..stat(0), 1, 13, 0)
 end
@@ -219,6 +227,11 @@ end
 -------------------
 -- generic helper methods
 -------------------
+function print_shadowed(text, x, y, color)
+  print(text, x, y-1, gradients[color])
+  print(text, x, y, color)
+end
+
 -- returns the cell index at x, y
 function cell_at_point(x, y)
   return flr(x / 8), flr(y / 8)
@@ -941,3 +954,75 @@ function pickup_t:draw()
   spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
   --pset(self.go.x + 4, self.go.y + 3, 0)
 end
+
+menu_manager_t = gameobject:new{
+  active = true,
+  selected_level = -1,
+  last_mouse = 0
+}
+
+function menu_manager_t:start()
+  cartdata('maxbize_portaldeal_1')
+end
+
+function menu_manager_t:update()
+  -- update mouse position
+  self.go.x = stat(32)
+  self.go.y = stat(33)
+
+  if (self.go.y >= 25 and self.go.y < 115) then
+    self.selected_level = flr((self.go.y - 25)/9) + 1
+  else
+    self.selected_level = -1
+  end
+
+  local this_mouse = stat(34)
+  local left_mouse_down = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
+  if (left_mouse_down and self.selected_level > -1) then
+    local unlocked = self.selected_level == 1 or dget(self.selected_level - 1) > 0
+    if (unlocked) then
+      -- todo: switch to playing level
+    end
+  end
+  self.last_mouse = this_mouse
+
+end
+
+function menu_manager_t:draw()
+  rectfill(0, 0, 128, 128, 15)
+  rectfill(0, 25, 128, 116, 4)
+
+  sspr(0, 32, 128, 32, 0, 3)
+  print_shadowed('@maxbize', 48, 120, 7)
+
+  if (self.selected_level ~= -1) then
+    local i = self.selected_level - 1
+    rectfill(0, 26 + i * 9, 128, 34 + i * 9, 2)
+  end
+
+  for i = 1, 10 do
+    local best = dget(i)
+    local unlocked = i == 1 or dget(i-1) > 0
+    local x = 19
+    local y = 19
+
+    print_shadowed('level '..(i < 10 and ' ' or '')..i, x, y + i * 9, unlocked and 7 or 1)
+    
+    if (best ~= 0) then
+      spr(best <= levels[i].gold   and 36 or 39, x+44, (y-1) + i * 9)
+      spr(best <= levels[i].silver and 37 or 39, x+52, (y-1) + i * 9)
+      spr(best <= levels[i].bronze and 38 or 39, x+60, (y-1) + i * 9)
+    else
+      spr(39, x+44, (y-1) + i * 9)
+      spr(39, x+52, (y-1) + i * 9)
+      spr(39, x+60, (y-1) + i * 9)
+    end
+    print_shadowed(best, x+80, y + i * 9, unlocked and 7 or 1)
+
+  end
+
+  sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+
+
+end
+
