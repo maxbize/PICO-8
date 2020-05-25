@@ -26,7 +26,7 @@ local walls = { -- indexed by sprite number
   [8]={up=false, right=false, down=false, left=true},
 }
 local levels = {
-  {start_x=60, start_y=90, start_vx=1, start_vy=0}
+  {start_x=60, start_y=105, start_vx=1, start_vy=0}
 }
 
 -- singletons (_m == manager)
@@ -601,8 +601,8 @@ rigidbody_t = gameobject:new{
   friction = 0.9,
   bounciness = 0.4,
   bounce_friction = 0.9, -- bounciness on the tangent
-  max_vx = 5, -- max velocity
-  max_vy = 5
+  max_vx = 3, -- max velocity
+  max_vy = 3
 }
 
 function rigidbody_t:start()
@@ -891,20 +891,19 @@ function pickup_t:update()
   local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
   
 
-  if (self.chase_time == 0 and distance < 5) then
+  if (self.chase_time == 0 and distance < 8) then
     self.chase_time = time()
   end
 
   if (self.chase_time > 0) then
-    self.go.x += (cash.x + cash.rb.width/2  - self.go.x - 4) * (time() - self.chase_time) * 2
-    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 4) * (time() - self.chase_time) * 2
+    self.go.x += (cash.x + cash.rb.width/2  - self.go.x - 4) * 0.8
+    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 4) * 0.8
   end
 
   local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
 
   if (distance < 1) then
     for i = 1, 20 do
---(x, y, vx, vy, ax, ay, color, frames, layer)
       particle_m:add_particle(self.go.x + 4, self.go.y + 4, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(10)+10)
     end
     destroy(self.go)
