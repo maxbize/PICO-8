@@ -762,9 +762,15 @@ function rigidbody_t:handle_portal()
       local v_normal  = p1.dir_x == 0 and self.vy or self.vx
       local v_tangent = p1.dir_x == 0 and self.vx or self.vy
 
-      self.vx = p2.dir_x == 0 and v_tangent or p2.dir_x * v_normal
-      self.vy = p2.dir_x == 0 and p2.dir_y * v_normal or v_tangent
-      
+      if (p2.dir_x ~= 0) then
+        self.vx = abs(v_normal) * p2.dir_x
+        self.vy = p1.dir_x == 0 and -abs(v_tangent) or v_tangent
+      else
+        self.vx = v_tangent
+        self.vy = abs(v_normal) * p2.dir_y
+      end
+
+
 --      local speed = dist(0, 0, self.vx, self.vy)
 --      self.vx = speed * p2.dir_x
 --      -- needed to preserve momentum if the teleport threshold is in the center
