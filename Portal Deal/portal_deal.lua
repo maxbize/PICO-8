@@ -14,7 +14,6 @@ for i=1,4 do
 end
 
 -- game data
-local level = 1
 local walls = { -- indexed by sprite number
   [1]={up=true, right=true, down=true, left=true},
   [2]={up=false, right=false, down=false, left=false},
@@ -33,11 +32,18 @@ local walls = { -- indexed by sprite number
   [15]={up=false, right=true, down=true, left=false},
   [16]={up=false, right=false, down=true, left=true},
 }
+local level = 10
 local levels = {
   {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
-  {start_x=100, start_y=48, start_vx=2, start_vy=0, gold=7, silver=14, bronze=21}, -- very hard
-  {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=12, bronze=18}, -- medium
-  {start_x=60, start_y=105, start_vx=1, start_vy=0, gold=5, silver=10, bronze=15}, -- hard
+  {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=10, bronze=16}, -- medium
+  {start_x=30, start_y=95, start_vx=3, start_vy=-2, gold=6, silver=10, bronze=16}, -- easy
+  {start_x=60, start_y=105, start_vx=1, start_vy=0, gold=5, silver=8, bronze=15}, -- hard
+  {start_x=66, start_y=95, start_vx=0, start_vy=0, gold=4, silver=6, bronze=10}, -- hard
+  {start_x=114, start_y=20, start_vx=0, start_vy=-3, gold=14, silver=15, bronze=20}, -- medium-hard
+  {start_x=100, start_y=48, start_vx=2, start_vy=0, gold=7, silver=10, bronze=15}, -- very hard
+  {start_x=42, start_y=100, start_vx=1, start_vy=1, gold=8, silver=12, bronze=16}, -- medium-hard
+  {start_x=66, start_y=30, start_vx=0, start_vy=0, gold=10, silver=12, bronze=16}, -- very hard
+  {start_x=64, start_y=64, start_vx=-3, start_vy=-3, gold=14, silver=20, bronze=30} -- easy (bonus)
 }
 
 -- singletons (_m == manager)
@@ -908,23 +914,23 @@ end
 
 function pickup_t:update()
   -- 4 == half sprite width/height
-  local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
+  local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
   
 
-  if (self.chase_time == 0 and distance < 8) then
+  if (self.chase_time == 0 and distance < 7.5) then
     self.chase_time = time()
   end
 
   if (self.chase_time > 0) then
     self.go.x += (cash.x + cash.rb.width/2  - self.go.x - 4) * 0.8
-    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 4) * 0.8
+    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 3) * 0.8
   end
 
-  local distance = dist(self.go.x + 4, self.go.y + 4, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
+  local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
 
   if (distance < 1) then
     for i = 1, 20 do
-      particle_m:add_particle(self.go.x + 4, self.go.y + 4, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(5)+5)
+      particle_m:add_particle(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
     destroy(self.go)
@@ -933,4 +939,5 @@ end
 
 function pickup_t:draw()
   spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
+  --pset(self.go.x + 4, self.go.y + 3, 0)
 end
