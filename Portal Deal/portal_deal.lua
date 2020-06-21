@@ -35,7 +35,7 @@ local walls = { -- indexed by sprite number
   [16]={up=false, right=false, down=true, left=true},
 }
 
-local level = 10
+local level = 1
 local levels = {
   {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
   {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=10, bronze=16}, -- medium
@@ -63,6 +63,8 @@ function _init()
   printh('')
   printh('--------------')
   printh('')
+
+  cartdata('maxbize_portaldeal_1')
 
   poke(0x5f2d, 1) -- enable mouse
 
@@ -484,6 +486,10 @@ function portal_manager_t:start()
 end
 
 function portal_manager_t:update()
+  if (menu_m.active) then
+    return
+  end
+
   -- update mouse position
   self.go.x = stat(32)
   self.go.y = stat(33)
@@ -871,6 +877,16 @@ function level_manager_t:update()
 
   -- check/advance to next level
   if (self.num_pickups == 0) then
+    local num_portals = #portal_m.chain
+    if (dget(level) == 0 or dget(level) > num_portals) then
+      dset(level, num_portals)
+    end
+    portal_m.chain = {}
+    if (level < #levels) then
+      level += 1
+    else
+      menu_m.active = true
+    end
     self:restart_level()
   end
 end
@@ -961,11 +977,11 @@ menu_manager_t = gameobject:new{
   last_mouse = 0
 }
 
-function menu_manager_t:start()
-  cartdata('maxbize_portaldeal_1')
-end
-
 function menu_manager_t:update()
+  if (not self.active) then
+    return
+  end
+
   -- update mouse position
   self.go.x = stat(32)
   self.go.y = stat(33)
@@ -981,14 +997,21 @@ function menu_manager_t:update()
   if (left_mouse_down and self.selected_level > -1) then
     local unlocked = self.selected_level == 1 or dget(self.selected_level - 1) > 0
     if (unlocked) then
-      -- todo: switch to playing level
+      -- todo: clean up hacks
+      self.active = false
+      level = self.selected_level
+      portal_m.last_mouse = this_mouse
+      level_m:restart_level()
     end
   end
   self.last_mouse = this_mouse
-
 end
 
 function menu_manager_t:draw()
+  if (not self.active) then
+    return
+  end
+
   rectfill(0, 0, 128, 128, 15)
   rectfill(0, 25, 128, 116, 4)
 
@@ -1022,7 +1045,5 @@ function menu_manager_t:draw()
   end
 
   sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
-
-
 end
 
