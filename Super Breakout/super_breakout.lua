@@ -255,9 +255,9 @@ function destroy(gameobject)
 end
 
 function _update60()
---  if (paused) then
---    return
---  end
+  if (paused) then
+    return
+  end
 
   camera(-(screen_shake % 2), 0)
   if (screen_shake > 0) then
@@ -607,10 +607,11 @@ function level_manager:update()
         paused = true
       end
     else
-      --init_level_editor()
+      init_level_editor()
     end
   elseif (self.num_balls == 0) then
     num_resets += 1
+    sfx(3)
     make_ball(0, 0, true)
   end
 
@@ -673,13 +674,13 @@ function level_editor:update()
     end
   end
 
-  -- left/right arrows
-  if (btnp(0)) then
+  -- left/right arrows / scroll wheel
+  if (btnp(0) or stat(36) < 0) then
     editor_brick = editor_bricks[editor_brick.index - 1]
     if (editor_brick == nil) then
       editor_brick = editor_bricks[#editor_bricks]
     end
-  elseif (btnp(1)) then
+  elseif (btnp(1) or stat(36) > 0) then
     editor_brick = editor_bricks[editor_brick.index + 1]
     if (editor_brick == nil) then
       editor_brick = editor_bricks[1]
@@ -718,7 +719,8 @@ function level_editor:draw()
   end
 
   sspr(123, 59, 2, 2, self.go.x - 1, self.go.y - 1)
-  print('brick:'..editor_brick.description, 1, 122, 0)
+  print(':'..editor_brick.description, 10, 122, 0)
+  spr(editor_brick.sprite, 1, 121)
 end
 
 ball = gameobject:new{
@@ -829,6 +831,7 @@ function ball:on_collision(other)
 
       if (self.next_ball <= 0) then
         make_ball(self.go.x, self.go.y)
+        sfx(2)
         self.next_ball = 5
         for i=1, 20 do
           pm:add_voxel(self.go.x, self.go.y, rnd(2)-1, -(rnd(1)), 0, 0, 10 + i%2, rnd(30)+10, 2)
