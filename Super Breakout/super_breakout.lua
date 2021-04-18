@@ -1,5 +1,6 @@
 -- pad variables
-local pad_speed = 1
+local pad_speed = 1 -- TODO: restore to 1.5 after fixing pad movement
+local pad_base_width = 20
 
 -- ball variables
 local ball_speed = 1.5
@@ -176,8 +177,8 @@ function spriterenderer:draw()
        flr(self.sprite / 16) * 8 + 2,
        8,
        4,
-       self.go.x - self.width  / 2 + render_offset,
-       self.go.y - self.height / 2,
+       self.go.x + render_offset,
+       self.go.y,
        self.width,
        self.height,
        self.flip_x)
@@ -207,8 +208,8 @@ function ssprrenderer:draw()
        self.sy,
        self.sw,
        self.sh,
-       self.go.x - self.sw / 2 + render_offset,
-       self.go.y - self.sh / 2,
+       self.go.x + render_offset,
+       self.go.y,
        self.dw,
        self.dh,
        self.flip_x)
@@ -226,8 +227,8 @@ function rigidbody:update()
   self.vx += self.ax
   self.vy += self.ay
 
-  self.go.x += self.vx
-  self.go.y += self.vy
+  self.go.x = round(self.go.x + self.vx)
+  self.go.y = round(self.go.y + self.vy)
 end
 
 rectcollider = gameobject:new{
@@ -261,7 +262,7 @@ function _update60()
     end
     return
   else
-    paused = true
+    --paused = true
   end
 
   camera(-(screen_shake % 2), 0)
@@ -313,27 +314,11 @@ function _draw()
   --print(dget(2))
 end
 
-function _check_collision(go1, go2)
-  if (  abs(go1.x - go2.x) < (go1.col.width + go2.col.width) / 2
-    and abs(go1.y - go2.y) < (go1.col.height + go2.col.height) / 2) then
-    for component in all(go1.components) do
-      if (component.on_collision ~= nil) then
-        component:on_collision(go2)
-      end
-    end
-    for component in all(go2.components) do
-      if (component.on_collision ~= nil) then
-        component:on_collision(go1)
-      end
-    end
-    return true
-  end
-  return false
-end
+function _check_overlap(go1, go2)
+-- If dx < width of left collider && dy < height of top collider then colliding
 
-function _check_collision2(go1, go2)
-  if (  abs(go1.x - go2.x) < (go1.col.width + go2.col.width) / 2
-    and abs(go1.y - go2.y) < (go1.col.height + go2.col.height) / 2) then
+  if (  abs(go1.x - go2.x) < (go1.x < go2.x and go1.col.width or go2.col.width)
+    and abs(go1.y - go2.y) < (go1.y < go2.y and go1.col.height or go2.col.height)) then
     return true
   end
   return false
@@ -360,20 +345,21 @@ function instanceof(obj, typ)
 end
 
 -- end engine code
-local x_offset = -4
-local y_offset = -2
+local x_offset = 0
+local y_offset = 0
 
 function brick_pos_to_index(x, y)
-  local x_index = (x - x_offset) / (brick_width + brick_gap)
-  local y_index = (y - y_offset) / (brick_height + brick_gap)
+  local x_index = flr(x / (brick_width  + brick_gap)) + 1
+  local y_index = flr(y / (brick_height + brick_gap)) + 1
+  return x_index, y_index, 0, 0
 
-  local x_delta = x_index % 1 > 0.5 and 1 or 0
-  x_index = flr(x_index) + x_delta
-
-  local y_delta = y_index % 1 > 0.5 and 1 or 0
-  y_index = flr(y_index) + y_delta
-
-  return x_index, y_index, x_delta, y_delta
+--  local x_delta = x_index % 1 > 0.5 and 1 or 0
+--  x_index = flr(x_index) + x_delta
+--
+--  local y_delta = y_index % 1 > 0.5 and 1 or 0
+--  y_index = flr(y_index) + y_delta
+--
+--  return x_index, y_index, x_delta, y_delta
 end
 
 function brick_at_index(x, y)
@@ -421,12 +407,13 @@ function load_brick(i, j, brick_type)
   if (static_bricks[i][j]) then
     return
   end
-  local x = x_offset + i * (brick_width + brick_gap)
-  local y = y_offset + j * (brick_height + brick_gap)
+  local x = brick_gap + (i - 1) * (brick_width + brick_gap)
+  local y = brick_gap + (j - 1) * (brick_height + brick_gap)
 
   local brick_obj = gameobject:new{x=x, y=y}
   brick_obj:add_component(spriterenderer:new{sprite=brick_type, flip_x=rnd(1)>0.5})
-  brick_obj:add_component(rectcollider:new{width=brick_width, height=brick_height})
+  -- Subtract 1 so that the bottom face won't collide
+  brick_obj:add_component(rectcollider:new{width=brick_width, height=brick_height - 1})
   instantiate(brick_obj)
 
   local brick_comp = brick_obj:add_component(brick:new{x_index=i, y_index=j})
@@ -739,7 +726,6 @@ end
 ball = gameobject:new{
   next_ball = 5,
   paddle_flag = false, -- eligible to decrement next ball
-  last_brick = nil, -- last brick this ball hit
   glued = false,
   vx = 0,
   vy = 0,
@@ -777,7 +763,7 @@ function ball:update()
     self.vx *= -1
   end
 
-  if (self.go.y < paddle_obj.y - (paddle_obj.col.height + self.go.col.height) / 2 - 1) then
+  if (self.go.y < paddle_obj.y) then
     self.paddle_flag = true
   end
 
@@ -786,24 +772,6 @@ function ball:update()
 
   -- NEW move logic
   self:move_y(self.vy)
-
-  -- check for brick collisions
---  local collided = false
---  for brick in all(static_bricks_near_pos(self.go.x, self.go.y)) do
---    -- brick first so that we can inspect ball velocity
---    if (brick == self.last_brick) then
---      collided = true -- not quite accurate. it could be a near miss
---    else
---      collided = collided or _check_collision(brick, self.go)
---    end
---  end
---
---  if (not collided) then
---    self.last_brick = nil
---  end
---
---  -- check for paddle collision
---  _check_collision(self.go, paddle_obj)
 
 end
 
@@ -821,20 +789,27 @@ function ball:move_y(amount)
       self.go.y += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
 
       local collided = false
+      local other = nil
       for brick in all(static_bricks_near_pos(self.go.x, self.go.y)) do
-        if (_check_collision2(brick, self.go)) then
+        if (_check_overlap(brick, self.go)) then
+          other = brick
           collided = true
           break
         end
       end
 
-      collided = collided or _check_collision2(self.go, paddle_obj)
+      if _check_overlap(self.go, paddle_obj) then
+        collided = true
+        other = paddle_obj
+      end
 
       if (collided) then
         -- on_collision
-        printh("collision")
         self.go.y -= sign
-        self.vy *= -1
+        self:on_collision(other)
+        if other ~= paddle_obj then
+          other:get_component(brick):on_collision(self)
+        end
         paused = true
         break
       else
@@ -846,7 +821,7 @@ function ball:move_y(amount)
 end
 
 function ball:draw()
-  sspr(124 - (self.next_ball - 1) * 3, 16, 2, 3, self.go.x - 0.5, self.go.y - 0.5)
+  sspr(124 - (self.next_ball - 1) * 3, 16, 2, 3, self.go.x, self.go.y)
 end
 
 function angle_vector(theta, magnitude)
@@ -863,9 +838,6 @@ end
 --end
 
 function ball:on_collision(other)
-  if true then
-    return -- this function should get replaced
-  end
   local pad = other:get_component(paddle)
   if (pad ~= nil) then
     -- paddle is a one-way, one-time collider
@@ -879,9 +851,11 @@ function ball:on_collision(other)
     if (self.vy > 0) then
       sfx(0, 0, 0, 1)
       local mag = dist(0, 0, self.vx, self.vy)
-      local dx = other.x - self.go.x
-      local theta = (dx / (other.col.width/2)) * 60 -- -60 to 60
+      local dx = other.x - self.go.x + pad_base_width / 2
+      local theta = (dx / other.col.width * 2) * 60 -- -60 to 60
+      printh(mag.." "..dx.." "..theta)
       self.vx, self.vy = angle_vector(theta, mag)
+      printh(self.vx)
       if (self.paddle_flag) then
         self.next_ball -= 1
 
@@ -910,63 +884,10 @@ function ball:on_collision(other)
     return
   end
 
-  self.last_brick = other
-
   -- one-way brick
   if (other.renderer.sprite % 16 == 3 and self.vy < 0) then
     return
   end
-
---  -- dx/dy from other nearest edge to self center
---  local dx, dy = 0
---  local dx = self.go.x - (other.x + other.col.width / 2 * (self.go.x > other.x and 1 or -1))
---  local dy = self.go.y - (other.y + other.col.height / 2 * (self.go.y > other.y and 1 or -1))
---
---  -- dir from other center to nearest edge
---  local dir_x = self.go.x > other.x and 1 or -1
---  local dir_y = self.go.y > other.y and 1 or -1
---
---  local collided_x = false
---  local collided_y = false
---
---  -- find which direction we collided from
---  if (abs(dx) <= 1 and abs(dy) <= 1) then
---    if (sgn(dir_y) == -sgn(self.vy)) then
---      collided_y = true
---    end
---    if (sgn(dir_x) == -sgn(self.vx)) then
---      collided_x = true
---    end
---  elseif (abs(dx) > abs(dy)) then
---    if (sgn(dir_y) == -sgn(self.vy)) then
---      collided_y = true
---    else
---      collided_x = true
---    end
---  else
---    if (sgn(dir_x) == -sgn(self.vx)) then
---      collided_x = true
---    else
---      collided_y = true
---    end
---  end
---
---  -- check that collision from the sides/top/bottom was possible
---  -- doesn't quite work on big bricks and i'm out of tokens so let's just ignore :)
---  if (other.renderer.sprite % 16 ~= 5) then
---    local brick_x, brick_y = brick_pos_to_index(other.x, other.y)
---    if (collided_x and (
---         (sgn(self.vx) > 0 and brick_at_index(brick_x - 1, brick_y)) 
---      or (sgn(self.vx) < 0 and brick_at_index(brick_x + 1, brick_y)))) then
---      collided_x = false
---      collided_y = true
---    elseif (collided_y and (
---         (sgn(self.vy) > 0 and brick_at_index(brick_x, brick_y - 1)) 
---      or (sgn(self.vy) < 0 and brick_at_index(brick_x, brick_y + 1)))) then
---      collided_y = false
---      collided_x = true
---    end
---  end
 
   -- flip velocity with slight random so we don't get stuck in loops
   if (collided_x) then
@@ -1020,8 +941,8 @@ function brick:draw()
          32 + 14 * (self.health % 2),
          17,
          14,
-         self.go.x-17/2 + render_offset,
-         self.go.y-14/2)
+         self.go.x + render_offset,
+         self.go.y)
   end
 end
 
@@ -1056,7 +977,6 @@ function brick:on_collision(other)
   if (sr.sprite == 11) then
     other.x = self.other_tp.x
     other.y = self.other_tp.y
-    b.last_brick = self.other_tp
     local distance = dist(self.go.x, self.go.y, self.other_tp.x, self.other_tp.y)
     local to_target_x = (self.other_tp.x - self.go.x) / distance
     local to_target_y = (self.other_tp.y - self.go.y) / distance
@@ -1145,10 +1065,12 @@ function brick:on_collision(other)
 end
 
 function brick:hit_particles(spawn_x, spawn_y, sprite)
+  spawn_x += self.go.col.width / 2
+  spawn_y += self.go.col.height / 2 + 0.5
   local sprite_x_start = (self.go.renderer.sprite % 16) * 8
   local sprite_y_start = flr(self.go.renderer.sprite / 16) * 8 + 2
 
-  sprite_particles(sprite_x_start, sprite_y_start, 8, 4, spawn_x, spawn_y, self.health)
+  sprite_particles(sprite_x_start, sprite_y_start, 7, 4, spawn_x, spawn_y, self.health)
 end
 
 function sprite_particles(sx, sy, sw, sh, spawn_x, spawn_y, skips)
@@ -1521,6 +1443,8 @@ function paddle:update()
     return
   end
 
+  self.target_sides = 10
+
   -- left/right movement
   local boost = btn(4) and 2 or 1
   if (btn(0)) then
@@ -1539,29 +1463,28 @@ function paddle:update()
   end
 
   -- border detection
-  local max_dx = (self.go.col.width - ball_size) / 2
-  if (self.go.x <= self.go.col.width / 2 + 1) then
-    self.go.x = self.go.col.width / 2 + 1
+  if (self.go.x <= self.sides) then
+    self.go.x = self.sides
     for ball_ref in all(self.glued_balls) do
       if (btn(0)) then
-        ball_ref.dx = max(-max_dx-1, ball_ref.dx - 1)
+        ball_ref.dx = max(-self.sides, ball_ref.dx - 1)
       end
     end
-  elseif (self.go.x >= 127 - self.go.col.width / 2) then
+  elseif (self.go.x >= 127 - self.go.col.width + self.sides) then
     for ball_ref in all(self.glued_balls) do
       if (btn(1)) then
-        ball_ref.dx = min(max_dx, ball_ref.dx + 1)
+        ball_ref.dx = min(self.go.col.width - self.sides - ball_size, ball_ref.dx + 1)
       end
     end
-    self.go.x = 127 - self.go.col.width / 2
+    self.go.x = 127 - self.go.col.width + self.sides
   end
 
   -- move / release glued balls
   for ball_ref in all(self.glued_balls) do
     ball_ref.obj.x = self.go.x + ball_ref.dx
-    ball_ref.obj.y = flr(self.go.y - self.go.col.height / 2 - ball_ref.obj.col.height / 2)
+    ball_ref.obj.y = self.go.y - 2
     if (btn(5) and render_offset == 0) then
-      ball_ref.obj.x += rnd(1) - 0.5
+      --ball_ref.obj.x += rnd(1) - 0.5 -- TODO: give a little randomness without messing up go.x
       local b = ball_ref.obj:get_component(ball)
       b.vy = ball_speed
       b.paddle_flag = true
@@ -1578,7 +1501,7 @@ function paddle:update()
   local vx = self.go.rb.vx * 0.25 - (transitioning and 2 or 0)
   if (abs(vx) > 0) then
     for i = 1, (btn(4) or transitioning) and 2 or 1 do
-      pm:add_particle(self.go.x, self.go.y + (rnd(1) > 0.5 and 1 or -2), 
+      pm:add_particle(self.go.x + (vx > 0 and 0 or 18), self.go.y + (rnd(1) > 0.5 and 0 or 3), 
         vx, 0, 0, 0, 8 + flr(rnd(2)), 12+rnd(5), 2)
     end
   end
@@ -1608,16 +1531,15 @@ function paddle:draw()
   end
 
   local sx = self.glue and 76 or 96
-  local base_width = 20
   local surprise = self.animation == 'surprise' and 1 or 0
-  sspr(sx, self.animation_x[self.animation], base_width, 4 + surprise, self.go.x - base_width / 2, self.go.y - 2 - surprise)
+  sspr(sx, self.animation_x[self.animation], pad_base_width, 4 + surprise, self.go.x, self.go.y - surprise)
 
   if (self.sides > 0) then
-    sspr(sx, 60, 1, 4, self.go.x - base_width / 2 - self.sides, self.go.y - 2)
-    sspr(sx, 60, 1, 4, self.go.x + base_width / 2 + self.sides - 1, self.go.y - 2)
+    sspr(sx, 60, 1, 4, self.go.x - self.sides, self.go.y)
+    sspr(sx, 60, 1, 4, self.go.x + pad_base_width + self.sides - 1, self.go.y)
     for i=0,self.sides do
-      sspr(sx+1, 60, 1, 4, self.go.x - base_width / 2 - (self.sides - 1), self.go.y - 2, self.sides - 1, 4)
-      sspr(sx+1, 60, 1, 4, self.go.x + base_width / 2, self.go.y - 2, self.sides - 1, 4)
+      sspr(sx+1, 60, 1, 4, self.go.x - (self.sides - 1), self.go.y, self.sides - 1, 4)
+      sspr(sx+1, 60, 1, 4, self.go.x + pad_base_width, self.go.y, self.sides - 1, 4)
     end
   end
 end
@@ -1897,7 +1819,7 @@ function _init()
   mm:add_component(main_menu)
   instantiate(mm)
 
-  paddle_obj = gameobject:new{x=64, y=115, layer=4}
+  paddle_obj = gameobject:new{x=64, y=113, layer=4}
   paddle_obj:add_component(rectcollider:new{width=20, height=3})
   paddle_obj:add_component(paddle:new())
   paddle_obj:add_component(rigidbody:new())
