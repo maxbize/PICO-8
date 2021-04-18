@@ -372,33 +372,34 @@ end
 
 function brick_at_pos(x, y)
   x_index, y_index = brick_pos_to_index(x, y)
-  return static_bricks[x_index][y_index]
+  return brick_at_index(x_index, y_index)
 end
 
 function static_bricks_near_pos(x, y)
   local bricks = {}
 
   local x_index, y_index, x_delta, y_delta = brick_pos_to_index(x, y)
+  add(bricks, static_bricks[x_index][y_index])
 
-  for i=0,1 do
-    for j=0,1 do
-      local x_index_neighbor = x_index - x_delta * i
-      if (x_index_neighbor > 0 and x_index_neighbor <= num_bricks_x) then
-        local brick_neighbor = static_bricks[x_index_neighbor][y_index - y_delta * j]
-        if (brick_neighbor ~= nil) then
-          local found = false
-          for b in all(bricks) do
-            if (b == brick_neighbor) then
-              found = true
-            end
-          end
-          if (not found) then
-            add(bricks, brick_neighbor)
-          end
-        end
-      end
-    end
-  end
+--  for i=0,1 do
+--    for j=0,1 do
+--      local x_index_neighbor = x_index - x_delta * i
+--      if (x_index_neighbor > 0 and x_index_neighbor <= num_bricks_x) then
+--        local brick_neighbor = static_bricks[x_index_neighbor][y_index - y_delta * j]
+--        if (brick_neighbor ~= nil) then
+--          local found = false
+--          for b in all(bricks) do
+--            if (b == brick_neighbor) then
+--              found = true
+--            end
+--          end
+--          if (not found) then
+--            add(bricks, brick_neighbor)
+--          end
+--        end
+--      end
+--    end
+--  end
 
   return bricks
 end
@@ -746,20 +747,20 @@ function ball:update()
   self.vy /= (mag / newSpeed)
 
   -- check bounds
-  -- TODO: Could maybe refactor into the new move logic
+  -- TODO: Should refactor into the new move logic
   if (self.go.y > 130) then
     lm.num_balls -= 1
     destroy(self.go)
-  elseif (self.go.y < self.go.col.height / 2) then
-    self.go.y = self.go.col.height / 2
+  elseif (self.go.y < 0) then
+    self.go.y = 0
     self.vy *= -1
   end
 
-  if (self.go.x < self.go.col.width / 2) then
-    self.go.x = self.go.col.width / 2
+  if (self.go.x < 0) then
+    self.go.x = 0
     self.vx *= -1
-  elseif (self.go.x > 127 - self.go.col.width / 2) then
-    self.go.x = 127 - self.go.col.width / 2
+  elseif (self.go.x > 127 - self.go.col.width) then
+    self.go.x = 127 - self.go.col.width
     self.vx *= -1
   end
 
@@ -772,7 +773,49 @@ function ball:update()
 
   -- NEW move logic
   self:move_y(self.vy)
+  self:move_x(self.vx)
 
+end
+
+function ball:move_x(amount)
+  self.x_remainder += amount
+  move = round(self.x_remainder)
+
+  if (move != 0) then
+    self.x_remainder -= move
+    sign = sgn(move)
+
+    while (move != 0) do
+      -- check for collisions
+
+      self.go.x += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
+
+      local collided = false
+      local other = brick_at_pos(self.go.x, self.go.y)
+      if (other ~= nil and _check_overlap(self.go, other)) then
+        collided = true
+      end
+
+      if _check_overlap(self.go, paddle_obj) then
+        collided = true
+        other = paddle_obj
+      end
+
+      if (collided) then
+        -- on_collision
+        self.go.x -= sign
+        self:on_collision(other, true, false)
+        if other ~= paddle_obj then
+          other:get_component(brick):on_collision(self)
+        end
+        paused = true
+        break
+      else
+        move -= sign
+      end
+
+    end
+  end
 end
 
 function ball:move_y(amount)
@@ -789,13 +832,9 @@ function ball:move_y(amount)
       self.go.y += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
 
       local collided = false
-      local other = nil
-      for brick in all(static_bricks_near_pos(self.go.x, self.go.y)) do
-        if (_check_overlap(brick, self.go)) then
-          other = brick
-          collided = true
-          break
-        end
+      local other = brick_at_pos(self.go.x, self.go.y)
+      if (other ~= nil and _check_overlap(self.go, other)) then
+        collided = true
       end
 
       if _check_overlap(self.go, paddle_obj) then
@@ -806,7 +845,7 @@ function ball:move_y(amount)
       if (collided) then
         -- on_collision
         self.go.y -= sign
-        self:on_collision(other)
+        self:on_collision(other, false, true)
         if other ~= paddle_obj then
           other:get_component(brick):on_collision(self)
         end
@@ -837,7 +876,7 @@ end
 --    y * st + y * ct
 --end
 
-function ball:on_collision(other)
+function ball:on_collision(other, collided_x, collided_y)
   local pad = other:get_component(paddle)
   if (pad ~= nil) then
     -- paddle is a one-way, one-time collider
@@ -851,11 +890,9 @@ function ball:on_collision(other)
     if (self.vy > 0) then
       sfx(0, 0, 0, 1)
       local mag = dist(0, 0, self.vx, self.vy)
-      local dx = other.x - self.go.x + pad_base_width / 2
-      local theta = (dx / other.col.width * 2) * 60 -- -60 to 60
-      printh(mag.." "..dx.." "..theta)
+      local dx = other.x - self.go.x - 1 -- -1 because that's the center of the ball
+      local theta = (dx / other.col.width) * 120 + 60 -- -60 to 60
       self.vx, self.vy = angle_vector(theta, mag)
-      printh(self.vx)
       if (self.paddle_flag) then
         self.next_ball -= 1
 
@@ -1460,23 +1497,24 @@ function paddle:update()
     self.animation_ticks += 2
     self.sides += sgn(self.target_sides - self.sides)
     self.go.col.width = 20 + 2 * self.sides
+    self.go.x -= 1
   end
 
   -- border detection
-  if (self.go.x <= self.sides) then
-    self.go.x = self.sides
+  if (self.go.x <= 0) then
+    self.go.x = 0
     for ball_ref in all(self.glued_balls) do
       if (btn(0)) then
-        ball_ref.dx = max(-self.sides, ball_ref.dx - 1)
+        ball_ref.dx = max(0, ball_ref.dx - 1)
       end
     end
-  elseif (self.go.x >= 127 - self.go.col.width + self.sides) then
+  elseif (self.go.x >= 127 - self.go.col.width) then
     for ball_ref in all(self.glued_balls) do
       if (btn(1)) then
-        ball_ref.dx = min(self.go.col.width - self.sides - ball_size, ball_ref.dx + 1)
+        ball_ref.dx = min(self.go.col.width - ball_size, ball_ref.dx + 1)
       end
     end
-    self.go.x = 127 - self.go.col.width + self.sides
+    self.go.x = 127 - self.go.col.width
   end
 
   -- move / release glued balls
@@ -1532,15 +1570,13 @@ function paddle:draw()
 
   local sx = self.glue and 76 or 96
   local surprise = self.animation == 'surprise' and 1 or 0
-  sspr(sx, self.animation_x[self.animation], pad_base_width, 4 + surprise, self.go.x, self.go.y - surprise)
+  sspr(sx, self.animation_x[self.animation], pad_base_width, 4 + surprise, self.go.x + self.sides, self.go.y - surprise)
 
   if (self.sides > 0) then
-    sspr(sx, 60, 1, 4, self.go.x - self.sides, self.go.y)
-    sspr(sx, 60, 1, 4, self.go.x + pad_base_width + self.sides - 1, self.go.y)
-    for i=0,self.sides do
-      sspr(sx+1, 60, 1, 4, self.go.x - (self.sides - 1), self.go.y, self.sides - 1, 4)
-      sspr(sx+1, 60, 1, 4, self.go.x + pad_base_width, self.go.y, self.sides - 1, 4)
-    end
+    sspr(sx, 60, 1, 4, self.go.x, self.go.y)
+    sspr(sx, 60, 1, 4, self.go.x + pad_base_width + self.sides * 2 - 1, self.go.y)
+    sspr(sx+1, 60, 1, 4, self.go.x + 1, self.go.y, self.sides - 1, 4)
+    sspr(sx+1, 60, 1, 4, self.go.x + pad_base_width + self.sides, self.go.y, self.sides - 1, 4)
   end
 end
 
@@ -1805,6 +1841,7 @@ le = nil -- global variable hack!
 lm = nil -- global variable hack!
 cb = nil -- global variable hack!
 function _init()
+  printh("")
   set_music(58)
 
   local cb_obj = gameobject:new{layer=4}
