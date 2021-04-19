@@ -735,7 +735,7 @@ ball = gameobject:new{
 }
 
 function ball:start()
-  self.x_exact = self.go.x
+  self.x_exact = self.go.x + 10
   self.y_exact = self.go.y
 end
 
@@ -782,7 +782,7 @@ function ball:update()
 --  self:move_x(self.vx)
   
   -- Even newer move logic based on voxel ray trace
-  self:move()
+  self:move3()
 end
 
 --function ball:move2()
@@ -817,8 +817,7 @@ end
 --  end
 --end
 
-function ball:move()
-  --self.vx = 0
+function ball:move3()
   -- https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
   local step_x = sgn(self.vx)
   local step_y = sgn(self.vy)
@@ -827,45 +826,63 @@ function ball:move()
   local t_max_x = (self.vx > 0 and (1 - (self.x_exact-0.5)%1) or (self.x_exact-0.5)%1) / abs(self.vx)
   local t_max_y = (self.vy > 0 and (1 - (self.y_exact-0.5)%1) or (self.y_exact-0.5)%1) / abs(self.vy)
 
-  local t_delta_x = abs(1 / self.vx)
-  local t_delta_y = abs(1 / self.vy)
+  -- Delta only to the next pixel. Recalculate after moving
+  local t_delta_x = t_max_x
+  local t_delta_y = t_max_y
 
-  printh(step_x.." "..self.vx.." "..step_y.." "..self.go.x.." "..self.go.y.." "..t_max_x.." "..t_max_y.." "..t_delta_x.." "..t_delta_y)
-  printh(step_y.." "..self.vy.." "..self.go.y.." "..self.y_exact.." "..t_max_y.." "..t_delta_y)
+  --printh(step_x.." "..self.vx.." "..step_y.." "..self.go.x.." "..self.go.y.." "..t_max_x.." "..t_max_y.." "..t_delta_x.." "..t_delta_y)
+  --printh(step_y.." "..self.vy.." "..self.go.y.." "..self.y_exact.." "..t_max_y.." "..t_delta_y)
+  printh("START> "..self.go.x.." "..self.x_exact.." "..self.vx.." "..self.go.y.." "..self.y_exact.." "..self.vy)
 
   -- What if we count t_x, t_y and at the end we can push them forward
   local t_x = 0
   local t_y = 0
-  local moved_x = false
-  local moved_y = false
   while (t_x + t_y < 1) do
+    local last_x = self.go.x
+    local last_y = self.go.y
     if (t_max_x < t_max_y) then
-      if (t_x + t_y + t_delta_x > 1) then
+      if (t_x + t_delta_x > 1) then
+        printh("a "..self.x_exact.." "..1 - t_x.. " "..self.vx * (1 - t_x))
         self.x_exact += self.vx * (1 - t_x)
         self.y_exact += self.vy * (1 - t_y)
-        t_x = 1 -- Not accurate, just breaking out of the loop
+        t_x = 1
       else
-        t_max_x += t_delta_x 
         t_x += t_delta_x
-        self.x_exact += step_x
-        moved_x = true
+        if (t_delta_x == t_max_x) then
+          t_delta_x = abs(1 / self.vx)
+          printh("c "..self.x_exact.. " "..self.vx)
+          self.x_exact += (self.vx > 0 and (1 - (self.x_exact-0.5)%1) or (self.x_exact-0.5)%1+0x.0001) * step_x
+          printh("c "..self.x_exact.. " "..self.vx)
+        else
+          self.x_exact += step_x
+        end
+        t_max_x += t_delta_x 
       end
     else
-      if (t_x + t_y + t_delta_y > 1) then
+      if (t_y + t_delta_y > 1) then
+        --printh("b "..self.y_exact..1 - t_x.. " "..self.vx * (1 - t_x).." "..self.x_exact.." "..self.x_exact + self.vx * (1 - t_x))
         self.x_exact += self.vx * (1 - t_x)
+        --printh(" 1! ".. self.vy * (1 - t_y))
         self.y_exact += self.vy * (1 - t_y)
-        t_x = 1 -- Not accurate, just breaking out of the loop
+        t_x = 1
       else
-        printh("yup "..t_y)
-        t_max_y += t_delta_y
         t_y += t_delta_y
-        self.y_exact += step_y
-        moved_y = true
+        if (t_delta_y == t_max_y) then
+          t_delta_y = abs(1 / self.vy)
+          --printh(" 2! "..(self.vy > 0 and (1 - (self.y_exact-0.5)%1) or (self.y_exact-0.5)%1) * step_y)
+          self.y_exact += (self.vy > 0 and (1 - (self.y_exact-0.5)%1) or (self.y_exact-0.5)%1+0x.0001) * step_y
+        else
+          --printh(" 3! "..step_y)
+          self.y_exact += step_y
+        end
+        t_max_y += t_delta_y
       end
     end
 
     self.go.x = round(self.x_exact)
     self.go.y = round(self.y_exact)
+
+    printh("COMP> "..self.go.x.." "..last_x.." "..self.go.y.." "..last_y)
 
     local collided = false
     local other = brick_at_pos(self.go.x, self.go.y)
@@ -882,7 +899,7 @@ function ball:move()
 
     if (collided) then
       -- on_collision
-      self:on_collision(other, moved_x, moved_y)
+      self:on_collision(other, last_x ~= self.go.x, last_y ~= self.go.y)
       if other ~= paddle_obj then
         other:get_component(brick):on_collision(self)
       end
@@ -891,11 +908,88 @@ function ball:move()
     end
 
   end
-
-  --self.go.x += self.vx * (1 - t_x)
-  --self.go.y += self.vy * (1 - t_y)
-
 end
+
+--function ball:move()
+--  --self.vx = 0
+--  -- https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
+--  local step_x = sgn(self.vx)
+--  local step_y = sgn(self.vy)
+--
+--  -- Subtract 0.5 because that's the threshold we'll go to a new pixel
+--  local t_max_x = (self.vx > 0 and (1 - (self.x_exact-0.5)%1) or (self.x_exact-0.5)%1) / abs(self.vx)
+--  local t_max_y = (self.vy > 0 and (1 - (self.y_exact-0.5)%1) or (self.y_exact-0.5)%1) / abs(self.vy)
+--
+--  local t_delta_x = abs(1 / self.vx)
+--  local t_delta_y = abs(1 / self.vy)
+--
+--  --printh(step_x.." "..self.vx.." "..step_y.." "..self.go.x.." "..self.go.y.." "..t_max_x.." "..t_max_y.." "..t_delta_x.." "..t_delta_y)
+--  --printh(step_y.." "..self.vy.." "..self.go.y.." "..self.y_exact.." "..t_max_y.." "..t_delta_y)
+--  printh(self.go.x.." "..self.x_exact.." "..self.vx.." "..self.go.y.." "..self.y_exact.." "..self.vy)
+--
+--  -- What if we count t_x, t_y and at the end we can push them forward
+--  local t_x = 0
+--  local t_y = 0
+--  local last_x = self.go.x
+--  local last_y = self.go.y
+--  while (t_x + t_y < 1) do
+--    if (t_max_x < t_max_y) then
+--      if (t_x + t_y + t_delta_x > 1) then
+--        printh("a "..1 - t_x.. " "..self.vx * (1 - t_x))
+--        self.x_exact += self.vx * (1 - t_x)
+--        self.y_exact += self.vy * (1 - t_y)
+--        t_x = 1
+--      else
+--        t_max_x += t_delta_x 
+--        t_x += t_delta_x
+--        self.x_exact += step_x
+--        moved_x = true
+--      end
+--    else
+--      if (t_x + t_y + t_delta_y > 1) then
+--        printh("b "..1 - t_x.. " "..self.vx * (1 - t_x))
+--        self.x_exact += self.vx * (1 - t_x)
+--        self.y_exact += self.vy * (1 - t_y)
+--        t_x = 1
+--      else
+--        printh("yup "..t_y)
+--        t_max_y += t_delta_y
+--        t_y += t_delta_y
+--        self.y_exact += step_y
+--        moved_y = true
+--      end
+--    end
+--
+--    self.go.x = round(self.x_exact)
+--    self.go.y = round(self.y_exact)
+--
+--    printh(self.go.x.." "..last_x.." "..self.go.y.." "..last_y)
+--
+--    local collided = false
+--    local other = brick_at_pos(self.go.x, self.go.y)
+--    if (other ~= nil and _check_overlap(self.go, other)) then
+--      collided = true
+--    end
+--
+--    if _check_overlap(self.go, paddle_obj) then
+--      collided = true
+--      other = paddle_obj
+--    end
+--
+--    --printh(collided)
+--
+--    if (collided) then
+--      -- on_collision
+--      self:on_collision(other, last_x ~= self.go.x, last_y ~= self.go.y)
+--      if other ~= paddle_obj then
+--        other:get_component(brick):on_collision(self)
+--      end
+--      paused = true
+--      break
+--    end
+--
+--  end
+--end
 
 --function ball:move_x(amount)
 --  self.x_remainder += amount
