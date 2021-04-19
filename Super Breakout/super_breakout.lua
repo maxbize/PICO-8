@@ -730,9 +730,14 @@ ball = gameobject:new{
   glued = false,
   vx = 0,
   vy = 0,
-  x_remainder = 0,
-  y_remainder = 0
+  x_exact = 0,
+  y_exact = 0
 }
+
+function ball:start()
+  self.x_exact = self.go.x
+  self.y_exact = self.go.y
+end
 
 function ball:update()
   -- paddle will handle the ball
@@ -743,8 +748,9 @@ function ball:update()
   -- increase speed according to distance from paddle
   local newSpeed = (180 - self.go.y) / 60
   local mag = dist(0, 0, self.vx, self.vy)
-  self.vx /= (mag / newSpeed)
-  self.vy /= (mag / newSpeed)
+  -- TODO: enable after we figure out movement
+  --self.vx /= (mag / newSpeed)
+  --self.vy /= (mag / newSpeed)
 
   -- check bounds
   -- TODO: Should refactor into the new move logic
@@ -772,92 +778,206 @@ function ball:update()
   bgp:near_particle(self.go, self.vx, self.vy)
 
   -- NEW move logic
-  self:move_y(self.vy)
-  self:move_x(self.vx)
-
+--  self:move_y(self.vy)
+--  self:move_x(self.vx)
+  
+  -- Even newer move logic based on voxel ray trace
+  self:move()
 end
 
-function ball:move_x(amount)
-  self.x_remainder += amount
-  move = round(self.x_remainder)
+--function ball:move2()
+--  self.vx = 0
+--  self.vy = -2.5
+--
+--  -- https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
+--  local step_x = sgn(self.vx)
+--  local step_y = sgn(self.vy)
+--
+--  local t_max_x = (self.vx > 0 and (1 - self.go.x%1) or self.go.x%1) / abs(self.vx)
+--  local t_max_y = (self.vy > 0 and (1 - self.go.y%1) or self.go.y%1) / abs(self.vy)
+--
+--  local t_delta_x = abs(1 / self.vx)
+--  local t_delta_y = abs(1 / self.vy)
+--
+--  printh(step_y.." "..self.vy.." "..self.go.y.." "..t_max_y.." "..t_delta_y)
+--
+--  local t = 0
+--  while (t < 1) do
+--    t_max_x = (self.vx > 0 and (1 - self.go.x%1) or self.go.x%1) / abs(self.vx)
+--    t_max_y = (self.vy > 0 and (1 - self.go.y%1) or self.go.y%1) / abs(self.vy)
+--
+--    local delta_t = t_max_x < t_max_y and min(1 - t, t_max_x - t) or min(1 - t, t_max_y - t)
+--
+--    printh(t.." "..delta_t)
+--
+--    self.go.x += self.vx * delta_t
+--    self.go.y += self.vy * delta_t
+--
+--    t += delta_t
+--  end
+--end
 
-  if (move != 0) then
-    self.x_remainder -= move
-    sign = sgn(move)
+function ball:move()
+  --self.vx = 0
+  -- https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
+  local step_x = sgn(self.vx)
+  local step_y = sgn(self.vy)
 
-    while (move != 0) do
-      -- check for collisions
+  -- Subtract 0.5 because that's the threshold we'll go to a new pixel
+  local t_max_x = (self.vx > 0 and (1 - (self.x_exact-0.5)%1) or (self.x_exact-0.5)%1) / abs(self.vx)
+  local t_max_y = (self.vy > 0 and (1 - (self.y_exact-0.5)%1) or (self.y_exact-0.5)%1) / abs(self.vy)
 
-      self.go.x += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
+  local t_delta_x = abs(1 / self.vx)
+  local t_delta_y = abs(1 / self.vy)
 
-      local collided = false
-      local other = brick_at_pos(self.go.x, self.go.y)
-      if (other ~= nil and _check_overlap(self.go, other)) then
-        collided = true
-      end
+  printh(step_x.." "..self.vx.." "..step_y.." "..self.go.x.." "..self.go.y.." "..t_max_x.." "..t_max_y.." "..t_delta_x.." "..t_delta_y)
+  printh(step_y.." "..self.vy.." "..self.go.y.." "..self.y_exact.." "..t_max_y.." "..t_delta_y)
 
-      if _check_overlap(self.go, paddle_obj) then
-        collided = true
-        other = paddle_obj
-      end
-
-      if (collided) then
-        -- on_collision
-        self.go.x -= sign
-        self:on_collision(other, true, false)
-        if other ~= paddle_obj then
-          other:get_component(brick):on_collision(self)
-        end
-        paused = true
-        break
+  -- What if we count t_x, t_y and at the end we can push them forward
+  local t_x = 0
+  local t_y = 0
+  local moved_x = false
+  local moved_y = false
+  while (t_x + t_y < 1) do
+    if (t_max_x < t_max_y) then
+      if (t_x + t_y + t_delta_x > 1) then
+        self.x_exact += self.vx * (1 - t_x)
+        self.y_exact += self.vy * (1 - t_y)
+        t_x = 1 -- Not accurate, just breaking out of the loop
       else
-        move -= sign
+        t_max_x += t_delta_x 
+        t_x += t_delta_x
+        self.x_exact += step_x
+        moved_x = true
       end
-
-    end
-  end
-end
-
-function ball:move_y(amount)
-  self.y_remainder += amount
-  move = round(self.y_remainder)
-
-  if (move != 0) then
-    self.y_remainder -= move
-    sign = sgn(move)
-
-    while (move != 0) do
-      -- check for collisions
-
-      self.go.y += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
-
-      local collided = false
-      local other = brick_at_pos(self.go.x, self.go.y)
-      if (other ~= nil and _check_overlap(self.go, other)) then
-        collided = true
-      end
-
-      if _check_overlap(self.go, paddle_obj) then
-        collided = true
-        other = paddle_obj
-      end
-
-      if (collided) then
-        -- on_collision
-        self.go.y -= sign
-        self:on_collision(other, false, true)
-        if other ~= paddle_obj then
-          other:get_component(brick):on_collision(self)
-        end
-        paused = true
-        break
+    else
+      if (t_x + t_y + t_delta_y > 1) then
+        self.x_exact += self.vx * (1 - t_x)
+        self.y_exact += self.vy * (1 - t_y)
+        t_x = 1 -- Not accurate, just breaking out of the loop
       else
-        move -= sign
+        printh("yup "..t_y)
+        t_max_y += t_delta_y
+        t_y += t_delta_y
+        self.y_exact += step_y
+        moved_y = true
       end
-
     end
+
+    self.go.x = round(self.x_exact)
+    self.go.y = round(self.y_exact)
+
+    local collided = false
+    local other = brick_at_pos(self.go.x, self.go.y)
+    if (other ~= nil and _check_overlap(self.go, other)) then
+      collided = true
+    end
+
+    if _check_overlap(self.go, paddle_obj) then
+      collided = true
+      other = paddle_obj
+    end
+
+    --printh(collided)
+
+    if (collided) then
+      -- on_collision
+      self:on_collision(other, moved_x, moved_y)
+      if other ~= paddle_obj then
+        other:get_component(brick):on_collision(self)
+      end
+      paused = true
+      break
+    end
+
   end
+
+  --self.go.x += self.vx * (1 - t_x)
+  --self.go.y += self.vy * (1 - t_y)
+
 end
+
+--function ball:move_x(amount)
+--  self.x_remainder += amount
+--  move = round(self.x_remainder)
+--
+--  if (move != 0) then
+--    self.x_remainder -= move
+--    sign = sgn(move)
+--
+--    while (move != 0) do
+--      -- check for collisions
+--
+--      self.go.x += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
+--
+--      local collided = false
+--      local other = brick_at_pos(self.go.x, self.go.y)
+--      if (other ~= nil and _check_overlap(self.go, other)) then
+--        collided = true
+--      end
+--
+--      if _check_overlap(self.go, paddle_obj) then
+--        collided = true
+--        other = paddle_obj
+--      end
+--
+--      if (collided) then
+--        -- on_collision
+--        self.go.x -= sign
+--        self:on_collision(other, true, false)
+--        if other ~= paddle_obj then
+--          other:get_component(brick):on_collision(self)
+--        end
+--        paused = true
+--        break
+--      else
+--        move -= sign
+--      end
+--
+--    end
+--  end
+--end
+--
+--function ball:move_y(amount)
+--  self.y_remainder += amount
+--  move = round(self.y_remainder)
+--
+--  if (move != 0) then
+--    self.y_remainder -= move
+--    sign = sgn(move)
+--
+--    while (move != 0) do
+--      -- check for collisions
+--
+--      self.go.y += sign -- Add now and rollback on collision. Alternatively, pass position to check_collision
+--
+--      local collided = false
+--      local other = brick_at_pos(self.go.x, self.go.y)
+--      if (other ~= nil and _check_overlap(self.go, other)) then
+--        collided = true
+--      end
+--
+--      if _check_overlap(self.go, paddle_obj) then
+--        collided = true
+--        other = paddle_obj
+--      end
+--
+--      if (collided) then
+--        -- on_collision
+--        self.go.y -= sign
+--        self:on_collision(other, false, true)
+--        if other ~= paddle_obj then
+--          other:get_component(brick):on_collision(self)
+--        end
+--        paused = true
+--        break
+--      else
+--        move -= sign
+--      end
+--
+--    end
+--  end
+--end
 
 function ball:draw()
   sspr(124 - (self.next_ball - 1) * 3, 16, 2, 3, self.go.x, self.go.y)
@@ -1479,8 +1599,6 @@ function paddle:update()
   if (game_mode ~= 1) then
     return
   end
-
-  self.target_sides = 10
 
   -- left/right movement
   local boost = btn(4) and 2 or 1
