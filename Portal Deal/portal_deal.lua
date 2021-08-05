@@ -689,6 +689,7 @@ function rigidbody_t:update()
           end
         end,
         function()
+          --sfx(3, -1, 0, 1)
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
@@ -706,6 +707,7 @@ function rigidbody_t:update()
           end
         end,
         function()
+          --sfx(3, -1, 0, 1)
           self.vy *= -self.bounciness
           if (abs(self.vy) < 0.5) then
             self.vy = 0
@@ -794,6 +796,7 @@ function rigidbody_t:handle_portal()
     if (self:edge_in_portal(portal_m.chain[i])) then
       p1 = portal_m.chain[i]
       p2 = portal_m.chain[(i%num_portals)+1]
+      local p1x, p1y, p1w, p1h = portal_positions(p1)
       local p2x, p2y, p2w, p2h = portal_positions(p2)
       self.go.x = flr(p2x + p2w/2 - self.width/2)
       self.go.y = flr(p2y + p2h/2 - self.height/2)
@@ -809,6 +812,15 @@ function rigidbody_t:handle_portal()
         self.vy = abs(v_normal) * p2.dir_y
       end
 
+      dx = p2x - p1x
+      dy = p2y - p1y
+      for i = 1, 20 do
+        particle_m:add_particle(self.go.x + 1, self.go.y + 1, rnd(2)-1 + p2.dir_x, rnd(2)-1 + p2.dir_y, 0, 0.1, i <= 10 and 12 or 1, rnd(10)+10)
+        local t = i / 21
+        particle_m:add_particle(p1x + dx * t, p1y + dy * t, rnd(0.5)-0.25, rnd(0.5)-0.25, 0, 0, 12, i)
+      end
+
+      sfx(1, -1, 0, 1)
 
 --      local speed = dist(0, 0, self.vx, self.vy)
 --      self.vx = speed * p2.dir_x
@@ -871,10 +883,16 @@ function level_manager_t:start()
 end
 
 function level_manager_t:update()
+  if (menu_m.active) then
+    return
+  end
+
   -- handle input
   if (btnp(4) and time_scale == 0) then
+    sfx(3, -1, 0, 2)
     time_scale = 1
   elseif (btnp(4) and time_scale == 1) then
+    sfx(3, -1, 0, 2)
     self:restart_level()
 --elseif (btnp(5) and time_scale == 0) then
 --  portal_m.chain = {}
@@ -887,6 +905,7 @@ function level_manager_t:update()
       dset(level, num_portals)
     end
     portal_m.chain = {}
+    sfx(2, -1, 0, 2)
     if (level < #levels) then
       level += 1
     else
@@ -967,6 +986,7 @@ function pickup_t:update()
       particle_m:add_particle_shadowed(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
+    sfx(0, -1, 0, 1)
     destroy(self.go)
   end
 end
@@ -1020,7 +1040,7 @@ function menu_manager_t:draw()
   rectfill(0, 0, 128, 128, 15)
   rectfill(0, 25, 128, 116, 4)
 
-  sspr(0, 32, 128, 32, 0, 3)
+  sspr(0, 32, 128, 32, 0, 2)
   print_shadowed('@maxbize', 48, 120, 7)
 
   if (self.selected_level ~= -1) then
