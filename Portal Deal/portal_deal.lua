@@ -449,6 +449,11 @@ function particle_manager_t:draw()
   end
 end
 
+function particle_manager_t:add_particle_shadowed(x, y, vx, vy, ax, ay, color, frames, layer)
+  self:add_particle(x, y, vx, vy, ax, ay, color, frames, layer)
+  self:add_particle(x, y+1, vx, vy, ax, ay, gradients[color], frames, layer)
+end
+
 function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames, layer)
   local seek = 10
   while (seek > 0) do
@@ -958,8 +963,8 @@ function pickup_t:update()
   local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
 
   if (distance < 1) then
-    for i = 1, 20 do
-      particle_m:add_particle(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 10 and 9 or 10, rnd(5)+5)
+    for i = 1, 10 do
+      particle_m:add_particle_shadowed(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
     destroy(self.go)
