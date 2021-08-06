@@ -602,7 +602,7 @@ function portal_manager_t:move_portal(candidate, index)
 end
 
 function portal_manager_t:draw()
-  if (self.candidate ~= nil) then
+  if (self.candidate ~= nil and time_scale == 0) then
     self:draw_portal(self.candidate, 11)
   end
 
@@ -610,13 +610,15 @@ function portal_manager_t:draw()
 
   for i = 1, #self.chain do
     self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
-    self:draw_portal_number(i)
-    if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
-      highlighted_portal = i
+    if (time_scale == 0) then
+      self:draw_portal_number(i)
+      if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
+        highlighted_portal = i
+      end
     end
   end
 
-  if (highlighted_portal ~= nil and #self.chain > 1) then
+  if (highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0) then
     --self:draw_portal_number(highlighted_portal == 1 and #self.chain or highlighted_portal-1)
     --self:draw_portal_number(highlighted_portal)
     --self:draw_portal_number((highlighted_portal%#self.chain)+1)
