@@ -610,12 +610,17 @@ function portal_manager_t:draw()
 
   for i = 1, #self.chain do
     self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
+    self:draw_portal_number(i)
     if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
       highlighted_portal = i
     end
   end
 
   if (highlighted_portal ~= nil and #self.chain > 1) then
+    --self:draw_portal_number(highlighted_portal == 1 and #self.chain or highlighted_portal-1)
+    --self:draw_portal_number(highlighted_portal)
+    --self:draw_portal_number((highlighted_portal%#self.chain)+1)
+
     local p0x, p0y, p0w, p0h = portal_positions(self.chain[highlighted_portal == 1 and #self.chain or highlighted_portal-1])
     local p1x, p1y, p1w, p1h = portal_positions(self.chain[highlighted_portal])
     local p2x, p2y, p2w, p2h = portal_positions(self.chain[(highlighted_portal%#self.chain)+1])
@@ -630,6 +635,16 @@ end
 function portal_manager_t:draw_portal(portal, color)
   local x, y, w, h = portal_positions(portal)
   line(x, y, x + w - 1, y + h - 1, color)
+end
+
+function portal_manager_t:draw_portal_number(num)
+  portal = self.chain[num]
+  local x, y, w, h = portal_positions(portal)
+  if w == 1 then
+    print(tostr(num), portal.dir_x > 0 and x - 4 or x + 2, y + 2, 0)
+  else
+    print(tostr(num), x + 1, portal.dir_y > 0 and y - 6 or y + 2, 0)
+  end
 end
 
 -- rigidbody is any freefalling object in the world.
