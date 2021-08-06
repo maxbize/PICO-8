@@ -663,7 +663,9 @@ rigidbody_t = gameobject:new{
   bounciness = 0.4,
   bounce_friction = 0.9, -- bounciness on the tangent
   max_vx = 3, -- max velocity
-  max_vy = 3
+  max_vy = 3,
+  angle = 0, -- angle and angular velocity for animation purposes only!
+  angular_vel = 0,
 }
 
 function rigidbody_t:start()
@@ -675,6 +677,7 @@ function rigidbody_t:update()
   -- apply ground friction and gravity
   local grounded = self:is_grounded()
   if (grounded) then
+    self.angular_vel = self.vx * 10
     self.vx *= self.friction
   end
 
@@ -689,6 +692,9 @@ function rigidbody_t:update()
   if (abs(self.vx) > self.max_vx) then
     self.vx = self.max_vx * sgn(self.vx)
   end
+
+  -- angular velocity
+  self.angle = (self.angle + self.angular_vel) % 360
 
   -- movement
   local vx = self.vx * time_scale
@@ -707,6 +713,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
+          self.angular_vel = self.vy * 10;
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
@@ -725,6 +732,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
+          self.angular_vel = self.vx * 10;
           self.vy *= -self.bounciness
           if (abs(self.vy) < 0.5) then
             self.vy = 0
@@ -875,20 +883,15 @@ end
 
 -- the main object the player has to get to the end
 cash_t = gameobject:new{
-
 }
 
 function cash_t:update()
-  -- time slow. this should prbably be handled somewhere else
---  if (btn(4)) then
---    time_scale = max(0.1, time_scale * 0.7)
---  else
---    time_scale = min(1, time_scale * 1.1)
---  end
+
 end
 
 function cash_t:draw()
-  sspr(11, 18, 3, 3, self.go.x, self.go.y)
+  --sspr(11, 18, 3, 3, self.go.x, self.go.y)
+  sspr(72 + flr(self.go.rb.angle / 45) * 4, 18, 3, 3, self.go.x, self.go.y)
 end
 
 level_manager_t = gameobject:new{
@@ -949,6 +952,8 @@ function level_manager_t:restart_level()
   cash.rb.vy = l.start_vy
   cash.rb.x_remainder = 0
   cash.rb.y_remainder = 0
+  cash.rb.angle = 0
+  cash.rb.angular_vel = 0
 
   -- clear remaining pickups
   for layer in all(gameobjects) do
