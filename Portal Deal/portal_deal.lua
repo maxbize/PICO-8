@@ -892,6 +892,13 @@ end
 function cash_t:draw()
   --sspr(11, 18, 3, 3, self.go.x, self.go.y)
   sspr(72 + flr(self.go.rb.angle / 45) * 4, 18, 3, 3, self.go.x, self.go.y)
+  if (time_scale == 0) then
+    local end_x = (self.go.x + self.go.rb.vx * 5) + 1
+    local end_y = (self.go.y + self.go.rb.vy * 5) + 1
+    line(self.go.x + 1, self.go.y + 1, end_x, end_y, 12)
+    circ(end_x, end_y, 1, 1)
+    pset(self.go.x + 1, self.go.y + 1, 7)
+  end
 end
 
 level_manager_t = gameobject:new{
