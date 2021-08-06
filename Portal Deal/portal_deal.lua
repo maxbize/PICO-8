@@ -677,7 +677,7 @@ function rigidbody_t:update()
   -- apply ground friction and gravity
   local grounded = self:is_grounded()
   if (grounded) then
-    self.angular_vel = self.vx * 10
+    self.angular_vel = self.vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
     self.vx *= self.friction
   end
 
@@ -713,7 +713,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
-          self.angular_vel = self.vy * 10;
+          self.angular_vel = -self.vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
@@ -732,7 +732,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
-          self.angular_vel = self.vx * 10;
+          self.angular_vel = self.vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vy *= -self.bounciness
           if (abs(self.vy) < 0.5) then
             self.vy = 0
