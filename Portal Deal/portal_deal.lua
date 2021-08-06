@@ -631,7 +631,14 @@ function portal_manager_t:draw()
     draw_dotted_line(p1x + flr(p1w/2), p1y + flr(p1h/2), p2x + flr(p2w/2), p2y + flr(p2h/2), 15, time()*5%1, 5)
   end
 
-  sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+  -- Draw cursor
+  if highlighted_portal == nil then
+    sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+  elseif self.move_index == 0 then
+    sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+  else
+    sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+  end
 end
 
 function portal_manager_t:draw_portal(portal, color)
