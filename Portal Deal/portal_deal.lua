@@ -46,7 +46,7 @@ local levels = {
   {start_x=100, start_y=48, start_vx=2, start_vy=0, gold=7, silver=10, bronze=15}, -- very hard
   {start_x=42, start_y=100, start_vx=1, start_vy=1, gold=8, silver=12, bronze=16}, -- medium-hard
   {start_x=66, start_y=30, start_vx=0, start_vy=0, gold=10, silver=12, bronze=16}, -- very hard
-  {start_x=64, start_y=64, start_vx=-3, start_vy=-3, gold=14, silver=20, bronze=30} -- easy (bonus)
+  {start_x=64, start_y=64, start_vx=-3, start_vy=-3, gold=20, silver=30, bronze=40} -- easy (bonus)
 }
 
 -- singletons (_m == manager)
@@ -546,7 +546,7 @@ function portal_manager_t:update()
     return
   end
 
-  local this_mouse = stat(34)
+  local this_mouse       = stat(34)
   local left_mouse       = this_mouse & 0x1 == 1
   local left_mouse_down  = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
   local right_mouse_down = self.last_mouse & 0x2 == 0 and this_mouse & 0x2 == 2
@@ -567,6 +567,9 @@ function portal_manager_t:update()
     self:move_portal(self.candidate, self.move_index)
   elseif (right_mouse_down) then
     self:remove_portal(self.candidate)
+  elseif (stat(36) ~= 0 and #self.chain > 1) then
+    -- Not sure this is a good idea - changes the order of everything else in the process
+    --self:reorder_portal(self.candidate, sgn(stat(36)))
   end
   self.last_mouse = this_mouse
 end
@@ -598,6 +601,22 @@ end
 function portal_manager_t:move_portal(candidate, index)
   if (candidate ~= nil) then
     self.chain[index] = candidate
+  end
+end
+
+function portal_manager_t:reorder_portal(candidate, dir)
+  if (candidate ~= nil) then
+    local existing, index = self:find_in_chain(self.candidate)
+    if (existing ~= nil) then
+      local swapIndex = index + dir
+      if swapIndex > #self.chain then
+        swapIndex = swapIndex % #self.chain
+      elseif swapIndex <= 0 then
+        swapIndex = #self.chain - swapIndex % #self.chain
+      end
+      self.chain[index] = self.chain[swapIndex]
+      self.chain[swapIndex] = existing
+    end
   end
 end
 
