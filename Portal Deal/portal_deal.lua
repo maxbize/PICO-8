@@ -917,6 +917,7 @@ end
 
 function level_manager_t:notify_pickup()
   self.num_pickups -= 1
+  sfx(0, -1, 31 - self.num_pickups, 1)
 end
 
 function level_manager_t:restart_level()
@@ -986,7 +987,6 @@ function pickup_t:update()
       particle_m:add_particle_shadowed(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
-    sfx(0, -1, 0, 1)
     destroy(self.go)
   end
 end
