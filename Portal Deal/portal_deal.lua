@@ -1104,6 +1104,7 @@ function menu_manager_t:draw()
 
   sspr(0, 32, 128, 32, 0, 2)
   print_shadowed('@maxbize', 48, 120, 7)
+  print_shadowed('v 1.1', 103, 120, 7)
 
   if (self.selected_level ~= -1) then
     local i = self.selected_level - 1
@@ -1127,7 +1128,7 @@ function menu_manager_t:draw()
       spr(39, x+52, (y-1) + i * 9)
       spr(39, x+60, (y-1) + i * 9)
     end
-    print_shadowed(best, x+80, y + i * 9, unlocked and 7 or 1)
+    print_shadowed(best, best < 10 and x+84 or x+80, y + i * 9, unlocked and 7 or 1)
 
   end
 
@@ -1149,31 +1150,31 @@ function end_level_menu_t:draw()
 
   -- Draw medals
   --sspr(111, 15, 13, 15, 50, 50)
-  sspr(66,    15, 13, 15, 39,    30)
-  sspr(66+15, 15, 13, 15, 39+18, 30)
-  sspr(66+30, 15, 13, 15, 39+36, 30)
+  sspr(66,    15, 13, 15, 39,    32)
+  sspr(66+15, 15, 13, 15, 39+18, 32)
+  sspr(66+30, 15, 13, 15, 39+36, 32)
 
   -- Print medal requirements
   -- one-digit centered = coin.x + 5, two-digit = coin.x + 3
   local s = ""
   s = tostr(levels[level].gold)
-  print_shadowed(s, #s == 1 and 44 or 42,    48, 7)
+  print_shadowed(s, #s == 1 and 44 or 42,       50, 7)
   s = tostr(levels[level].silver)
-  print_shadowed(s, #s == 1 and 44+18 or 42+18, 48, 7)
+  print_shadowed(s, #s == 1 and 44+18 or 42+18, 50, 7)
   s = tostr(levels[level].bronze)
-  print_shadowed(s, #s == 1 and 44+36 or 42+36, 48, 7)
+  print_shadowed(s, #s == 1 and 44+36 or 42+36, 50, 7)
 
   -- Print level clear/stats
-  print_shadowed("level " .. level .. " cleared!", 33, 61, 7)
-  print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 70, 7)
+  print_shadowed("level " .. level .. " cleared!",      33, 63, 7)
+  print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 72, 7)
 
   -- Draw/print buttons
-  rect                   (34, 82, 58, 92, 6)
-  rectfill               (35, 83, 57, 91, 5)
-  print         ("retry", 37, 85, 7)
-  rect                   (72, 82, 92, 92, 6)
-  rectfill               (73, 83, 91, 91, 5)
-  print         ("next",  75, 85, 7)
+  rect                   (34, 84, 58, 94, 6)
+  rectfill               (35, 85, 57, 93, 5)
+  print         ("retry", 37, 87, 7)
+  rect                   (72, 84, 92, 94, 6)
+  rectfill               (73, 85, 91, 93, 5)
+  print         ("next",  75, 87, 7)
 end
 
 
