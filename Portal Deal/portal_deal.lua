@@ -919,7 +919,7 @@ end
 
 function cash_t:draw()
   --sspr(11, 18, 3, 3, self.go.x, self.go.y)
-  sspr(72 + flr(self.go.rb.angle / 45) * 4, 18, 3, 3, self.go.x, self.go.y)
+  sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, self.go.x, self.go.y)
   if (time_scale == 0) then
     local end_x = (self.go.x + self.go.rb.vx * 5) + 1
     local end_y = (self.go.y + self.go.rb.vy * 5) + 1
@@ -1012,6 +1012,11 @@ function level_manager_t:restart_level()
       end
     end
   end
+
+  -- Debugging
+  level_end = gameobject:new()
+  level_end:add_component(end_level_menu_t:new{medals=1})
+  instantiate(level_end)
 end
 
 pickup_t = gameobject:new{
@@ -1128,4 +1133,47 @@ function menu_manager_t:draw()
 
   sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
 end
+
+end_level_menu_t = gameobject:new{
+  medals = 0, -- 0-3 for none, bronze, etc
+}
+
+function end_level_menu_t:update()
+
+end
+
+function end_level_menu_t:draw()
+  -- Draw background
+  rectfill(20, 20, 128-21, 128-21, 15)
+  rectfill(22, 22, 128-23, 128-23, 4)
+
+  -- Draw medals
+  --sspr(111, 15, 13, 15, 50, 50)
+  sspr(66,    15, 13, 15, 39,    30)
+  sspr(66+15, 15, 13, 15, 39+18, 30)
+  sspr(66+30, 15, 13, 15, 39+36, 30)
+
+  -- Print medal requirements
+  -- one-digit centered = coin.x + 5, two-digit = coin.x + 3
+  local s = ""
+  s = tostr(levels[level].gold)
+  print_shadowed(s, #s == 1 and 44 or 42,    48, 7)
+  s = tostr(levels[level].silver)
+  print_shadowed(s, #s == 1 and 44+18 or 42+18, 48, 7)
+  s = tostr(levels[level].bronze)
+  print_shadowed(s, #s == 1 and 44+36 or 42+36, 48, 7)
+
+  -- Print level clear/stats
+  print_shadowed("level " .. level .. " cleared!", 33, 61, 7)
+  print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 70, 7)
+
+  -- Draw/print buttons
+  rect                   (34, 82, 58, 92, 6)
+  rectfill               (35, 83, 57, 91, 5)
+  print         ("retry", 37, 85, 7)
+  rect                   (72, 82, 92, 92, 6)
+  rectfill               (73, 83, 91, 91, 5)
+  print         ("next",  75, 85, 7)
+end
+
 
