@@ -651,7 +651,9 @@ function portal_manager_t:draw()
   end
 
   -- Draw cursor
-  if highlighted_portal == nil then
+  if self.candidate == nil then
+    sspr(24, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+  elseif highlighted_portal == nil then
     sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
   elseif self.move_index == 0 then
     sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
