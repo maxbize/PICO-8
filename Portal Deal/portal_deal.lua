@@ -80,7 +80,6 @@ function _init()
   level_manager = gameobject:new()
   level_m = level_manager:add_component(level_manager_t:new())
   instantiate(level_manager)
-  level_m:restart_level()
 
   menu_manager = gameobject:new{layer=4}
   menu_m = menu_manager:add_component(menu_manager_t:new())
@@ -1136,8 +1135,40 @@ function menu_manager_t:draw()
 end
 
 end_level_menu_t = gameobject:new{
-  medals = 0, -- 0-3 for none, bronze, etc
+  draw_medals = 0, -- 0-3 for none, bronze, etc
+  offsets = {0, 0, 0} -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
 }
+
+function spawn_medal_particles(x, color, num, menu)
+  for i=1,20 do
+    menu.offsets[num] = (menu.offsets[num] + 1) % 2
+    yield()
+  end
+  for i=1,10 do
+    menu.offsets[num] = (menu.offsets[num] + 1) % 2
+    yield()
+    yield()
+  end
+  for i=1,20 do
+    yield()
+  end
+  menu.offsets[num] = 0
+  menu.draw_medals = num
+  for i=1,100 do
+    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.05, color, 200)
+  end
+  for i=1,40 do
+    yield()
+  end
+end
+
+function end_level_menu_t:start()
+  add(actions, cocreate(function()
+    spawn_medal_particles(39+36, 9, 1, self)
+    spawn_medal_particles(39+18, 7, 2, self)
+    spawn_medal_particles(39, 10, 3, self)
+  end))
+end
 
 function end_level_menu_t:update()
 
@@ -1148,11 +1179,16 @@ function end_level_menu_t:draw()
   rectfill(20, 20, 128-21, 128-21, 15)
   rectfill(22, 22, 128-23, 128-23, 4)
 
+  -- Draw medal backgrounds
+  sspr(111, 15, 13, 15, 39    + self.offsets[3], 32)
+  sspr(111, 15, 13, 15, 39+18 + self.offsets[2], 32)
+  sspr(111, 15, 13, 15, 39+36 + self.offsets[1], 32)
+
   -- Draw medals
   --sspr(111, 15, 13, 15, 50, 50)
-  sspr(66,    15, 13, 15, 39,    32)
-  sspr(66+15, 15, 13, 15, 39+18, 32)
-  sspr(66+30, 15, 13, 15, 39+36, 32)
+  if self.draw_medals >= 3 then sspr(66,    15, 13, 15, 39    + self.offsets[3], 32) end
+  if self.draw_medals >= 2 then sspr(66+15, 15, 13, 15, 39+18 + self.offsets[2], 32) end
+  if self.draw_medals >= 1 then sspr(66+30, 15, 13, 15, 39+36 + self.offsets[1], 32) end
 
   -- Print medal requirements
   -- one-digit centered = coin.x + 5, two-digit = coin.x + 3
@@ -1171,10 +1207,14 @@ function end_level_menu_t:draw()
   -- Draw/print buttons
   rect                   (34, 84, 58, 94, 6)
   rectfill               (35, 85, 57, 93, 5)
-  print         ("retry", 37, 87, 7)
+  print         ("retry", 37, 87,         7)
   rect                   (72, 84, 92, 94, 6)
   rectfill               (73, 85, 91, 93, 5)
-  print         ("next",  75, 87, 7)
+  print         ("next",  75, 87,         7)
+
+  -- DEBUG! Draw particles again so they draw over the UI
+  particle_m:draw()
+
 end
 
 
