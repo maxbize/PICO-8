@@ -640,7 +640,7 @@ function portal_manager_t:draw()
 
   for i = 1, #self.chain do
     self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
-    if (time_scale == 0) then
+    if (time_scale == 0 and not end_menu_m.active) then
       self:draw_portal_number(i)
       if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
         highlighted_portal = i
@@ -648,7 +648,7 @@ function portal_manager_t:draw()
     end
   end
 
-  if (highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0) then
+  if (highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0 and not end_menu_m.active) then
     --self:draw_portal_number(highlighted_portal == 1 and #self.chain or highlighted_portal-1)
     --self:draw_portal_number(highlighted_portal)
     --self:draw_portal_number((highlighted_portal%#self.chain)+1)
@@ -933,7 +933,7 @@ end
 function cash_t:draw()
   --sspr(11, 18, 3, 3, self.go.x, self.go.y)
   sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, self.go.x, self.go.y)
-  if (time_scale == 0) then
+  if (time_scale == 0 and not end_menu_m.active) then
     local end_x = (self.go.x + self.go.rb.vx * 5) + 1
     local end_y = (self.go.y + self.go.rb.vy * 5) + 1
     line(self.go.x + 1, self.go.y + 1, end_x, end_y, 12)
@@ -1195,6 +1195,9 @@ function end_level_menu_t:activate()
       end
       yield()
     end
+
+    -- Stop the sim
+    time_scale = 0
 
     -- Slide in menu
     for i=1,16 do
