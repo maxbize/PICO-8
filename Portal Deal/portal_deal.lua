@@ -961,18 +961,24 @@ function level_manager_t:update()
 
   -- check/advance to next level
   if (self.num_pickups == 0) then
+    self.num_pickups = 1
+    sfx(2, -1, 0, 2)
     local num_portals = #portal_m.chain
     if (dget(level) == 0 or dget(level) > num_portals) then
       dset(level, num_portals)
     end
-    portal_m.chain = {}
-    sfx(2, -1, 0, 2)
-    if (level < #levels) then
-      level += 1
-    else
-      menu_m.active = true
-    end
-    self:restart_level()
+
+    level_end = gameobject:new()
+    level_end:add_component(end_level_menu_t:new{medals=1})
+    instantiate(level_end)
+
+    --portal_m.chain = {}
+    --if (level < #levels) then
+    --  level += 1
+    --else
+    --  menu_m.active = true
+    --end
+    --self:restart_level()
   end
 end
 
@@ -1018,11 +1024,6 @@ function level_manager_t:restart_level()
       end
     end
   end
-
-  -- Debugging
-  level_end = gameobject:new()
-  level_end:add_component(end_level_menu_t:new{medals=1})
-  instantiate(level_end)
 end
 
 pickup_t = gameobject:new{
@@ -1144,7 +1145,8 @@ end
 end_level_menu_t = gameobject:new{
   draw_medals = 0, -- 0-3 for none, bronze, etc
   flash_medal = 0, -- 0-3 for none, bronze, etc
-  offsets = {0, 0, 0} -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
+  offsets = {0, 0, 0}, -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
+  menu_offset = 0, -- offset for the entire menu so that we can slide it in
 }
 
 function end_level_menu_t:shake_medal_background(num)
@@ -1177,8 +1179,15 @@ function end_level_menu_t:reveal_medal(color, num)
 end
 
 function end_level_menu_t:start()
-  num_portals = #portal_m.chain
+  self.menu_offset = 128
   add(actions, cocreate(function()
+    num_portals = #portal_m.chain
+    for i=1,16 do
+      self.menu_offset *= 0.70
+      yield()
+    end
+    self.menu_offset = 0
+
     if num_portals <= levels[level].bronze then 
       self:reveal_medal(9 , 1)
       if num_portals > levels[level].silver then
@@ -1215,28 +1224,28 @@ function end_level_menu_t:draw_medal(num, req)
 
   elseif self.draw_medals >= num then 
     -- Print medal requirements
-    print_shadowed(tostr(req), req < 10 and draw_x+5 or draw_x+3, 50, 7)
+    print_shadowed(tostr(req), req < 10 and draw_x+5 or draw_x+3, 50 - self.menu_offset, 7)
 
     if #portal_m.chain <= req then
       -- Draw medal
       sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
     else
       -- Draw medal background
-      sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32)
+      sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32 - self.menu_offset)
     end
   else
     -- Draw medal background
-    sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32)
+    sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32 - self.menu_offset)
 
     -- Print medal requirements
-    print_shadowed("?", draw_x+5, 50, 7)
+    print_shadowed("?", draw_x+5, 50 - self.menu_offset, 7)
   end
 end
 
 function end_level_menu_t:draw()
   -- Draw background
-  rectfill(20, 20, 128-21, 128-21, 15)
-  rectfill(22, 22, 128-23, 128-23, 4)
+  rectfill(20, 20 - self.menu_offset, 128-21, 128-21 - self.menu_offset, 15)
+  rectfill(22, 22 - self.menu_offset, 128-23, 128-23 - self.menu_offset, 4)
 
   -- Draw medals
   self:draw_medal(1, levels[level].bronze)
@@ -1244,16 +1253,16 @@ function end_level_menu_t:draw()
   self:draw_medal(3, levels[level].gold)
 
   -- Print level clear/stats
-  print_shadowed("level " .. level .. " cleared!",      33, 63, 7)
-  print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 72, 7)
+  print_shadowed("level " .. level .. " cleared!",      33, 63 - self.menu_offset, 7)
+  print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 72 - self.menu_offset, 7)
 
   -- Draw/print buttons
-  rect                   (34, 84, 58, 94, 6)
-  rectfill               (35, 85, 57, 93, 5)
-  print         ("retry", 37, 87,         7)
-  rect                   (72, 84, 92, 94, 6)
-  rectfill               (73, 85, 91, 93, 5)
-  print         ("next",  75, 87,         7)
+  rect                   (34, 84 - self.menu_offset, 58, 94 - self.menu_offset, 6)
+  rectfill               (35, 85 - self.menu_offset, 57, 93 - self.menu_offset, 5)
+  print         ("retry", 37, 87 - self.menu_offset,                            7)
+  rect                   (72, 84 - self.menu_offset, 92, 94 - self.menu_offset, 6)
+  rectfill               (73, 85 - self.menu_offset, 91, 93 - self.menu_offset, 5)
+  print         ("next",  75, 87 - self.menu_offset,                            7)
 
   -- DEBUG! Draw particles again so they draw over the UI
   particle_m:draw()
