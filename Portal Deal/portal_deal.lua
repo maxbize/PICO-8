@@ -346,6 +346,7 @@ function overlaps_solids(x, y, w, h)
   -- an overlap from one brick with a non-overlap from another brick that has
   -- a portal
   local any_in_portal = false
+  local portal_ref = nil
 
   -- run check for each corner
   for i= 0, 3 do
@@ -362,7 +363,11 @@ function overlaps_solids(x, y, w, h)
       if (#portal_m.chain > 1) then
         for portal in all(portal_m.chain) do
           if (portal.cell_x == cell_x and portal.cell_y == cell_y) then
-            in_portal = in_portal or overlaps_portal(portal, x, y, w, h)
+            local overlaps = overlaps_portal(portal, x, y, w, h)
+            if overlaps then
+              portal_ref = portal
+              in_portal = true
+            end
           end
         end
       end
@@ -371,15 +376,12 @@ function overlaps_solids(x, y, w, h)
 
       -- hit a solid wall. no need to check anything else
       if (not in_portal) then
-        return 2
+        return 2, nil
       end
     end
-
-
-    -- check against moving platforms
   end
 
-  return any_in_portal and 1 or 0
+  return any_in_portal and 1, portal_ref or 0, nil
 end
 
 -- checks if the collider overlaps with the given portal
@@ -740,6 +742,8 @@ function rigidbody_t:update()
   -- movement
   local vx = self.vx * time_scale
   local vy = self.vy * time_scale
+  --local vx = btnp(5) and -1.0 or 0
+  --local vy = btnp(5) and 0.0 or 0
   local x = flr(abs(vx)) + 1
   local y = flr(abs(vy)) + 1
   for i=1, max(x, y) do
@@ -754,7 +758,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
-          self.angular_vel = -self.vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
+          self.angular_vel = -vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
           x = 0
@@ -773,7 +777,7 @@ function rigidbody_t:update()
         end,
         function()
           --sfx(3, -1, 0, 1)
-          self.angular_vel = self.vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
+          self.angular_vel = vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vy *= -self.bounciness
           if (abs(self.vy) < 0.5) then
             self.vy = 0
@@ -927,18 +931,64 @@ cash_t = gameobject:new{
 }
 
 function cash_t:update()
-
+  --particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 60)
 end
 
 function cash_t:draw()
-  --sspr(11, 18, 3, 3, self.go.x, self.go.y)
+  -- Draw cash itself
   sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, self.go.x, self.go.y)
+
+  -- Draw arrow at start of level
   if (time_scale == 0 and not end_menu_m.active) then
     local end_x = (self.go.x + self.go.rb.vx * 5) + 1
     local end_y = (self.go.y + self.go.rb.vy * 5) + 1
     line(self.go.x + 1, self.go.y + 1, end_x, end_y, 12)
     circ(end_x, end_y, 1, 1)
     pset(self.go.x + 1, self.go.y + 1, 7)
+  end
+
+  -- Draw preview cash at previous or next portal
+  local state, p1 = overlaps_solids(self.go.x, self.go.y, self.go.rb.width, self.go.rb.height)
+  if (state == 1) then
+    -- Check if we're entering or exiting this portal
+    local p1x, p1y, p1w, p1h = portal_positions(p1)
+    local dir = 0
+    local delta = 0 -- how many pixels from centerline of portal to center of collector
+    if (p1.dir_x == 0) then
+      dir = sgn(self.go.rb.vy) == sgn(p1.dir_y) and -1 or 1
+      delta = abs(self.go.y - p1y)
+    else
+      dir = sgn(self.go.rb.vx) == sgn(p1.dir_x) and -1 or 1
+      delta = abs(self.go.x - p1x)
+    end
+
+    -- Find the portal we're supposed to do a preview on
+    local p2 = nil
+    for i=1,#portal_m.chain do
+      if (portals_equal(p1, portal_m.chain[i])) then
+        local idx = i + dir
+        if idx == 0 then 
+          idx = #portal_m.chain
+        end
+        if idx > #portal_m.chain then
+          idx = 1
+        end
+        p2 = portal_m.chain[idx]
+        break
+      end
+    end
+
+    -- Draw the preview at that portal
+    local p2x, p2y, p2w, p2h = portal_positions(p2)
+    if (p2.dir_x == 0) then
+      local x = flr(p2x + p2w/2 - self.go.rb.width/2)
+      local y = flr(p2y + p2h/2 - self.go.rb.height/2) + 1
+      sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, x, y - delta)
+    else
+      local x = flr(p2x + p2w/2 - self.go.rb.width/2) + 1
+      local y = flr(p2y + p2h/2 - self.go.rb.height/2)
+      sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, x - delta, y)
+    end
   end
 end
 
