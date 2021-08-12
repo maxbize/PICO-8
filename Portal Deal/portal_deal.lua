@@ -288,6 +288,13 @@ function draw_dotted_line(x1, y1, x2, y2, color)
   end
 end
 
+function _yield(frames)
+  frames = frames or 1
+  for i=1,frames do
+    yield()
+  end
+end
+
 -------------------
 -- game-specific helper methods
 -------------------
@@ -1101,7 +1108,7 @@ function menu_manager_t:draw()
   rectfill(0, 0, 128, 128, 15)
   rectfill(0, 25, 128, 116, 4)
 
-  sspr(0, 32, 128, 32, 0, 2)
+  sspr(0, 32, 128, 20, 0, 2)
   print_shadowed('@maxbize', 48, 120, 7)
   print_shadowed('v 1.1', 103, 120, 7)
 
@@ -1136,37 +1143,43 @@ end
 
 end_level_menu_t = gameobject:new{
   draw_medals = 0, -- 0-3 for none, bronze, etc
+  flash_medal = 0, -- 0-3 for none, bronze, etc
   offsets = {0, 0, 0} -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
 }
 
-function spawn_medal_particles(x, color, num, menu)
-  for i=1,20 do
-    menu.offsets[num] = (menu.offsets[num] + 1) % 2
-    yield()
-  end
+function end_level_menu_t:reveal_medal(color, num)
+  x = 75 - 18 * (num - 1)
   for i=1,10 do
-    menu.offsets[num] = (menu.offsets[num] + 1) % 2
-    yield()
-    yield()
-  end
-  for i=1,20 do
+    self.offsets[num] = (self.offsets[num] + 1) % 2
     yield()
   end
-  menu.offsets[num] = 0
-  menu.draw_medals = num
-  for i=1,100 do
-    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.05, color, 200)
+  for i=1,6 do
+    self.offsets[num] = (self.offsets[num] + 1) % 2
+    _yield(2)
   end
-  for i=1,40 do
+  _yield(20)
+  self.draw_medals = num
+  self.flash_medal = num
+  _yield(4)
+  self.flash_medal = 0
+  for i=1,75 do
+    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, color,            100)
+  end
+  for i=1,25 do
+    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
+  end
+  for i=1, 2 do
+    self.offsets[num] = (self.offsets[num] + 1) % 2
     yield()
   end
+  _yield(30)
 end
 
 function end_level_menu_t:start()
   add(actions, cocreate(function()
-    spawn_medal_particles(39+36, 9, 1, self)
-    spawn_medal_particles(39+18, 7, 2, self)
-    spawn_medal_particles(39, 10, 3, self)
+    self:reveal_medal(9, 1)
+    self:reveal_medal(7, 2)
+    self:reveal_medal(10, 3)
   end))
 end
 
@@ -1174,31 +1187,40 @@ function end_level_menu_t:update()
 
 end
 
+-- Draws background, medal, and requirement text
+function end_level_menu_t:draw_medal(num, req)
+  local draw_x = 75 - 18 * (num - 1)
+
+  if self.flash_medal == num then
+    -- Draw medal flash
+    sspr(111, 54, 13, 15, draw_x, 32)
+    -- Print medal requirements
+    print_shadowed("?", draw_x+5, 50, 7)
+
+  elseif self.draw_medals >= num then 
+    -- Draw medal
+    sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
+
+    -- Print medal requirements
+    print_shadowed(tostr(req), req < 10 and draw_x+5 or draw_x+3, 50, 7)
+  else
+    -- Draw medal background
+    sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32)
+
+    -- Print medal requirements
+    print_shadowed("?", draw_x+5, 50, 7)
+  end
+end
+
 function end_level_menu_t:draw()
   -- Draw background
   rectfill(20, 20, 128-21, 128-21, 15)
   rectfill(22, 22, 128-23, 128-23, 4)
 
-  -- Draw medal backgrounds
-  sspr(111, 15, 13, 15, 39    + self.offsets[3], 32)
-  sspr(111, 15, 13, 15, 39+18 + self.offsets[2], 32)
-  sspr(111, 15, 13, 15, 39+36 + self.offsets[1], 32)
-
   -- Draw medals
-  --sspr(111, 15, 13, 15, 50, 50)
-  if self.draw_medals >= 3 then sspr(66,    15, 13, 15, 39    + self.offsets[3], 32) end
-  if self.draw_medals >= 2 then sspr(66+15, 15, 13, 15, 39+18 + self.offsets[2], 32) end
-  if self.draw_medals >= 1 then sspr(66+30, 15, 13, 15, 39+36 + self.offsets[1], 32) end
-
-  -- Print medal requirements
-  -- one-digit centered = coin.x + 5, two-digit = coin.x + 3
-  local s = ""
-  s = tostr(levels[level].gold)
-  print_shadowed(s, #s == 1 and 44 or 42,       50, 7)
-  s = tostr(levels[level].silver)
-  print_shadowed(s, #s == 1 and 44+18 or 42+18, 50, 7)
-  s = tostr(levels[level].bronze)
-  print_shadowed(s, #s == 1 and 44+36 or 42+36, 50, 7)
+  self:draw_medal(1, levels[level].bronze)
+  self:draw_medal(2, levels[level].silver)
+  self:draw_medal(3, levels[level].gold)
 
   -- Print level clear/stats
   print_shadowed("level " .. level .. " cleared!",      33, 63, 7)
