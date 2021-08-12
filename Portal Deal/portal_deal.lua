@@ -1178,20 +1178,33 @@ function end_level_menu_t:reveal_medal(color, num)
 end
 
 function end_level_menu_t:activate()
+  -- Reset state
   self.active = true
   self.draw_medals = 0
   self.flash_medal = 0
   self.offsets = {0, 0, 0}
   self.menu_offset = 128
   self.last_mouse = 1
+
   self.activate_action = cocreate(function()
-    num_portals = #portal_m.chain
+
+    -- Wait up to 3 sec for the collector to mostly stop
+    for i=1,180 do
+      if (abs(cash.rb.vx) < 0.01 and abs(cash.rb.vy) == 0) then
+        break
+      end
+      yield()
+    end
+
+    -- Slide in menu
     for i=1,16 do
       self.menu_offset *= 0.70
       yield()
     end
     self.menu_offset = 0
 
+    -- Perform medal animations
+    local num_portals = #portal_m.chain
     if num_portals <= levels[level].bronze then 
       self:reveal_medal(9 , 1)
       if num_portals > levels[level].silver then
