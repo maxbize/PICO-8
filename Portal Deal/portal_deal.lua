@@ -55,6 +55,7 @@ local cash = nil       -- type gameobject
 local level_m = nil    -- type level_manager_t
 local particle_m = nil -- type particle_manager_t
 local menu_m = nil     -- type menu_manager_t
+local end_menu_m = nil -- type end_level_menu_t
 
 -------------------
 -- main methods
@@ -84,6 +85,10 @@ function _init()
   menu_manager = gameobject:new{layer=4}
   menu_m = menu_manager:add_component(menu_manager_t:new())
   instantiate(menu_manager)
+
+  end_menu = gameobject:new{layer=4}
+  end_menu_m = end_menu:add_component(end_level_menu_t:new())
+  instantiate(end_menu)
 
   particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
@@ -497,7 +502,7 @@ function portal_manager_t:start()
 end
 
 function portal_manager_t:update()
-  if (menu_m.active) then
+  if (menu_m.active or end_menu_m.active) then
     return
   end
 
@@ -657,14 +662,16 @@ function portal_manager_t:draw()
   end
 
   -- Draw cursor
-  if self.candidate == nil then
-    sspr(24, 24, 7, 7, self.go.x - 3, self.go.y - 3)
-  elseif highlighted_portal == nil then
-    sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
-  elseif self.move_index == 0 then
-    sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
-  else
-    sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+  if (not end_menu_m.active) then
+    if self.candidate == nil then
+      sspr(24, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    elseif highlighted_portal == nil then
+      sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+    elseif self.move_index == 0 then
+      sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    else
+      sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    end
   end
 end
 
@@ -944,7 +951,7 @@ function level_manager_t:start()
 end
 
 function level_manager_t:update()
-  if (menu_m.active) then
+  if (menu_m.active or end_menu_m.active) then
     return
   end
 
@@ -961,24 +968,13 @@ function level_manager_t:update()
 
   -- check/advance to next level
   if (self.num_pickups == 0) then
-    self.num_pickups = 1
     sfx(2, -1, 0, 2)
     local num_portals = #portal_m.chain
     if (dget(level) == 0 or dget(level) > num_portals) then
       dset(level, num_portals)
     end
 
-    level_end = gameobject:new()
-    level_end:add_component(end_level_menu_t:new{medals=1})
-    instantiate(level_end)
-
-    --portal_m.chain = {}
-    --if (level < #levels) then
-    --  level += 1
-    --else
-    --  menu_m.active = true
-    --end
-    --self:restart_level()
+    end_menu_m:activate()
   end
 end
 
@@ -1143,10 +1139,13 @@ function menu_manager_t:draw()
 end
 
 end_level_menu_t = gameobject:new{
+  active = false,
   draw_medals = 0, -- 0-3 for none, bronze, etc
   flash_medal = 0, -- 0-3 for none, bronze, etc
   offsets = {0, 0, 0}, -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
   menu_offset = 0, -- offset for the entire menu so that we can slide it in
+  last_mouse = 0, -- mouse button state last frame
+  activate_action = nil, -- reference to the reveal coroutine
 }
 
 function end_level_menu_t:shake_medal_background(num)
@@ -1178,9 +1177,14 @@ function end_level_menu_t:reveal_medal(color, num)
   _yield(30)
 end
 
-function end_level_menu_t:start()
+function end_level_menu_t:activate()
+  self.active = true
+  self.draw_medals = 0
+  self.flash_medal = 0
+  self.offsets = {0, 0, 0}
   self.menu_offset = 128
-  add(actions, cocreate(function()
+  self.last_mouse = 1
+  self.activate_action = cocreate(function()
     num_portals = #portal_m.chain
     for i=1,16 do
       self.menu_offset *= 0.70
@@ -1205,11 +1209,49 @@ function end_level_menu_t:start()
     if num_portals <= levels[level].gold then 
       self:reveal_medal(10, 3) 
     end
-  end))
+  end)
+
+  add(actions, self.activate_action)
 end
 
 function end_level_menu_t:update()
+  if (not self.active) then
+    return
+  end
 
+  -- update mouse position
+  self.go.x = stat(32)
+  self.go.y = stat(33)
+
+  local this_mouse = stat(34)
+  local left_mouse_down = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
+  self.last_mouse = this_mouse
+
+  if (left_mouse_down) then
+    -- retry button
+    if (self.go.x >= 34 and self.go.x <= 58 and self.go.y >= 84 and self.go.y <= 94) then
+      self:hide()
+    end
+    -- next button
+    if (self.go.x >= 72 and self.go.x <= 92 and self.go.y >= 84 and self.go.y <= 94) then
+      portal_m.chain = {}
+      if (level < #levels) then
+        level += 1
+      else
+        menu_m.active = true
+      end
+      self:hide()
+    end
+  end
+
+end
+
+function end_level_menu_t:hide()
+  portal_m.last_mouse = 1
+  del(actions, self.activate_action)
+  self.active = false
+  particle_m:start()
+  level_m:restart_level()
 end
 
 -- Draws background, medal, and requirement text
@@ -1243,6 +1285,10 @@ function end_level_menu_t:draw_medal(num, req)
 end
 
 function end_level_menu_t:draw()
+  if (not self.active) then
+    return
+  end
+
   -- Draw background
   rectfill(20, 20 - self.menu_offset, 128-21, 128-21 - self.menu_offset, 15)
   rectfill(22, 22 - self.menu_offset, 128-23, 128-23 - self.menu_offset, 4)
@@ -1264,9 +1310,20 @@ function end_level_menu_t:draw()
   rectfill               (73, 85 - self.menu_offset, 91, 93 - self.menu_offset, 5)
   print         ("next",  75, 87 - self.menu_offset,                            7)
 
-  -- DEBUG! Draw particles again so they draw over the UI
+  -- HACK! Draw particles again so they draw over the UI
   particle_m:draw()
 
+  -- Draw mouse
+  sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+  if (self.go.x >= 34 and self.go.x <= 58 and self.go.y >= 84 and self.go.y <= 94) then
+    sspr(10, 26, 3, 3, self.go.x - 1, self.go.y - 1)
+  end
+  if (self.go.x >= 72 and self.go.x <= 92 and self.go.y >= 84 and self.go.y <= 94) then
+    sspr(10, 26, 3, 3, self.go.x - 1, self.go.y - 1)
+  end
 end
+
+
+
 
 
