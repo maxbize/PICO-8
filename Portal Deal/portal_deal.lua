@@ -742,8 +742,15 @@ function rigidbody_t:update()
   -- movement
   local vx = self.vx * time_scale
   local vy = self.vy * time_scale
-  --local vx = btnp(5) and -1.0 or 0
-  --local vy = btnp(5) and 0.0 or 0
+
+  -- DEBUGGING!
+  --vx = 0
+  --vy = 0
+  --if btn(0) then vx = -1.0 end
+  --if btn(1) then vx =  1.0 end
+  --if btn(2) then vy = -1.0 end
+  --if btn(3) then vy =  1.0 end
+
   local x = flr(abs(vx)) + 1
   local y = flr(abs(vy)) + 1
   for i=1, max(x, y) do
@@ -870,6 +877,7 @@ function rigidbody_t:handle_portal()
       local p2x, p2y, p2w, p2h = portal_positions(p2)
       self.go.x = flr(p2x + p2w/2 - self.width/2)
       self.go.y = flr(p2y + p2h/2 - self.height/2)
+      self.angle = (self.angle + portal_angle_delta(p1, p2)) % 360
 
       local v_normal  = p1.dir_x == 0 and self.vy or self.vx
       local v_tangent = p1.dir_x == 0 and self.vx or self.vy
@@ -956,10 +964,10 @@ function cash_t:draw()
     local delta = 0 -- how many pixels from centerline of portal to center of collector
     if (p1.dir_x == 0) then
       dir = sgn(self.go.rb.vy) == sgn(p1.dir_y) and -1 or 1
-      delta = abs(self.go.y - p1y)
+      delta = abs((self.go.y + 1) - p1y)
     else
       dir = sgn(self.go.rb.vx) == sgn(p1.dir_x) and -1 or 1
-      delta = abs(self.go.x - p1x)
+      delta = abs((self.go.x + 1) - p1x)
     end
 
     -- Find the portal we're supposed to do a preview on
@@ -982,14 +990,28 @@ function cash_t:draw()
     local p2x, p2y, p2w, p2h = portal_positions(p2)
     if (p2.dir_x == 0) then
       local x = flr(p2x + p2w/2 - self.go.rb.width/2)
-      local y = flr(p2y + p2h/2 - self.go.rb.height/2) + 1
-      sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, x, y - delta)
+      local y = (p2y - 1) - delta * p2.dir_y
+      sspr(72 + flr((self.go.rb.angle + portal_angle_delta(p1, p2)) % 360 / 45) * 4, 10, 3, 3, x, y)
     else
-      local x = flr(p2x + p2w/2 - self.go.rb.width/2) + 1
+      local x = (p2x - 1) - delta * p2.dir_x
       local y = flr(p2y + p2h/2 - self.go.rb.height/2)
-      sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, x - delta, y)
+      sspr(72 + flr((self.go.rb.angle + portal_angle_delta(p1, p2)) % 360 / 45) * 4, 10, 3, 3, x, y)
     end
+
   end
+end
+
+-- 0-3 for N, E, S, W
+function portal_dir(p)
+  if p.dir_y == -1 then return 0
+  elseif p.dir_x == 1 then return 1
+  elseif p.dir_y == 1 then return 2
+  elseif p.dir_x == -1 then return 3
+  end
+end
+
+function portal_angle_delta(p1, p2)
+  return (portal_dir(p1) - portal_dir(p2)) * 90 + 180
 end
 
 level_manager_t = gameobject:new{
