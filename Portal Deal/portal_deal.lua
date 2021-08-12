@@ -1147,7 +1147,7 @@ end_level_menu_t = gameobject:new{
   offsets = {0, 0, 0} -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
 }
 
-function end_level_menu_t:reveal_medal(color, num)
+function end_level_menu_t:shake_medal_background(num)
   x = 75 - 18 * (num - 1)
   for i=1,10 do
     self.offsets[num] = (self.offsets[num] + 1) % 2
@@ -1158,6 +1158,11 @@ function end_level_menu_t:reveal_medal(color, num)
     _yield(2)
   end
   _yield(20)
+end
+
+function end_level_menu_t:reveal_medal(color, num)
+  x = 75 - 18 * (num - 1)
+  self:shake_medal_background(num)
   self.draw_medals = num
   self.flash_medal = num
   _yield(4)
@@ -1168,18 +1173,29 @@ function end_level_menu_t:reveal_medal(color, num)
   for i=1,25 do
     particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
   end
-  for i=1, 2 do
-    self.offsets[num] = (self.offsets[num] + 1) % 2
-    yield()
-  end
   _yield(30)
 end
 
 function end_level_menu_t:start()
+  num_portals = #portal_m.chain
   add(actions, cocreate(function()
-    self:reveal_medal(9, 1)
-    self:reveal_medal(7, 2)
-    self:reveal_medal(10, 3)
+    if num_portals <= levels[level].bronze then 
+      self:reveal_medal(9 , 1)
+      if num_portals > levels[level].silver then
+        self:shake_medal_background(2)
+        self.draw_medals = 2
+      end
+    end
+    if num_portals <= levels[level].silver then 
+      self:reveal_medal(7 , 2) 
+      if num_portals > levels[level].gold then
+        self:shake_medal_background(3)
+        self.draw_medals = 3
+      end
+    end
+    if num_portals <= levels[level].gold then 
+      self:reveal_medal(10, 3) 
+    end
   end))
 end
 
@@ -1193,16 +1209,21 @@ function end_level_menu_t:draw_medal(num, req)
 
   if self.flash_medal == num then
     -- Draw medal flash
-    sspr(111, 54, 13, 15, draw_x, 32)
+    sspr(110, 53, 15, 17, draw_x - 1, 31)
     -- Print medal requirements
     print_shadowed("?", draw_x+5, 50, 7)
 
   elseif self.draw_medals >= num then 
-    -- Draw medal
-    sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
-
     -- Print medal requirements
     print_shadowed(tostr(req), req < 10 and draw_x+5 or draw_x+3, 50, 7)
+
+    if #portal_m.chain <= req then
+      -- Draw medal
+      sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
+    else
+      -- Draw medal background
+      sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32)
+    end
   else
     -- Draw medal background
     sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32)
