@@ -709,6 +709,8 @@ rigidbody_t = gameobject:new{
   max_vy = 3,
   angle = 0, -- angle and angular velocity for animation purposes only!
   angular_vel = 0,
+  last_particle_x = 0,
+  last_particle_y = 0,
 }
 
 function rigidbody_t:start()
@@ -828,6 +830,7 @@ function rigidbody_t:move_x(amount, portal_callback, wall_callback)
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)
       if (overlap_state == 1) then
+        self:particle_trail(sign, 0)
         self.go.x += sign
         portal_callback()
         break
@@ -835,6 +838,7 @@ function rigidbody_t:move_x(amount, portal_callback, wall_callback)
         wall_callback()
         break
       else
+        self:particle_trail(sign, 0)
         self.go.x += sign
         move -= sign
       end
@@ -853,6 +857,7 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)
       if (overlap_state == 1) then
+        self:particle_trail(0, sign)
         self.go.y += sign
         portal_callback()
         break
@@ -860,10 +865,23 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
         wall_callback()
         break
       else
+        self:particle_trail(0, sign)
         self.go.y += sign
         move -= sign
       end
     end
+  end
+end
+
+-- Record history for the particle trail. move_x/y state what our next move will be
+function rigidbody_t:particle_trail(move_x, move_y)
+  printh_nums(self.go.x, self.last_particle_x, self.go.y, self.last_particle_y)
+  local dx = abs(self.go.x + move_x - self.last_particle_x)
+  local dy = abs(self.go.y + move_y - self.last_particle_y)
+  if dx + dy >= 4 then-- or dx >= 3 or dy >= 3 then
+    particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 120)
+    self.last_particle_x = self.go.x
+    self.last_particle_y = self.go.y
   end
 end
 
@@ -939,7 +957,7 @@ cash_t = gameobject:new{
 }
 
 function cash_t:update()
-  --particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 60)
+  --particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 120)
 end
 
 function cash_t:draw()
@@ -1084,7 +1102,9 @@ end
 
 function level_manager_t:notify_pickup()
   self.num_pickups -= 1
-  sfx(0, -1, 31 - self.num_pickups, 1)
+  if self.num_pickups > 0 then
+    sfx(0, -1, 31 - self.num_pickups, 1)
+  end
 end
 
 function level_manager_t:restart_level()
@@ -1101,6 +1121,8 @@ function level_manager_t:restart_level()
   cash.rb.y_remainder = 0
   cash.rb.angle = 0
   cash.rb.angular_vel = 0
+  cash.rb.last_particle_x = cash.x
+  cash.rb.last_particle_y = cash.y
 
   -- clear remaining pickups
   for layer in all(gameobjects) do
