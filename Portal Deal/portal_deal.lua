@@ -943,31 +943,41 @@ function cash_t:update()
 end
 
 function cash_t:draw()
-  -- Draw cash itself
-  sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, self.go.x, self.go.y)
-
-  -- Draw arrow at start of level
-  if (time_scale == 0 and not end_menu_m.active) then
-    local end_x = (self.go.x + self.go.rb.vx * 5) + 1
-    local end_y = (self.go.y + self.go.rb.vy * 5) + 1
-    line(self.go.x + 1, self.go.y + 1, end_x, end_y, 12)
-    circ(end_x, end_y, 1, 1)
-    pset(self.go.x + 1, self.go.y + 1, 7)
-  end
-
-  -- Draw preview cash at previous or next portal
+  -- Check for partial portal overlaps
   local state, p1 = overlaps_solids(self.go.x, self.go.y, self.go.rb.width, self.go.rb.height)
   if (state == 1) then
     -- Check if we're entering or exiting this portal
     local p1x, p1y, p1w, p1h = portal_positions(p1)
     local dir = 0
     local delta = 0 -- how many pixels from centerline of portal to center of collector
+
+    local sx = 72 + flr(self.go.rb.angle / 45) * 4
+    local sy = 10
+    local sw = 3
+    local sh = 3
+
     if (p1.dir_x == 0) then
       dir = sgn(self.go.rb.vy) == sgn(p1.dir_y) and -1 or 1
       delta = abs((self.go.y + 1) - p1y)
+
+      local cutoff = 1 - delta -- how much to cut off for the front of the sprite
+      if p1.dir_y == 1 then
+        sspr(sx, sy + cutoff, sw, sh - cutoff, self.go.x, self.go.y + cutoff)
+      else
+        sspr(sx, sy, sw, sh - cutoff, self.go.x, self.go.y)
+      end
+
     else
       dir = sgn(self.go.rb.vx) == sgn(p1.dir_x) and -1 or 1
       delta = abs((self.go.x + 1) - p1x)
+
+      local cutoff = 1 - delta -- how much to cut off for the front of the sprite
+      if p1.dir_x == 1 then
+        sspr(sx + cutoff, sy, sw - cutoff, sh, self.go.x + cutoff, self.go.y)
+      else
+        sspr(sx, sy, sw - cutoff, sh, self.go.x, self.go.y)
+      end
+
     end
 
     -- Find the portal we're supposed to do a preview on
@@ -988,16 +998,38 @@ function cash_t:draw()
 
     -- Draw the preview at that portal
     local p2x, p2y, p2w, p2h = portal_positions(p2)
+    local cutoff = delta + 1 -- how much to cut off for the back of the sprite
+    sx = 72 + flr((self.go.rb.angle + portal_angle_delta(p1, p2)) % 360 / 45) * 4
     if (p2.dir_x == 0) then
       local x = flr(p2x + p2w/2 - self.go.rb.width/2)
       local y = (p2y - 1) - delta * p2.dir_y
-      sspr(72 + flr((self.go.rb.angle + portal_angle_delta(p1, p2)) % 360 / 45) * 4, 10, 3, 3, x, y)
+      if p2.dir_y == 1 then
+        sspr(sx, sy + cutoff, sw, sh - cutoff, x, y + cutoff)
+      else
+        sspr(sx, sy, sw, sh - cutoff, x, y)
+      end
     else
       local x = (p2x - 1) - delta * p2.dir_x
       local y = flr(p2y + p2h/2 - self.go.rb.height/2)
-      sspr(72 + flr((self.go.rb.angle + portal_angle_delta(p1, p2)) % 360 / 45) * 4, 10, 3, 3, x, y)
+      if p2.dir_x == 1 then
+        sspr(sx + cutoff, sy, sw - cutoff, sh, x + cutoff, y)
+      else
+        sspr(sx, sy, sw - cutoff, sh, x, y)
+      end
     end
 
+  else
+    -- No overlaps - simple cash draw
+    sspr(72 + flr(self.go.rb.angle / 45) * 4, 10, 3, 3, self.go.x, self.go.y)
+  end
+
+  -- Draw arrow at start of level
+  if (time_scale == 0 and not end_menu_m.active) then
+    local end_x = (self.go.x + self.go.rb.vx * 5) + 1
+    local end_y = (self.go.y + self.go.rb.vy * 5) + 1
+    line(self.go.x + 1, self.go.y + 1, end_x, end_y, 12)
+    circ(end_x, end_y, 1, 1)
+    pset(self.go.x + 1, self.go.y + 1, 7)
   end
 end
 
@@ -1410,8 +1442,4 @@ function end_level_menu_t:draw()
     sspr(10, 26, 3, 3, self.go.x - 1, self.go.y - 1)
   end
 end
-
-
-
-
 
