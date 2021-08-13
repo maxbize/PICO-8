@@ -709,8 +709,7 @@ rigidbody_t = gameobject:new{
   max_vy = 3,
   angle = 0, -- angle and angular velocity for animation purposes only!
   angular_vel = 0,
-  last_particle_x = 0,
-  last_particle_y = 0,
+  particle_trail = {}
 }
 
 function rigidbody_t:start()
@@ -830,7 +829,7 @@ function rigidbody_t:move_x(amount, portal_callback, wall_callback)
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)
       if (overlap_state == 1) then
-        self:particle_trail(sign, 0)
+        self:record_trail(sign, 0)
         self.go.x += sign
         portal_callback()
         break
@@ -838,7 +837,7 @@ function rigidbody_t:move_x(amount, portal_callback, wall_callback)
         wall_callback()
         break
       else
-        self:particle_trail(sign, 0)
+        self:record_trail(sign, 0)
         self.go.x += sign
         move -= sign
       end
@@ -857,7 +856,7 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)
       if (overlap_state == 1) then
-        self:particle_trail(0, sign)
+        self:record_trail(0, sign)
         self.go.y += sign
         portal_callback()
         break
@@ -865,7 +864,7 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
         wall_callback()
         break
       else
-        self:particle_trail(0, sign)
+        self:record_trail(0, sign)
         self.go.y += sign
         move -= sign
       end
@@ -874,14 +873,17 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
 end
 
 -- Record history for the particle trail. move_x/y state what our next move will be
-function rigidbody_t:particle_trail(move_x, move_y)
-  printh_nums(self.go.x, self.last_particle_x, self.go.y, self.last_particle_y)
-  local dx = abs(self.go.x + move_x - self.last_particle_x)
-  local dy = abs(self.go.y + move_y - self.last_particle_y)
-  if dx + dy >= 4 then-- or dx >= 3 or dy >= 3 then
-    particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 120)
-    self.last_particle_x = self.go.x
-    self.last_particle_y = self.go.y
+function rigidbody_t:record_trail(move_x, move_y)
+  if (#self.particle_trail == 1000) then
+    return
+  elseif (#self.particle_trail == 0) then
+    add(self.particle_trail, {x=self.go.x, y=self.go.y})
+  end
+
+  local dx = abs(self.go.x + move_x - self.particle_trail[#self.particle_trail].x)
+  local dy = abs(self.go.y + move_y - self.particle_trail[#self.particle_trail].y)
+  if dx + dy >= 4 or dx >= 3 or dy >= 3 then
+    add(self.particle_trail, {x = self.go.x, y = self.go.y})
   end
 end
 
@@ -954,6 +956,7 @@ end
 
 -- the main object the player has to get to the end
 cash_t = gameobject:new{
+  draw_index = 1
 }
 
 function cash_t:update()
@@ -961,6 +964,22 @@ function cash_t:update()
 end
 
 function cash_t:draw()
+  -- Draw particle trail
+  local trail_length = #self.go.rb.particle_trail
+  if trail_length == 0 then
+    self.draw_index = 1
+  end
+  for particle in all(self.go.rb.particle_trail) do
+    pset(particle.x + 1, particle.y + 1, 13)
+  end
+  if time_scale == 0 and trail_length > 0 and not end_menu_m.active then
+    for i=1,10 do
+      local particle = self.go.rb.particle_trail[(flr(self.draw_index/2) + i) % trail_length + 1]
+      pset(particle.x + 1, particle.y + 1, 7)
+    end
+    self.draw_index = self.draw_index/2 < trail_length and self.draw_index + 1 or 1
+  end
+
   -- Check for partial portal overlaps
   local state, p1 = overlaps_solids(self.go.x, self.go.y, self.go.rb.width, self.go.rb.height)
   if (state == 1) then
@@ -1081,6 +1100,7 @@ function level_manager_t:update()
   if (btnp(4) and time_scale == 0) then
     sfx(3, -1, 0, 2)
     time_scale = 1
+    cash.rb.particle_trail = {}
   elseif (btnp(4) and time_scale == 1) then
     sfx(3, -1, 0, 2)
     self:restart_level()
@@ -1121,8 +1141,6 @@ function level_manager_t:restart_level()
   cash.rb.y_remainder = 0
   cash.rb.angle = 0
   cash.rb.angular_vel = 0
-  cash.rb.last_particle_x = cash.x
-  cash.rb.last_particle_y = cash.y
 
   -- clear remaining pickups
   for layer in all(gameobjects) do
@@ -1378,6 +1396,7 @@ function end_level_menu_t:update()
     if (self.go.x >= 72 and self.go.x <= 92 and self.go.y >= 84 and self.go.y <= 94) then
       portal_m.chain = {}
       if (level < #levels) then
+        cash.rb.particle_trail = {}
         level += 1
       else
         menu_m.active = true
