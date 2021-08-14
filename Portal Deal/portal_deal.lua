@@ -613,6 +613,12 @@ end
 
 function portal_manager_t:move_portal(candidate, index)
   if (candidate ~= nil) then
+    -- Make sure we're not overwriting an existing portal
+    for portal in all(self.chain) do
+      if portals_equal(candidate, portal) then
+        return
+      end
+    end
     self.chain[index] = candidate
   end
 end
@@ -970,12 +976,12 @@ function cash_t:draw()
     self.draw_index = 1
   end
   for particle in all(self.go.rb.particle_trail) do
-    pset(particle.x + 1, particle.y + 1, 13)
+    --pset(particle.x + 1, particle.y + 1, 13)
   end
   if time_scale == 0 and trail_length > 0 and not end_menu_m.active then
     for i=1,10 do
       local particle = self.go.rb.particle_trail[(flr(self.draw_index/2) + i) % trail_length + 1]
-      pset(particle.x + 1, particle.y + 1, 7)
+      --pset(particle.x + 1, particle.y + 1, 7)
     end
     self.draw_index = self.draw_index/2 < trail_length and self.draw_index + 1 or 1
   end
