@@ -877,15 +877,13 @@ function rigidbody_t:record_trail(move_x, move_y)
     end
   end
 
-  local last_index = self.trail_index == 1 and self.trail_size or self.trail_index - 1
+  local next_index = self.trail_index == self.trail_size and 1 or self.trail_index + 1
 
-  printh_nums(last_index, self.trail_index)
-
-  local dx = abs(self.go.x + move_x - self.particle_trail[last_index].x)
-  local dy = abs(self.go.y + move_y - self.particle_trail[last_index].y)
+  local dx = abs(self.go.x + move_x - self.particle_trail[self.trail_index].x)
+  local dy = abs(self.go.y + move_y - self.particle_trail[self.trail_index].y)
   if dx + dy >= 4 or dx >= 3 or dy >= 3 then
-    self.particle_trail[self.trail_index] = {x = self.go.x, y = self.go.y}
-    self.trail_index = self.trail_index == self.trail_size and 1 or self.trail_index + 1
+    self.particle_trail[next_index] = {x = self.go.x, y = self.go.y}
+    self.trail_index = next_index
   end
 
 end
@@ -959,7 +957,8 @@ end
 
 -- the main object the player has to get to the end
 cash_t = gameobject:new{
-  draw_index = 1
+  draw_index = 1, -- index into the particle trail for the highlight
+  draw_pause = 0, -- how many frames to pause the highlight
 }
 
 function cash_t:update()
@@ -978,10 +977,19 @@ function cash_t:draw()
     end
     if time_scale == 0 and trail_length > 0 and not end_menu_m.active then
       for i=1,10 do
-        local particle = self.go.rb.particle_trail[(flr(self.draw_index/2) + i) % trail_length + 1]
-        pset(particle.x + 1, particle.y + 1, 7)
+        --local index = (self.go.rb.trail_index + self.draw_index + i) % trail_length + 1
+        local index = self.draw_index + i
+        if index >= 0 and index < self.go.rb.trail_size then
+          local particle = self.go.rb.particle_trail[(self.go.rb.trail_index + self.draw_index + i) % trail_length + 1]
+          pset(particle.x + 1, particle.y + 1, 7)
+        end
       end
-      self.draw_index = self.draw_index/2 < trail_length and self.draw_index + 1 or 1
+      if self.draw_pause > 0 then
+        self.draw_pause -= 1
+      else
+        self.draw_index = self.draw_index < trail_length and self.draw_index + 1 or -20
+        self.draw_pause = 2
+      end
     end
   end
 
