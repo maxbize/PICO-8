@@ -58,6 +58,7 @@ local menu_m = nil     -- type menu_manager_t
 local end_menu_m = nil -- type end_level_menu_t
 local level_ui_m = nil -- type level_ui_t
 local mouse_m = nil    -- type mouse_t
+local help_m = nil     -- type help_menu_t
 
 -------------------
 -- main methods
@@ -96,6 +97,10 @@ function _init()
   level_ui_m = level_ui:add_component(level_ui_t:new())
   instantiate(level_ui)
 
+  local help_menu = gameobject:new{layer=4}
+  help_m = help_menu:add_component(help_menu_t:new())
+  instantiate(help_menu)
+
   local particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
   instantiate(particle_manager)
@@ -103,6 +108,8 @@ function _init()
   local mouse = gameobject:new{layer=5}
   mouse_m = mouse:add_component(mouse_t:new())
   instantiate(mouse)
+
+
 end
 
 function _update60()
@@ -657,10 +664,6 @@ function portal_manager_t:draw()
   end
 
   if (self.highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0 and not end_menu_m.active) then
-    --self:draw_portal_number(self.highlighted_portal == 1 and #self.chain or self.highlighted_portal-1)
-    --self:draw_portal_number(self.highlighted_portal)
-    --self:draw_portal_number((self.highlighted_portal%#self.chain)+1)
-
     local p0x, p0y, p0w, p0h = portal_positions(self.chain[self.highlighted_portal == 1 and #self.chain or self.highlighted_portal-1])
     local p1x, p1y, p1w, p1h = portal_positions(self.chain[self.highlighted_portal])
     local p2x, p2y, p2w, p2h = portal_positions(self.chain[(self.highlighted_portal%#self.chain)+1])
@@ -677,11 +680,16 @@ end
 
 function portal_manager_t:draw_portal_number(num)
   portal = self.chain[num]
-  local x, y, w, h = portal_positions(portal)
-  if w == 1 then
-    print(tostr(num), portal.dir_x > 0 and x - 4 or x + 2, y + 2, 0)
+  local l = #tostr(num) - 1
+  local cell_x, cell_y = cell_location(portal.cell_x, portal.cell_y)
+  if portal.dir_x == 1 then
+    print(tostr(num), cell_x + 3 - l * 4, cell_y + 2, 0)
+  elseif portal.dir_x == -1 then
+    print(tostr(num), cell_x + 2, cell_y + 2, 0)
+  elseif portal.dir_y == 1 then
+    print(tostr(num), cell_x + 3 - l * 2, cell_y + 1, 0)
   else
-    print(tostr(num), x + 1, portal.dir_y > 0 and y - 6 or y + 2, 0)
+    print(tostr(num), cell_x + 3 - l * 2, cell_y + 2, 0)
   end
 end
 
@@ -1237,7 +1245,7 @@ function menu_manager_t:update()
     return
   end
 
-  if (mouse_m.go.y >= 25 and mouse_m.go.y < 115) then
+  if (mouse_m.go.y >= 25 and mouse_m.go.y < 116) then
     self.selected_level = flr((mouse_m.go.y - 26)/9) + 1
   else
     self.selected_level = -1
@@ -1620,5 +1628,30 @@ function mouse_t:draw()
     else
       sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
     end
+  end
+end
+
+help_menu_t = gameobject:new{
+  active = false,
+  page = 1, -- which help page number are we on
+  max_page = 3, -- which help page number are we on
+}
+
+function help_menu_t:draw()
+  if self.active then
+    rectfill(0, 0, 127, 127, 1)
+    rectfill(2, 2, 125, 125, 2)
+  end
+end
+
+function help_menu_t:update()
+  if mouse_m.left_mouse_down then
+    self.page += 1
+  end
+  if mouse_m.right_mouse_down then
+    self.page -= 1
+  end
+  if self.page == 0 or self.page == self.max_page then
+    self.active = false
   end
 end
