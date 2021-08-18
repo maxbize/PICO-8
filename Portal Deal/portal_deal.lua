@@ -58,7 +58,6 @@ local menu_m = nil     -- type menu_manager_t
 local end_menu_m = nil -- type end_level_menu_t
 local level_ui_m = nil -- type level_ui_t
 local mouse_m = nil    -- type mouse_t
-local btn_play = nil   -- type button_t
 
 -------------------
 -- main methods
@@ -1133,13 +1132,13 @@ end
 function level_manager_t:play_sim()
   sfx(3, -1, 0, 2)
   time_scale = 1
-  btn_play.text = "stop"
+  level_ui_m.btn_play.text = "stop"
   cash.rb.particle_trail = {}
 end
 
 function level_manager_t:stop_sim()
   sfx(3, -1, 0, 2)
-  btn_play.text = "play"
+  level_ui_m.btn_play.text = "play"
   self:restart_level()
 end
 
@@ -1301,7 +1300,25 @@ end_level_menu_t = gameobject:new{
   offsets = {0, 0, 0}, -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
   menu_offset = 0, -- offset for the entire menu so that we can slide it in
   activate_action = nil, -- reference to the reveal coroutine
+  buttons = {}, -- list of buttons we've created for our UI
 }
+
+function end_level_menu_t:start()
+  add(self.buttons, make_button(34, 84, 0, -128, "retry", function(btn)
+    self:hide()
+  end))
+
+  add(self.buttons, make_button(72, 84, 0, -128, "next", function(btn)
+    portal_m.chain = {}
+    if (level < #levels) then
+      cash.rb.particle_trail = {}
+      level += 1
+    else
+      menu_m.active = true
+    end
+    self:hide()
+  end))
+end
 
 function end_level_menu_t:shake_medal_background(num)
   x = 75 - 18 * (num - 1)
@@ -1356,9 +1373,15 @@ function end_level_menu_t:activate()
     -- Slide in menu
     for i=1,16 do
       self.menu_offset *= 0.70
+      for btn in all(self.buttons) do
+        btn.offset = -self.menu_offset
+      end
       yield()
     end
     self.menu_offset = 0
+    for btn in all(self.buttons) do
+      btn.offset = 0
+    end
 
     -- Perform medal animations
     local num_portals = #portal_m.chain
@@ -1384,36 +1407,15 @@ function end_level_menu_t:activate()
   add(actions, self.activate_action)
 end
 
-function end_level_menu_t:update()
-  if (not self.active) then
-    return
-  end
-
-  if (mouse_m.left_mouse_down) then
-    -- retry button
-    if (mouse_m.go.x >= 34 and mouse_m.go.x <= 58 and mouse_m.go.y >= 84 and mouse_m.go.y <= 94) then
-      self:hide()
-    end
-    -- next button
-    if (mouse_m.go.x >= 72 and mouse_m.go.x <= 92 and mouse_m.go.y >= 84 and mouse_m.go.y <= 94) then
-      portal_m.chain = {}
-      if (level < #levels) then
-        cash.rb.particle_trail = {}
-        level += 1
-      else
-        menu_m.active = true
-      end
-      self:hide()
-    end
-  end
-
-end
-
 function end_level_menu_t:hide()
   del(actions, self.activate_action)
   self.active = false
   particle_m:start()
   level_m:restart_level()
+  for btn in all(self.buttons) do
+    btn.offset = -128
+  end
+  level_ui_m.btn_play.text = "play"
 end
 
 -- Draws background, medal, and requirement text
@@ -1464,14 +1466,6 @@ function end_level_menu_t:draw()
   print_shadowed("level " .. level .. " cleared!",      33, 63 - self.menu_offset, 7)
   print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 72 - self.menu_offset, 7)
 
-  -- Draw/print buttons
-  rect                   (34, 84 - self.menu_offset, 58, 94 - self.menu_offset, 6)
-  rectfill               (35, 85 - self.menu_offset, 57, 93 - self.menu_offset, 5)
-  print         ("retry", 37, 87 - self.menu_offset,                            7)
-  rect                   (72, 84 - self.menu_offset, 92, 94 - self.menu_offset, 6)
-  rectfill               (73, 85 - self.menu_offset, 91, 93 - self.menu_offset, 5)
-  print         ("next",  75, 87 - self.menu_offset,                            7)
-
   -- HACK! Draw particles again so they draw over the UI
   particle_m:draw()
 
@@ -1479,10 +1473,12 @@ end
 
 -- UI at the bottom of the screen
 level_ui_t = gameobject:new{
+  btn_play = nil, -- the play button
+  buttons = {},   -- list of all buttons we've created
 }
 
 function level_ui_t:start()
-  btn_play = make_button(  1, 119, "play", function(btn) 
+  self.btn_play = make_button(5, 119, 1, 0, "play", function(btn) 
     if btn.text == "play" then
       btn.text = "stop"
       level_m:play_sim()
@@ -1491,33 +1487,34 @@ function level_ui_t:start()
       level_m:stop_sim()
     end
   end)
+  add(self.buttons, self.btn_play)
 
-  make_button( 23, 119, "reset", function(btn)
+  add(self.buttons, make_button(31, 119, 1, 0, "reset", function(btn)
     level_m:stop_sim()
     portal_m.chain = {}
     cash.rb.particle_trail = {}
-  end)
+  end))
 
-  make_button( 49, 119, "trail", function(btn)
-    cash.rb.trail_on = not cash.rb.trail_on
-  end)
+  --add(btns_bottom, make_button( 49, 119, 1, 0, "trail", function(btn)
+  --  cash.rb.trail_on = not cash.rb.trail_on
+  --end))
   
-  make_button( 83, 119, "help", function(btn)
+  add(self.buttons, make_button(76, 119, 1, 0, "help", function(btn)
     
-  end)
+  end))
 
-  make_button(105, 119, "exit", function(btn)
+  add(self.buttons, make_button(102, 119, 1, 0, "exit", function(btn)
     level_m:stop_sim()
     portal_m.chain = {}
     cash.rb.particle_trail = {}
     menu_m.active = true
-  end)
+  end))
 
 end
 
-function make_button(x, y, text, cb)
+function make_button(x, y, top_cut, offset, text, cb)
   local button_obj = gameobject:new{x=x, y=y, layer=4}
-  local button_comp = button_obj:add_component(button_t:new{text=text, click_cb=cb})
+  local button_comp = button_obj:add_component(button_t:new{top_cut=top_cut, offset=offset, text=text, click_cb=cb})
   instantiate(button_obj)
   return button_comp
 end
@@ -1532,14 +1529,21 @@ function level_ui_t:draw()
 end
 
 function level_ui_t:update()
-
+  for btn in all(self.buttons) do
+    if end_menu_m.active and btn.offset < 10 then
+      btn.offset += 1
+    elseif not end_menu_m.active and btn.offset > 0 then
+      btn.offset -= 1
+    end
+  end
 end
 
 -- Note: x,y is of upper-left corner
 button_t = gameobject:new{
   text = nil, -- displayed text on button
   click_cb = nil, -- On click callback
-  offset = 0 -- y offset for slide-in
+  offset = 0, -- y offset for slide-in
+  top_cut = 0 -- how much border to cut off the top
 }
 
 function button_t:update()
@@ -1549,7 +1553,7 @@ function button_t:update()
 end
 
 function button_t:draw()
-  if menu_m.active or end_menu_m.active then
+  if menu_m.active then
     return
   end
 
@@ -1562,16 +1566,19 @@ function button_t:draw()
     mouse_m.on_button = true
   end
 
-  --rect               (x,     y     - self.offset, x + len,     y + 10 - self.offset, 15)
-  rectfill           (x + 1, y + 2 - self.offset, x + len - 1, y +  9 - self.offset, is_mouse_over and 6 or 5)
-  print   (self.text, x + 3, y + 3 - self.offset,                                    7)
+  rect               (x,     y + self.top_cut     + self.offset, x + len,     y + 10 + self.offset, 15)
+  rectfill           (x + 1, y + self.top_cut + 1 + self.offset, x + len - 1, y +  9 + self.offset, is_mouse_over and 6 or 5)
+  print   (self.text, x + 3, y                + 3 + self.offset,                                    7)
 
 end
 
 function button_t:mouse_over()
   local len = #self.text * 4 + 4
 
-  return mouse_m.go.x > self.go.x and mouse_m.go.x < self.go.x + len and mouse_m.go.y > self.go.y and mouse_m.go.y < self.go.y + 10
+  return mouse_m.go.x >= self.go.x 
+     and mouse_m.go.x <= self.go.x + len 
+     and mouse_m.go.y >= self.go.y + self.offset + self.top_cut 
+     and mouse_m.go.y <= self.go.y + 10 + self.offset
 end
 
 mouse_t = gameobject:new{
