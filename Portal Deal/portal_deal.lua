@@ -9,8 +9,8 @@ local _to_start = {} -- all gameobjects that still haven't had start() called
 local gameobjects = {} -- global list of all objects
 local actions = {} -- coroutines
 local time_scale = 1
-for i=1,4 do
-  add(gameobjects, {}) -- 4 layers: background, default, foreground, UI
+for i=1,5 do
+  add(gameobjects, {}) -- 5 layers: background, default, foreground, UI, mouse
 end
 
 local gradients = {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
@@ -46,7 +46,7 @@ local levels = {
   {start_x=100, start_y=40, start_vx=2, start_vy=0, gold=7, silver=10, bronze=15}, -- very hard
   {start_x=42, start_y=100, start_vx=1, start_vy=1, gold=8, silver=12, bronze=16}, -- medium-hard
   {start_x=66, start_y=30, start_vx=0, start_vy=0, gold=10, silver=12, bronze=16}, -- very hard
-  {start_x=64, start_y=64, start_vx=-3, start_vy=-3, gold=20, silver=30, bronze=40} -- hard (bonus)
+  {start_x=66, start_y=64, start_vx=-3, start_vy=-3, gold=20, silver=30, bronze=40} -- hard (bonus)
 }
 
 -- singletons (_m == manager)
@@ -56,6 +56,8 @@ local level_m = nil    -- type level_manager_t
 local particle_m = nil -- type particle_manager_t
 local menu_m = nil     -- type menu_manager_t
 local end_menu_m = nil -- type end_level_menu_t
+local level_ui_m = nil -- type level_ui_t
+local mouse_m = nil    -- type mouse_t
 
 -------------------
 -- main methods
@@ -78,21 +80,29 @@ function _init()
   cash:add_component(cash_t:new())
   instantiate(cash)
 
-  level_manager = gameobject:new()
+  local level_manager = gameobject:new()
   level_m = level_manager:add_component(level_manager_t:new())
   instantiate(level_manager)
 
-  menu_manager = gameobject:new{layer=4}
+  local menu_manager = gameobject:new{layer=4}
   menu_m = menu_manager:add_component(menu_manager_t:new())
   instantiate(menu_manager)
 
-  end_menu = gameobject:new{layer=4}
+  local end_menu = gameobject:new{layer=4}
   end_menu_m = end_menu:add_component(end_level_menu_t:new())
   instantiate(end_menu)
 
-  particle_manager = gameobject:new{layer=1}
+  local level_ui = gameobject:new{layer=4}
+  level_ui_m = level_ui:add_component(level_ui_t:new())
+  instantiate(level_ui)
+
+  local particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
   instantiate(particle_manager)
+
+  local mouse = gameobject:new{layer=5}
+  mouse_m = mouse:add_component(mouse_t:new())
+  instantiate(mouse)
 end
 
 function _update60()
@@ -495,8 +505,8 @@ end
 portal_manager_t = gameobject:new{
   candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
   chain = nil, -- [{cell_x, cell_y, dir_x, dir_x}]
-  last_mouse = 0, -- stat(34) from last frame
-  move_index = 0 -- if we're moving a portal, this is the index of that portal
+  move_index = 0, -- if we're moving a portal, this is the index of that portal
+  highlighted_portal = nil
 }
 
 function portal_manager_t:start()
@@ -508,13 +518,9 @@ function portal_manager_t:update()
     return
   end
 
-  -- update mouse position
-  self.go.x = stat(32)
-  self.go.y = stat(33)
-
   -- find candidate wall for portal
-  local d_up = self.go.y % 8
-  local d_lt = self.go.x % 8
+  local d_up = mouse_m.go.y % 8
+  local d_lt = mouse_m.go.x % 8
   local d_dn = 7 - d_up
   local d_rt = 7 - d_lt
 
@@ -525,7 +531,7 @@ function portal_manager_t:update()
     {dist=d_lt, dir_x=-1, dir_y= 0}
   )
 
-  local cell_x, cell_y = cell_at_point(self.go.x, self.go.y)
+  local cell_x, cell_y = cell_at_point(mouse_m.go.x, mouse_m.go.y)
   self.candidate = nil
 
   for dir in all(dirs) do
@@ -559,16 +565,11 @@ function portal_manager_t:update()
     return
   end
 
-  local this_mouse       = stat(34)
-  local left_mouse       = this_mouse & 0x1 == 1
-  local left_mouse_down  = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
-  local right_mouse_down = self.last_mouse & 0x2 == 0 and this_mouse & 0x2 == 2
-  
-  if (self.move_index ~= 0 and not left_mouse) then
+  if (self.move_index ~= 0 and not mouse_m.left_mouse) then
     self.move_index = 0
   end
   
-  if (left_mouse_down) then
+  if (mouse_m.left_mouse_down) then
     local existing, index = self:find_in_chain(self.candidate)
     if (existing == nil and self.candidate ~= nil) then
       self:place_portal(self.candidate)
@@ -578,13 +579,12 @@ function portal_manager_t:update()
     end
   elseif (self.move_index ~= 0) then
     self:move_portal(self.candidate, self.move_index)
-  elseif (right_mouse_down) then
+  elseif (mouse_m.right_mouse_down) then
     self:remove_portal(self.candidate)
   elseif (stat(36) ~= 0 and #self.chain > 1) then
     -- Not sure this is a good idea - changes the order of everything else in the process
     --self:reorder_portal(self.candidate, sgn(stat(36)))
   end
-  self.last_mouse = this_mouse
 end
 
 function portal_manager_t:find_in_chain(candidate)
@@ -644,42 +644,29 @@ function portal_manager_t:draw()
     self:draw_portal(self.candidate, 11)
   end
 
-  local highlighted_portal = nil
+  self.highlighted_portal = nil
 
   for i = 1, #self.chain do
     self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
     if (time_scale == 0 and not end_menu_m.active) then
       self:draw_portal_number(i)
       if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
-        highlighted_portal = i
+        self.highlighted_portal = i
       end
     end
   end
 
-  if (highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0 and not end_menu_m.active) then
-    --self:draw_portal_number(highlighted_portal == 1 and #self.chain or highlighted_portal-1)
-    --self:draw_portal_number(highlighted_portal)
-    --self:draw_portal_number((highlighted_portal%#self.chain)+1)
+  if (self.highlighted_portal ~= nil and #self.chain > 1 and time_scale == 0 and not end_menu_m.active) then
+    --self:draw_portal_number(self.highlighted_portal == 1 and #self.chain or self.highlighted_portal-1)
+    --self:draw_portal_number(self.highlighted_portal)
+    --self:draw_portal_number((self.highlighted_portal%#self.chain)+1)
 
-    local p0x, p0y, p0w, p0h = portal_positions(self.chain[highlighted_portal == 1 and #self.chain or highlighted_portal-1])
-    local p1x, p1y, p1w, p1h = portal_positions(self.chain[highlighted_portal])
-    local p2x, p2y, p2w, p2h = portal_positions(self.chain[(highlighted_portal%#self.chain)+1])
+    local p0x, p0y, p0w, p0h = portal_positions(self.chain[self.highlighted_portal == 1 and #self.chain or self.highlighted_portal-1])
+    local p1x, p1y, p1w, p1h = portal_positions(self.chain[self.highlighted_portal])
+    local p2x, p2y, p2w, p2h = portal_positions(self.chain[(self.highlighted_portal%#self.chain)+1])
     
     draw_dotted_line(p0x + flr(p0w/2), p0y + flr(p0h/2), p1x + flr(p1w/2), p1y + flr(p1h/2), 14, time()*5%1, 5)
     draw_dotted_line(p1x + flr(p1w/2), p1y + flr(p1h/2), p2x + flr(p2w/2), p2y + flr(p2h/2), 15, time()*5%1, 5)
-  end
-
-  -- Draw cursor
-  if (not end_menu_m.active) then
-    if self.candidate == nil then
-      sspr(24, 24, 7, 7, self.go.x - 3, self.go.y - 3)
-    elseif highlighted_portal == nil then
-      sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
-    elseif self.move_index == 0 then
-      sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
-    else
-      sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
-    end
   end
 end
 
@@ -1104,12 +1091,9 @@ function level_manager_t:update()
 
   -- handle input
   if (btnp(4) and time_scale == 0) then
-    sfx(3, -1, 0, 2)
-    time_scale = 1
-    cash.rb.particle_trail = {}
+    self:play_sim()
   elseif (btnp(4) and time_scale == 1) then
-    sfx(3, -1, 0, 2)
-    self:restart_level()
+    self:stop_sim()
 --elseif (btnp(5) and time_scale == 0) then
 --  portal_m.chain = {}
   end
@@ -1124,6 +1108,17 @@ function level_manager_t:update()
 
     end_menu_m:activate()
   end
+end
+
+function level_manager_t:play_sim()
+  sfx(3, -1, 0, 2)
+  time_scale = 1
+  cash.rb.particle_trail = {}
+end
+
+function level_manager_t:stop_sim()
+  sfx(3, -1, 0, 2)
+  self:restart_level()
 end
 
 function level_manager_t:notify_pickup()
@@ -1214,7 +1209,6 @@ end
 menu_manager_t = gameobject:new{
   active = true,
   selected_level = -1,
-  last_mouse = 0
 }
 
 function menu_manager_t:update()
@@ -1222,29 +1216,21 @@ function menu_manager_t:update()
     return
   end
 
-  -- update mouse position
-  self.go.x = stat(32)
-  self.go.y = stat(33)
-
-  if (self.go.y >= 25 and self.go.y < 115) then
-    self.selected_level = flr((self.go.y - 25)/9) + 1
+  if (mouse_m.go.y >= 25 and mouse_m.go.y < 115) then
+    self.selected_level = flr((mouse_m.go.y - 26)/9) + 1
   else
     self.selected_level = -1
   end
 
-  local this_mouse = stat(34)
-  local left_mouse_down = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
-  if (left_mouse_down and self.selected_level > -1) then
+  if (mouse_m.left_mouse_down and self.selected_level > -1) then
     local unlocked = self.selected_level == 1 or dget(self.selected_level - 1) > 0
     if (unlocked) then
       -- todo: clean up hacks
       self.active = false
       level = self.selected_level
-      portal_m.last_mouse = this_mouse
       level_m:restart_level()
     end
   end
-  self.last_mouse = this_mouse
 end
 
 function menu_manager_t:draw()
@@ -1259,7 +1245,7 @@ function menu_manager_t:draw()
   print_shadowed('@maxbize', 48, 120, 7)
   print_shadowed('v 1.1', 103, 120, 7)
 
-  if (self.selected_level ~= -1) then
+  if (self.selected_level > 0) then
     local i = self.selected_level - 1
     rectfill(0, 26 + i * 9, 128, 34 + i * 9, 2)
   end
@@ -1284,8 +1270,6 @@ function menu_manager_t:draw()
     print_shadowed(best, best < 10 and x+84 or x+80, y + i * 9, unlocked and 7 or 1)
 
   end
-
-  sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
 end
 
 end_level_menu_t = gameobject:new{
@@ -1294,7 +1278,6 @@ end_level_menu_t = gameobject:new{
   flash_medal = 0, -- 0-3 for none, bronze, etc
   offsets = {0, 0, 0}, -- offsets to draw medals/backgrounds for a little shake. Bronze, silver, gold
   menu_offset = 0, -- offset for the entire menu so that we can slide it in
-  last_mouse = 0, -- mouse button state last frame
   activate_action = nil, -- reference to the reveal coroutine
 }
 
@@ -1334,7 +1317,6 @@ function end_level_menu_t:activate()
   self.flash_medal = 0
   self.offsets = {0, 0, 0}
   self.menu_offset = 128
-  self.last_mouse = 1
 
   self.activate_action = cocreate(function()
 
@@ -1385,21 +1367,13 @@ function end_level_menu_t:update()
     return
   end
 
-  -- update mouse position
-  self.go.x = stat(32)
-  self.go.y = stat(33)
-
-  local this_mouse = stat(34)
-  local left_mouse_down = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
-  self.last_mouse = this_mouse
-
-  if (left_mouse_down) then
+  if (mouse_m.left_mouse_down) then
     -- retry button
-    if (self.go.x >= 34 and self.go.x <= 58 and self.go.y >= 84 and self.go.y <= 94) then
+    if (mouse_m.go.x >= 34 and mouse_m.go.x <= 58 and mouse_m.go.y >= 84 and mouse_m.go.y <= 94) then
       self:hide()
     end
     -- next button
-    if (self.go.x >= 72 and self.go.x <= 92 and self.go.y >= 84 and self.go.y <= 94) then
+    if (mouse_m.go.x >= 72 and mouse_m.go.x <= 92 and mouse_m.go.y >= 84 and mouse_m.go.y <= 94) then
       portal_m.chain = {}
       if (level < #levels) then
         cash.rb.particle_trail = {}
@@ -1414,7 +1388,6 @@ function end_level_menu_t:update()
 end
 
 function end_level_menu_t:hide()
-  portal_m.last_mouse = 1
   del(actions, self.activate_action)
   self.active = false
   particle_m:start()
@@ -1480,13 +1453,141 @@ function end_level_menu_t:draw()
   -- HACK! Draw particles again so they draw over the UI
   particle_m:draw()
 
-  -- Draw mouse
-  sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
-  if (self.go.x >= 34 and self.go.x <= 58 and self.go.y >= 84 and self.go.y <= 94) then
-    sspr(10, 26, 3, 3, self.go.x - 1, self.go.y - 1)
+end
+
+-- UI at the bottom of the screen
+level_ui_t = gameobject:new{
+}
+
+function level_ui_t:start()
+  make_button(  1, 119, "play", function(btn) 
+    if btn.text == "play" then
+      btn.text = "stop"
+      level_m:play_sim()
+    else
+      btn.text = "play"
+      level_m:stop_sim()
+    end
+  end)
+
+  -- todo: make this change the above button to play on click
+  make_button( 23, 119, "reset", function(btn)
+    level_m:stop_sim()
+    portal_m.chain = {}
+  end)
+
+  make_button( 49, 119, "trail", function(btn)
+  
+  end)
+  
+  make_button( 83, 119, "help", function(btn)
+  
+  end)
+
+  make_button(105, 119, "exit", function(btn)
+    level_m:stop_sim()
+    portal_m.chain = {}
+    menu_m.active = true
+  end)
+
+end
+
+function make_button(x, y, text, cb)
+  local button_obj = gameobject:new{x=x, y=y, layer=4}
+  button_obj:add_component(button_t:new{text=text, click_cb=cb})
+  instantiate(button_obj)
+end
+
+function level_ui_t:draw()
+  if menu_m.active then
+    return
   end
-  if (self.go.x >= 72 and self.go.x <= 92 and self.go.y >= 84 and self.go.y <= 94) then
-    sspr(10, 26, 3, 3, self.go.x - 1, self.go.y - 1)
+  
+  rectfill(0, 120, 128, 128, 4)
+  line(0, 120, 128, 120, 15)
+end
+
+function level_ui_t:update()
+
+end
+
+-- Note: x,y is of upper-left corner
+button_t = gameobject:new{
+  text = nil, -- displayed text on button
+  click_cb = nil, -- On click callback
+  offset = 0 -- y offset for slide-in
+}
+
+function button_t:update()
+  if mouse_m.left_mouse_down and self:mouse_over() then
+    self.click_cb(self)
   end
 end
 
+function button_t:draw()
+  if menu_m.active or end_menu_m.active then
+    return
+  end
+
+  local x = self.go.x
+  local y = self.go.y
+  local len = #self.text * 4 + 4
+
+  local is_mouse_over = self:mouse_over()
+  if is_mouse_over then
+    mouse_m.on_button = true
+  end
+
+  --rect               (x,     y     - self.offset, x + len,     y + 10 - self.offset, 15)
+  rectfill           (x + 1, y + 2 - self.offset, x + len - 1, y +  9 - self.offset, is_mouse_over and 6 or 5)
+  print   (self.text, x + 3, y + 3 - self.offset,                                    7)
+
+end
+
+function button_t:mouse_over()
+  local len = #self.text * 4 + 4
+
+  return mouse_m.go.x > self.go.x and mouse_m.go.x < self.go.x + len and mouse_m.go.y > self.go.y and mouse_m.go.y < self.go.y + 10
+end
+
+mouse_t = gameobject:new{
+  last_mouse = 0, -- Mouse button stat from last frame
+  left_mouse = false, -- Left mouse button is being held down this frame
+  left_mouse_down = false, -- left/right mouse buttons are being clicked this frame
+  right_mouse_down = false,
+  on_button = false, -- Buttons will tell the mouse if it's over one of them
+}
+
+function mouse_t:update()
+  -- Mouse position
+  self.go.x = stat(32)
+  self.go.y = stat(33)
+
+  -- Mouse buttons
+  local this_mouse      = stat(34)
+  self.left_mouse       = this_mouse & 0x1 == 1
+  self.left_mouse_down  = self.last_mouse & 0x1 == 0 and this_mouse & 0x1 == 1
+  self.right_mouse_down = self.last_mouse & 0x2 == 0 and this_mouse & 0x2 == 2
+
+  self.last_mouse = this_mouse
+  self.on_button = false
+end
+
+function mouse_t:draw()
+  -- Draw cursor (portal manager)
+  if (menu_m.active or end_menu_m.active) then
+    sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+  else
+    if self.on_button then
+      sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+    elseif portal_m.candidate == nil then
+      sspr(24, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    elseif portal_m.highlighted_portal == nil then
+      sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
+    elseif portal_m.move_index == 0 then
+      sspr(0, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    else
+      sspr(8, 24, 7, 7, self.go.x - 3, self.go.y - 3)
+    end
+  end
+end
