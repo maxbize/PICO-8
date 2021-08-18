@@ -1487,6 +1487,7 @@ function level_ui_t:start()
   make_button( 23, 119, "reset", function(btn)
     level_m:stop_sim()
     portal_m.chain = {}
+    cash.rb.particle_trail = {}
   end)
 
   make_button( 49, 119, "trail", function(btn)
@@ -1500,6 +1501,7 @@ function level_ui_t:start()
   make_button(105, 119, "exit", function(btn)
     level_m:stop_sim()
     portal_m.chain = {}
+    cash.rb.particle_trail = {}
     menu_m.active = true
   end)
 
