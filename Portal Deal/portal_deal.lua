@@ -58,6 +58,7 @@ local menu_m = nil     -- type menu_manager_t
 local end_menu_m = nil -- type end_level_menu_t
 local level_ui_m = nil -- type level_ui_t
 local mouse_m = nil    -- type mouse_t
+local btn_play = nil   -- type button_t
 
 -------------------
 -- main methods
@@ -702,7 +703,10 @@ rigidbody_t = gameobject:new{
   max_vy = 3,
   angle = 0, -- angle and angular velocity for animation purposes only!
   angular_vel = 0,
-  particle_trail = {}
+  particle_trail = {}, -- ring buffer of historical positions
+  trail_index = 1, -- index into ring buffer
+  trail_size = 50, -- size of ring buffer
+  trail_on = true, -- whether or not to render trail
 }
 
 function rigidbody_t:start()
@@ -867,17 +871,23 @@ end
 
 -- Record history for the particle trail. move_x/y state what our next move will be
 function rigidbody_t:record_trail(move_x, move_y)
-  if (#self.particle_trail == 1000) then
-    return
-  elseif (#self.particle_trail == 0) then
-    add(self.particle_trail, {x=self.go.x, y=self.go.y})
+  if (#self.particle_trail == 0) then
+    for i=1,self.trail_size do 
+      add(self.particle_trail, {x=self.go.x, y=self.go.y})
+    end
   end
 
-  local dx = abs(self.go.x + move_x - self.particle_trail[#self.particle_trail].x)
-  local dy = abs(self.go.y + move_y - self.particle_trail[#self.particle_trail].y)
+  local last_index = self.trail_index == 1 and self.trail_size or self.trail_index - 1
+
+  printh_nums(last_index, self.trail_index)
+
+  local dx = abs(self.go.x + move_x - self.particle_trail[last_index].x)
+  local dy = abs(self.go.y + move_y - self.particle_trail[last_index].y)
   if dx + dy >= 4 or dx >= 3 or dy >= 3 then
-    add(self.particle_trail, {x = self.go.x, y = self.go.y})
+    self.particle_trail[self.trail_index] = {x = self.go.x, y = self.go.y}
+    self.trail_index = self.trail_index == self.trail_size and 1 or self.trail_index + 1
   end
+
 end
 
 function rigidbody_t:handle_portal()
@@ -962,15 +972,17 @@ function cash_t:draw()
   if trail_length == 0 then
     self.draw_index = 1
   end
-  for particle in all(self.go.rb.particle_trail) do
-    --pset(particle.x + 1, particle.y + 1, 13)
-  end
-  if time_scale == 0 and trail_length > 0 and not end_menu_m.active then
-    for i=1,10 do
-      local particle = self.go.rb.particle_trail[(flr(self.draw_index/2) + i) % trail_length + 1]
-      --pset(particle.x + 1, particle.y + 1, 7)
+  if self.go.rb.trail_on then
+    for particle in all(self.go.rb.particle_trail) do
+        pset(particle.x + 1, particle.y + 1, 13)
     end
-    self.draw_index = self.draw_index/2 < trail_length and self.draw_index + 1 or 1
+    if time_scale == 0 and trail_length > 0 and not end_menu_m.active then
+      for i=1,10 do
+        local particle = self.go.rb.particle_trail[(flr(self.draw_index/2) + i) % trail_length + 1]
+        pset(particle.x + 1, particle.y + 1, 7)
+      end
+      self.draw_index = self.draw_index/2 < trail_length and self.draw_index + 1 or 1
+    end
   end
 
   -- Check for partial portal overlaps
@@ -1113,11 +1125,13 @@ end
 function level_manager_t:play_sim()
   sfx(3, -1, 0, 2)
   time_scale = 1
+  btn_play.text = "stop"
   cash.rb.particle_trail = {}
 end
 
 function level_manager_t:stop_sim()
   sfx(3, -1, 0, 2)
+  btn_play.text = "play"
   self:restart_level()
 end
 
@@ -1460,7 +1474,7 @@ level_ui_t = gameobject:new{
 }
 
 function level_ui_t:start()
-  make_button(  1, 119, "play", function(btn) 
+  btn_play = make_button(  1, 119, "play", function(btn) 
     if btn.text == "play" then
       btn.text = "stop"
       level_m:play_sim()
@@ -1470,18 +1484,17 @@ function level_ui_t:start()
     end
   end)
 
-  -- todo: make this change the above button to play on click
   make_button( 23, 119, "reset", function(btn)
     level_m:stop_sim()
     portal_m.chain = {}
   end)
 
   make_button( 49, 119, "trail", function(btn)
-  
+    cash.rb.trail_on = not cash.rb.trail_on
   end)
   
   make_button( 83, 119, "help", function(btn)
-  
+    
   end)
 
   make_button(105, 119, "exit", function(btn)
@@ -1494,8 +1507,9 @@ end
 
 function make_button(x, y, text, cb)
   local button_obj = gameobject:new{x=x, y=y, layer=4}
-  button_obj:add_component(button_t:new{text=text, click_cb=cb})
+  local button_comp = button_obj:add_component(button_t:new{text=text, click_cb=cb})
   instantiate(button_obj)
+  return button_comp
 end
 
 function level_ui_t:draw()
