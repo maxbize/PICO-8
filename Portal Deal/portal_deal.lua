@@ -572,7 +572,7 @@ function portal_manager_t:start()
 end
 
 function portal_manager_t:update()
-  if (menu_m.active or end_menu_m.active) then
+  if (menu_m.active or end_menu_m.active or help_m.active) then
     return
   end
 
@@ -1163,7 +1163,7 @@ function level_manager_t:start()
 end
 
 function level_manager_t:update()
-  if (menu_m.active or end_menu_m.active) then
+  if (menu_m.active or end_menu_m.active or help_m.active) then
     return
   end
 
@@ -1542,7 +1542,6 @@ function level_ui_t:start()
       btn.text = "stop"
       level_m:play_sim()
     else
-      btn.text = "play"
       level_m:stop_sim()
     end
   end)
@@ -1559,7 +1558,9 @@ function level_ui_t:start()
   --end))
   
   add(self.buttons, make_button(76, 119, 1, 0, "help", function(btn)
-    
+    help_m.page = 1
+    help_m.active = true
+    level_m:stop_sim()
   end))
 
   add(self.buttons, make_button(102, 119, 1, 0, "exit", function(btn)
@@ -1606,13 +1607,17 @@ button_t = gameobject:new{
 }
 
 function button_t:update()
+  if menu_m.active or help_m.active then
+    return
+  end
+
   if mouse_m.left_mouse_down and self:mouse_over() then
     self.click_cb(self)
   end
 end
 
 function button_t:draw()
-  if menu_m.active then
+  if menu_m.active or help_m.active then
     return
   end
 
@@ -1664,8 +1669,7 @@ function mouse_t:update()
 end
 
 function mouse_t:draw()
-  -- Draw cursor (portal manager)
-  if (menu_m.active or end_menu_m.active) then
+  if (menu_m.active or end_menu_m.active or help_m.active) then
     sspr(2, 18, 3, 3, self.go.x - 1, self.go.y - 1)
   else
     if self.on_button then
@@ -1682,8 +1686,15 @@ function mouse_t:draw()
   end
 end
 
+-- reset state for this frame. Useful for not using click on multiple items
+function mouse_t:reset()
+  self.left_mouse = false
+  self.left_mouse_down = false
+  self.right_mouse_down = false
+end
+
 help_menu_t = gameobject:new{
-  active = true,
+  active = false,
   page = 1, -- which help page number are we on
   max_page = 3, -- which help page number are we on
 }
@@ -1742,6 +1753,10 @@ function help_menu_t:draw()
 end
 
 function help_menu_t:update()
+  if not self.active then
+    return
+  end
+
   if mouse_m.left_mouse_down then
     self.page += 1
   end
@@ -1750,5 +1765,6 @@ function help_menu_t:update()
   end
   if self.page == 0 or self.page > self.max_page then
     self.active = false
+    mouse_m:reset()
   end
 end
