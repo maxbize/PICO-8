@@ -251,8 +251,59 @@ end
 -- generic helper methods
 -------------------
 function print_shadowed(text, x, y, color)
-  print(text, x, y-1, gradients[color])
+  if color == 9 then -- for this game, lots of background UI uses the normal gradient for 9
+    print(text, x, y-1, 5)
+  else
+    print(text, x, y-1, gradients[color])
+  end
   print(text, x, y, color)
+end
+
+-- print with auto text wrapping and marker support (e.g. "word is %marked")
+--   % = shadowed
+function print_formatted(text, start_x, start_y, start_color)
+  local x = start_x
+  local y = start_y
+  local c = start_color
+
+  for word in all(split(text, " ", false)) do
+    -- check for markers
+    local shadowed = false
+    if sub(word, 1, 1) == '%' then
+      shadowed = true
+      word = sub(word, 2)
+    end
+    if sub(word, 1, 1) == '#' then
+      c = tonum(sub(word, 2, 3))
+      if c == nil then
+        c = tonum(sub(word, 2, 2))
+        word = sub(word, 3)
+      else
+        word = sub(word, 4)
+      end
+    end
+
+    -- check for word wrap
+    local l = #word * 4
+    if x + l >= 128 then
+      y += 8
+      x = start_x
+    end
+
+    -- print
+    if shadowed then
+      print_shadowed(word, x, y, c)
+    else
+      print(word, x, y, c)
+    end
+    
+    -- advanced print pointer
+    x += l + 4
+    c = start_color
+  end
+
+  -- return next suggested y
+  return y + 8
 end
 
 -- returns the cell index at x, y
@@ -1632,16 +1683,62 @@ function mouse_t:draw()
 end
 
 help_menu_t = gameobject:new{
-  active = false,
+  active = true,
   page = 1, -- which help page number are we on
   max_page = 3, -- which help page number are we on
 }
 
 function help_menu_t:draw()
-  if self.active then
-    rectfill(0, 0, 127, 127, 1)
-    rectfill(2, 2, 125, 125, 2)
+  if not self.active then
+    return
   end
+
+  -- background
+  rectfill(0, 0, 127, 127, 15)
+  rectfill(2, 2, 125, 125,  4)
+
+  -- body
+  palt(0, false) -- draw black pixels
+  local title = "title"
+  if self.page == 1 then
+    title = "overview"
+    local y = print_formatted("your %objective is to collect all the %#10gold with the %#11ball using as few %#9portals as possible", 5, 20, 7)
+    y = print_formatted("you cannot control the %#11ball - chain %#9portals around the level to get it where you need it", 5, y+4, 7)
+    rect(5, y+3, 15, y+37, 15)
+    sspr(8, 58, 9, 33, 6, y + 4)
+    y = print_formatted(" - %wall", 16, y+6, 7)
+    y = print_formatted(" - %#11ball",     16, y, 7)
+    y = print_formatted(" - %#10gold",     16, y, 7)
+    y = print_formatted(" - %#9portal (number indicates          order in sequence)", 16, y, 7)
+  elseif self.page == 2 then
+    title = "managing portals"
+    local y = print_formatted("%create %#9portals on any %white wall by %left %clicking it", 5, 20, 7)
+    y = print_formatted("%move %#9portals by %left %clicking one and %dragging it to a new %white wall", 5, y + 4, 7)
+    y = print_formatted("%delete %#9portals by %right %clicking them", 5, y + 4, 7)
+    y = print_formatted("%#9portals form %chains. %#9portal #001 will lead to %#9portal #002, etc.", 5, y + 4, 7)
+    for i=0,3 do
+      sspr(32 + i*4, 26, 3, 5, 65 + i*12, y + 4)
+    end
+    rect(5, y+1, 54, y+18, 15)
+    sspr(28, 66, 48, 16, 6, y+2)
+    y = print_formatted("1  2  3  4  1",    59, y + 4, 0)
+    y = print_formatted("this would work!", 59, y, 7)
+  elseif self.page == 3 then
+    title = "tips"
+    local y = print_formatted("the physics are %deterministic. every play with the %same %setup will have the %same %result", 5, 20, 7)
+    y = print_formatted("press %c to %start/stop", 5, y+4, 7)
+    y = print_formatted("use %gravity to your advantage", 5, y+4, 7)
+    y = print_formatted("if you missed any %#10gold - %stop, %tweak, and %try %again", 5, y+4, 7)
+    y = print_formatted("your progress is %saved %automatically. take a %break and come back %later", 5, y+4, 7)
+    y = print_formatted("- %#12have %#12fun! -", 38, y+3, 7)
+  end
+  palt(0, true)
+
+  -- header
+  local l = #title*4
+  print_shadowed(title, 64 - l/2, 6, 7)
+  line(63 - l/2, 12, 63 + l/2, 12, 7)
+  print_shadowed(self.page .. "/" .. self.max_page, 111, 6, 7)
 end
 
 function help_menu_t:update()
@@ -1651,7 +1748,7 @@ function help_menu_t:update()
   if mouse_m.right_mouse_down then
     self.page -= 1
   end
-  if self.page == 0 or self.page == self.max_page then
+  if self.page == 0 or self.page > self.max_page then
     self.active = false
   end
 end
