@@ -1189,7 +1189,7 @@ function level_manager_t:update()
 end
 
 function level_manager_t:play_sim()
-  sfx(3, -1, 0, 2)
+  sfx(4, -1, 0, 2)
   time_scale = 1
   level_ui_m.btn_play.text = "stop"
   cash.rb.particle_trail = {}
@@ -1311,6 +1311,14 @@ function menu_manager_t:update()
       level_m:restart_level()
     end
   end
+
+  --particle_m:add_particle(12, 6+rnd(14), -1, 0, 0, 0, 9, 15)
+  --if rnd(1) < 0.25 then
+  --  particle_m:add_particle(112, 6+rnd(2), 1, 0, 0, 0, 12, 16)
+  --end
+  --if rnd(1) < 0.25 then
+  --  particle_m:add_particle(110, 12+rnd(2), 1, 0, 0, 0, 12, 18)
+  --end
 end
 
 function menu_manager_t:draw()
@@ -1350,6 +1358,9 @@ function menu_manager_t:draw()
     print_shadowed(best, best < 10 and x+84 or x+80, y + i * 9, unlocked and 7 or 1)
 
   end
+
+  particle_m:draw()
+
 end
 
 end_level_menu_t = gameobject:new{
@@ -1380,6 +1391,7 @@ function end_level_menu_t:start()
 end
 
 function end_level_menu_t:shake_medal_background(num)
+  sfx(5)
   x = 75 - 18 * (num - 1)
   for i=1,10 do
     self.offsets[num] = (self.offsets[num] + 1) % 2
@@ -1397,6 +1409,7 @@ function end_level_menu_t:reveal_medal(color, num)
   self:shake_medal_background(num)
   self.draw_medals = num
   self.flash_medal = num
+  sfx(3)
   _yield(4)
   self.flash_medal = 0
   for i=1,75 do
@@ -1405,7 +1418,8 @@ function end_level_menu_t:reveal_medal(color, num)
   for i=1,25 do
     particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
   end
-  _yield(30)
+  sfx(6, -1, (num-1) * 8, 8)
+  _yield(15)
 end
 
 function end_level_menu_t:activate()
@@ -1714,13 +1728,13 @@ function help_menu_t:draw()
   if self.page == 1 then
     title = "overview"
     local y = print_formatted("your %objective is to collect all the %#10gold with the %#11ball using as few %#9portals as possible", 5, 20, 7)
-    y = print_formatted("you cannot control the %#11ball - chain %#9portals around the level to get it where you need it", 5, y+4, 7)
+    y = print_formatted("you cannot control the %#11ball - %chain %#9portals around the level to get it where you need it", 5, y+4, 7)
     rect(5, y+3, 15, y+37, 15)
     sspr(8, 58, 9, 33, 6, y + 4)
     y = print_formatted(" - %wall", 16, y+6, 7)
     y = print_formatted(" - %#11ball",     16, y, 7)
     y = print_formatted(" - %#10gold",     16, y, 7)
-    y = print_formatted(" - %#9portal (number indicates          order in sequence)", 16, y, 7)
+    y = print_formatted(" - %#9portal (number indicates            order in %chain)", 16, y, 7)
   elseif self.page == 2 then
     title = "managing portals"
     local y = print_formatted("%create %#9portals on any %white wall by %left %clicking it", 5, 20, 7)
