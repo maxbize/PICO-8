@@ -122,9 +122,9 @@ function _update60()
     return
   end
 
-  if (not btnp(5) and time_scale == 1) then
-    --return
-  end
+  --if (not btnp(5) and time_scale == 1) then
+  --  return
+  --end
 
   for c in all(actions) do
     if costatus(c) ~= "dead" then
@@ -1141,7 +1141,8 @@ function portal_angle_delta(p1, p2)
 end
 
 level_manager_t = gameobject:new{
-  num_pickups = 0
+  num_pickups = 0,
+  last_loaded_level = 0,
 }
 
 function level_manager_t:start()
@@ -1211,13 +1212,15 @@ function level_manager_t:restart_level()
   cash.rb.angular_vel = 0
 
   -- clear remaining pickups
+  local remaining = {}
   for layer in all(gameobjects) do
     for go in all(layer) do
       if (go:get_component(pickup_t) ~= nil) then
+        remaining[go.x + go.y*16] = true
         destroy(go)
       end
     end
-  end  
+  end
 
   -- create new pickups
   self.num_pickups = 0
@@ -1227,15 +1230,18 @@ function level_manager_t:restart_level()
       if (mget2(x, y) == 34) then
         self.num_pickups += 1
         pickup = gameobject:new{x=x*8, y=y*8}
-        pickup:add_component(pickup_t:new())
+        pickup:add_component(pickup_t:new{collected_last_run=(remaining[x*8 + y*8*16] == nil and self.last_loaded_level == level) and true or false})
         instantiate(pickup)
       end
     end
   end
+
+  self.last_loaded_level = level
 end
 
 pickup_t = gameobject:new{
-  chase_time = 0
+  chase_time = 0,
+  collected_last_run = false,
 }
 
 function pickup_t:start()
@@ -1269,8 +1275,11 @@ function pickup_t:update()
 end
 
 function pickup_t:draw()
-  spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
-  --pset(self.go.x + 4, self.go.y + 3, 0)
+  if self.collected_last_run then
+    spr(50, self.go.x, self.go.y)
+  else
+    spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
+  end
 end
 
 menu_manager_t = gameobject:new{
@@ -1292,7 +1301,6 @@ function menu_manager_t:update()
   if (mouse_m.left_mouse_down and self.selected_level > -1) then
     local unlocked = self.selected_level == 1 or dget(self.selected_level - 1) > 0
     if (unlocked) then
-      -- todo: clean up hacks
       self.active = false
       level = self.selected_level
       level_m:restart_level()
