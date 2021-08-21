@@ -59,6 +59,7 @@ local end_menu_m = nil -- type end_level_menu_t
 local level_ui_m = nil -- type level_ui_t
 local mouse_m = nil    -- type mouse_t
 local help_m = nil     -- type help_menu_t
+local api_m = nil      -- type api_manager_t
 
 -------------------
 -- main methods
@@ -84,6 +85,10 @@ function _init()
   local level_manager = gameobject:new()
   level_m = level_manager:add_component(level_manager_t:new())
   instantiate(level_manager)
+
+  local api_manager = gameobject:new()
+  api_m = api_manager:add_component(api_manager_t:new())
+  instantiate(api_manager)
 
   local menu_manager = gameobject:new{layer=4}
   menu_m = menu_manager:add_component(menu_manager_t:new())
@@ -639,9 +644,6 @@ function portal_manager_t:update()
     self:move_portal(self.candidate, self.move_index)
   elseif (mouse_m.right_mouse_down) then
     self:remove_portal(self.candidate)
-  elseif (stat(36) ~= 0 and #self.chain > 1) then
-    -- Not sure this is a good idea - changes the order of everything else in the process
-    --self:reorder_portal(self.candidate, sgn(stat(36)))
   end
 end
 
@@ -678,22 +680,6 @@ function portal_manager_t:move_portal(candidate, index)
       end
     end
     self.chain[index] = candidate
-  end
-end
-
-function portal_manager_t:reorder_portal(candidate, dir)
-  if (candidate ~= nil) then
-    local existing, index = self:find_in_chain(self.candidate)
-    if (existing ~= nil) then
-      local swapIndex = index + dir
-      if swapIndex > #self.chain then
-        swapIndex = swapIndex % #self.chain
-      elseif swapIndex <= 0 then
-        swapIndex = #self.chain - swapIndex % #self.chain
-      end
-      self.chain[index] = self.chain[swapIndex]
-      self.chain[swapIndex] = existing
-    end
   end
 end
 
@@ -1183,6 +1169,7 @@ function level_manager_t:update()
     if (dget(level) == 0 or dget(level) > num_portals) then
       dset(level, num_portals)
     end
+    api_m:level_complete(level, num_portals, true)
 
     end_menu_m:activate()
   end
@@ -1731,7 +1718,7 @@ function help_menu_t:draw()
     y = print_formatted("you cannot control the %#11ball - %chain %#9portals around the level to get it where you need it", 5, y+4, 7)
     rect(5, y+3, 15, y+37, 15)
     sspr(8, 58, 9, 33, 6, y + 4)
-    y = print_formatted(" - %wall", 16, y+6, 7)
+    y = print_formatted(" - %wall (place %#9portal here)", 16, y+6, 7)
     y = print_formatted(" - %#11ball",     16, y, 7)
     y = print_formatted(" - %#10gold",     16, y, 7)
     y = print_formatted(" - %#9portal (number indicates            order in %chain)", 16, y, 7)
@@ -1781,4 +1768,93 @@ function help_menu_t:update()
     self.active = false
     mouse_m:reset()
   end
+end
+
+-- leaderboards and achievements
+api_manager_t = gameobject:new{
+  queue = {}, -- portal queue
+  records = {},
+}
+
+function api_manager_t:start()
+  -- re-trigger all earned achievements
+  for i=1,10 do
+    self.records[i] = 100
+  end
+  for i=1,10 do
+    self:level_complete(i, dget(i), false)
+  end
+end
+
+function api_manager_t:update()
+  if #self.queue > 0 and get_pin(0) == 0 then
+    for achievement in all(self.queue) do
+      set_pin(0, achievement)
+      --printh("Requested achievement unlock: " .. achievement)
+      del(self.queue, achievement)
+      break -- is there a better way to do a queue than for all / break?
+    end
+  end
+end
+
+function api_manager_t:level_complete(level, portals, report_leaderboard)
+  if report_leaderboard then
+    set_pin(level, portals)
+  end
+
+  -- achievements: 1/5/10x bronze/silver/gold, 1/2/3x stars
+  if self.records[level] > portals then
+    local medals_before = self:num_medals()
+    self.records[level] = portals
+    local medals_after = self:num_medals()
+    
+    if     medals_after.bronze ==  1 and medals_before.bronze == 0 then add(self.queue, 77)
+    elseif medals_after.bronze ==  5 and medals_before.bronze == 4 then add(self.queue, 80)
+    elseif medals_after.bronze == 10 and medals_before.bronze == 9 then add(self.queue, 83)
+    end
+
+    if     medals_after.silver ==  1 and medals_before.silver == 0 then add(self.queue, 78)
+    elseif medals_after.silver ==  5 and medals_before.silver == 4 then add(self.queue, 81)
+    elseif medals_after.silver == 10 and medals_before.silver == 9 then add(self.queue, 84)
+    end
+
+    if     medals_after.gold ==  1 and medals_before.gold == 0 then add(self.queue, 79)
+    elseif medals_after.gold ==  5 and medals_before.gold == 4 then add(self.queue, 82)
+    elseif medals_after.gold == 10 and medals_before.gold == 9 then add(self.queue, 85)
+    end
+
+    if     medals_after.star == 1 and medals_before.star == 0 then add(self.queue, 86)
+    elseif medals_after.star == 2 and medals_before.star == 1 then add(self.queue, 87)
+    elseif medals_after.star == 3 and medals_before.star == 2 then add(self.queue, 88)
+    end
+  end
+end
+
+function api_manager_t:num_medals()
+  local medals = {bronze=0, silver=0, gold=0, star=0}
+  for i=1,10 do
+    if self.records[i] < levels[i].gold then
+      medals.star += 1
+    end
+    if self.records[i] <= levels[i].gold then
+      medals.gold += 1
+    end
+    if self.records[i] <= levels[i].silver then
+      medals.silver += 1
+    end
+    if self.records[i] <= levels[i].bronze then
+      medals.bronze += 1
+    end
+  end
+  return medals
+end
+
+-- pin 0 == medal to unlock. Only last two digits are sent
+-- pins 1-10 == leaderboard scores
+function get_pin(pin, value)
+  return peek(0x5f80+pin)
+end
+
+function set_pin(pin, value)
+  poke(0x5f80+pin, value)
 end
