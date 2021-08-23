@@ -61,6 +61,8 @@ local mouse_m = nil    -- type mouse_t
 local help_m = nil     -- type help_menu_t
 local api_m = nil      -- type api_manager_t
 
+local current_track = -1 -- music
+
 -------------------
 -- main methods
 -------------------
@@ -325,13 +327,6 @@ function solid_at_point(x, y)
   return fget(mget2(cell_at_point(x, y)), 0)
 end
 
-function check_int(i, name)
-  if (flr(i) ~= i) then
-    printh('Error! '..name..' is not an int: '..i)
-    error()
-  end
-end
-
 function round(n)
   return n%1 < 0.5 and flr(n) or -flr(-n)
 end
@@ -340,14 +335,14 @@ function dist(x1, y1, x2, y2)
   return sqrt((x2 - x1)^2 + (y2 - y1)^2)
 end
 
-function printh_nums(prefix, n1, n2, n3, n4)
-  local s = (prefix ~= nil and prefix or '') .. ' '
-  s = n1 ~= nil and s..tostr(n1)..' ' or s
-  s = n2 ~= nil and s..tostr(n2)..' ' or s
-  s = n3 ~= nil and s..tostr(n3)..' ' or s
-  s = n4 ~= nil and s..tostr(n4)..' ' or s
-  printh(s)
-end
+--function printh_nums(prefix, n1, n2, n3, n4)
+--  local s = (prefix ~= nil and prefix or '') .. ' '
+--  s = n1 ~= nil and s..tostr(n1)..' ' or s
+--  s = n2 ~= nil and s..tostr(n2)..' ' or s
+--  s = n3 ~= nil and s..tostr(n3)..' ' or s
+--  s = n4 ~= nil and s..tostr(n4)..' ' or s
+--  printh(s)
+--end
 
 -- draws a dotted line, animated by tweaking phase (0-1)
 function draw_dotted_line(x1, y1, x2, y2, color)
@@ -409,12 +404,6 @@ end
 --   1 - overlaps portals
 --   2 - overlaps walls
 function overlaps_solids(x, y, w, h)
-  -- sanity check all inputs are integers. can remove before shipping
-  --check_int(x, 'x')
-  --check_int(y, 'y')
-  --check_int(w, 'w')
-  --check_int(h, 'h')
-
   -- need to keep track of individual corners separately to not conflate
   -- an overlap from one brick with a non-overlap from another brick that has
   -- a portal
@@ -635,7 +624,8 @@ function portal_manager_t:update()
   if (mouse_m.left_mouse_down) then
     local existing, index = self:find_in_chain(self.candidate)
     if (existing == nil and self.candidate ~= nil) then
-      self:place_portal(self.candidate)
+      sfx(12)
+      add(self.chain, self.candidate)
       self.move_index = #self.chain
     else
       self.move_index = index
@@ -660,15 +650,9 @@ function portal_manager_t:find_in_chain(candidate)
 end
 
 function portal_manager_t:remove_portal(candidate)
-  del(self.chain, self:find_in_chain(candidate))
-end
-
-function portal_manager_t:place_portal(candidate)
-  if (candidate == nil) then
-    return
+  if del(self.chain, self:find_in_chain(candidate)) ~= nil then
+    sfx(13)
   end
-
-  add(self.chain, candidate)
 end
 
 function portal_manager_t:move_portal(candidate, index)
@@ -752,11 +736,6 @@ rigidbody_t = gameobject:new{
   trail_size = 50, -- size of ring buffer
   trail_on = true, -- whether or not to render trail
 }
-
-function rigidbody_t:start()
-  --self.x_remainder = self.go.x
-  --self.y_remainder = self.go.y
-end
 
 function rigidbody_t:update()
   -- apply ground friction and gravity
@@ -1005,10 +984,6 @@ cash_t = gameobject:new{
   draw_pause = 0, -- how many frames to pause the highlight
 }
 
-function cash_t:update()
-  --particle_m:add_particle(self.go.x + 1, self.go.y + 1, 0, 0, 0, 0, 6, 120)
-end
-
 function cash_t:draw()
   -- Draw particle trail
   local trail_length = #self.go.rb.particle_trail
@@ -1147,6 +1122,7 @@ level_manager_t = gameobject:new{
 
 function level_manager_t:start()
   time_scale = 0
+  play_music(32)
 end
 
 function level_manager_t:update()
@@ -1159,8 +1135,6 @@ function level_manager_t:update()
     self:play_sim()
   elseif (btnp(4) and time_scale == 1) then
     self:stop_sim()
---elseif (btnp(5) and time_scale == 0) then
---  portal_m.chain = {}
   end
 
   -- check/advance to next level
@@ -1177,6 +1151,7 @@ function level_manager_t:update()
 end
 
 function level_manager_t:play_sim()
+  play_music(0)
   sfx(4, -1, 0, 2)
   time_scale = 1
   level_ui_m.btn_play.text = "stop"
@@ -1199,6 +1174,7 @@ end
 function level_manager_t:restart_level()
   -- reset time
   time_scale = 0
+  play_music(32)
 
   -- reset cash
   l = levels[level]
@@ -1301,9 +1277,12 @@ function menu_manager_t:update()
   if (mouse_m.left_mouse_down and self.selected_level > -1) then
     local unlocked = self.selected_level == 1 or dget(self.selected_level - 1) > 0
     if (unlocked) then
+      sfx(12)
       self.active = false
       level = self.selected_level
       level_m:restart_level()
+    else
+      sfx(13)
     end
   end
 
@@ -1413,7 +1392,10 @@ function end_level_menu_t:reveal_medal(color, num)
   for i=1,25 do
     particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
   end
-  sfx(6, -1, (num-1) * 8, 8)
+  for i=0,num-1 do
+    sfx(6 + i)
+  end
+
   _yield(15)
 end
 
@@ -1621,6 +1603,7 @@ function button_t:update()
   end
 
   if mouse_m.left_mouse_down and self:mouse_over() then
+    sfx(12)
     self.click_cb(self)
   end
 end
@@ -1768,9 +1751,11 @@ function help_menu_t:update()
 
   if mouse_m.left_mouse_down then
     self.page += 1
+    sfx(12)
   end
   if mouse_m.right_mouse_down then
     self.page -= 1
+    sfx(13)
   end
   if self.page == 0 or self.page > self.max_page then
     self.active = false
@@ -1865,4 +1850,11 @@ end
 
 function set_pin(pin, value)
   poke(0x5f80+pin, value)
+end
+
+function play_music(track)
+  if current_track ~= track then
+    music(track, 1000)
+    current_track = track
+  end
 end
