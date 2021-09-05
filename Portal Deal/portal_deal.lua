@@ -519,9 +519,16 @@ function particle_manager_t:draw()
   end
 end
 
+-- Adds a second particle underneath with the gradient color
 function particle_manager_t:add_particle_shadowed(x, y, vx, vy, ax, ay, color, frames)
   self:add_particle(x, y, vx, vy, ax, ay, color, frames)
   self:add_particle(x, y+1, vx, vy, ax, ay, gradients[color], frames)
+end
+
+-- "shifts" to the gradient color at the end
+function particle_manager_t:add_particle_faded(x, y, vx, vy, ax, ay, color, frames)
+  self:add_particle(x, y, vx, vy, ax, ay, gradients[color], frames)
+  self:add_particle(x, y, vx, vy, ax, ay, color, frames * 0.9)
 end
 
 function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames)
@@ -782,7 +789,7 @@ function rigidbody_t:update()
         function()
           sfx(3)
           for i=1, flr(abs(self.vx)*5) do
-            particle_m:add_particle(self.go.x+1.5+sgn(self.vx), self.go.y+1.5, rnd(0.1)*sgn(-self.vx), rnd(0.5)-0.25, 0, 0, 7, 10+rnd(20))
+            particle_m:add_particle_faded(self.go.x+1.5+sgn(self.vx), self.go.y+1.5, rnd(0.1)*sgn(-self.vx), rnd(0.5)-0.25, 0, 0, 7, 10+rnd(20))
           end
           self.angular_vel = -vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vx *= -self.bounciness
@@ -804,7 +811,7 @@ function rigidbody_t:update()
         function()
           sfx(3)
           for i=1, flr(abs(self.vy)*5) do
-            particle_m:add_particle(self.go.x+1.5, self.go.y+1.5+sgn(self.vy), rnd(0.5)-0.25, rnd(0.1)*sgn(-self.vy), 0, 0, 7, 10+rnd(20))
+            particle_m:add_particle_faded(self.go.x+1.5, self.go.y+1.5+sgn(self.vy), rnd(0.5)-0.25, rnd(0.1)*sgn(-self.vy), 0, 0, 7, 10+rnd(20))
           end
           self.angular_vel = vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vy *= -self.bounciness
