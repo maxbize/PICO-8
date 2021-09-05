@@ -16,38 +16,53 @@ end
 local gradients = {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 
 -- game data
-local walls = { -- indexed by sprite number
-  [1]={up=true, right=true, down=true, left=true},
-  [2]={up=false, right=false, down=false, left=false},
-  [3]={up=false, right=true, down=false, left=true},
-  [4]={up=true, right=false, down=true, left=false},
-  [5]={up=true, right=false, down=false, left=false},
-  [6]={up=false, right=true, down=false, left=false},
-  [7]={up=false, right=false, down=true, left=false},
-  [8]={up=false, right=false, down=false, left=true},
-  [9]={up=false, right=true, down=true, left=true},
-  [10]={up=true, right=false, down=true, left=true},
-  [11]={up=true, right=true, down=false, left=true},
-  [12]={up=true, right=true, down=true, left=false},
-  [13]={up=true, right=false, down=false, left=true},
-  [14]={up=true, right=true, down=false, left=false},
-  [15]={up=false, right=true, down=true, left=false},
-  [16]={up=false, right=false, down=true, left=true},
-}
+--local walls = { -- indexed by sprite number
+--  [1]={up=true, right=true, down=true, left=true},
+--  [2]={up=false, right=false, down=false, left=false},
+--  [3]={up=false, right=true, down=false, left=true},
+--  [4]={up=true, right=false, down=true, left=false},
+--  [5]={up=true, right=false, down=false, left=false},
+--  [6]={up=false, right=true, down=false, left=false},
+--  [7]={up=false, right=false, down=true, left=false},
+--  [8]={up=false, right=false, down=false, left=true},
+--  [9]={up=false, right=true, down=true, left=true},
+--  [10]={up=true, right=false, down=true, left=true},
+--  [11]={up=true, right=true, down=false, left=true},
+--  [12]={up=true, right=true, down=true, left=false},
+--  [13]={up=true, right=false, down=false, left=true},
+--  [14]={up=true, right=true, down=false, left=false},
+--  [15]={up=false, right=true, down=true, left=false},
+--  [16]={up=false, right=false, down=true, left=true},
+--}
+function tobool(s) -- very simple since we only have one case
+  return s == "true"
+end
+local walls_str = "true,true,true,true,false,false,false,false,false,true,false,true,true,false,true,false,true,false,false,false,false,true,false,false,false,false,true,false,false,false,false,true,false,true,true,true,true,false,true,true,true,true,false,true,true,true,true,false,true,false,false,true,true,true,false,false,false,true,true,false,false,false,true,true"
+local walls = {}
+local walls_split = split(walls_str, ",")
+for i=1,#walls_split,4 do
+  add(walls, {up=tobool(walls_split[i]), right=tobool(walls_split[i+1]), down=tobool(walls_split[i+2]), left=tobool(walls_split[i+3])})
+end
 
 local level = 1
-local levels = {
-  {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
-  {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=10, bronze=16}, -- medium
-  {start_x=30, start_y=95, start_vx=3, start_vy=-2, gold=6, silver=10, bronze=16}, -- easy
-  {start_x=60, start_y=97, start_vx=1, start_vy=0, gold=5, silver=8, bronze=15}, -- hard
-  {start_x=66, start_y=95, start_vx=0, start_vy=0, gold=4, silver=6, bronze=10}, -- hard
-  {start_x=114, start_y=20, start_vx=0, start_vy=-3, gold=14, silver=15, bronze=20}, -- medium-hard
-  {start_x=100, start_y=40, start_vx=2, start_vy=0, gold=7, silver=10, bronze=15}, -- very hard
-  {start_x=42, start_y=100, start_vx=1, start_vy=1, gold=8, silver=12, bronze=16}, -- medium-hard
-  {start_x=66, start_y=30, start_vx=0, start_vy=0, gold=10, silver=12, bronze=16}, -- very hard
-  {start_x=66, start_y=64, start_vx=-3, start_vy=-3, gold=20, silver=30, bronze=40} -- hard (bonus)
-}
+--local levels = {
+--  {start_x=60, start_y=78, start_vx=0, start_vy=1, gold=4, silver=8, bronze=12}, -- easy
+--  {start_x=22, start_y=30, start_vx=-1, start_vy=0, gold=6, silver=10, bronze=16}, -- medium
+--  {start_x=30, start_y=95, start_vx=3, start_vy=-2, gold=6, silver=10, bronze=16}, -- easy
+--  {start_x=60, start_y=97, start_vx=1, start_vy=0, gold=5, silver=8, bronze=15}, -- hard
+--  {start_x=66, start_y=95, start_vx=0, start_vy=0, gold=4, silver=6, bronze=10}, -- hard
+--  {start_x=114, start_y=20, start_vx=0, start_vy=-3, gold=14, silver=15, bronze=20}, -- medium-hard
+--  {start_x=100, start_y=40, start_vx=2, start_vy=0, gold=7, silver=10, bronze=15}, -- very hard
+--  {start_x=42, start_y=100, start_vx=1, start_vy=1, gold=8, silver=12, bronze=16}, -- medium-hard
+--  {start_x=66, start_y=30, start_vx=0, start_vy=0, gold=10, silver=12, bronze=16}, -- very hard
+--  {start_x=66, start_y=64, start_vx=-3, start_vy=-3, gold=20, silver=30, bronze=40} -- hard (bonus)
+--}
+local levels_str = "60,78,0,1,4,8,12,22,30,-1,0,6,10,16,30,95,3,-2,6,10,16,60,97,1,0,5,8,15,66,95,0,0,4,6,10,114,20,0,-3,14,15,20,100,40,2,0,7,10,15,42,100,1,1,8,12,16,66,30,0,0,10,12,16,66,64,-3,-3,20,30,40"
+local levels = {}
+local levels_split = split(levels_str, ",")
+for i=1,#levels_split,7 do
+  add(levels, {start_x=levels_split[i], start_y=levels_split[i+1], start_vx=levels_split[i+2], start_vy=levels_split[i+3], gold=levels_split[i+4], silver=levels_split[i+5], bronze=levels_split[i+6]})
+end
 
 -- singletons (_m == manager)
 local portal_m = nil   -- type portal_manager_t
