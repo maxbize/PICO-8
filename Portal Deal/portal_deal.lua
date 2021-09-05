@@ -77,53 +77,37 @@ function _init()
 
   local portal = gameobject:new()
   portal_m = portal:add_component(portal_manager_t:new())
-  instantiate(portal)
 
   cash = gameobject:new{x=60, y=91, layer=3}
   cash:add_component(rigidbody_t:new{width=3, height=3})
   cash:add_component(cash_t:new())
-  instantiate(cash)
 
   local level_manager = gameobject:new()
   level_m = level_manager:add_component(level_manager_t:new())
-  instantiate(level_manager)
 
   local api_manager = gameobject:new()
   api_m = api_manager:add_component(api_manager_t:new())
-  instantiate(api_manager)
 
   local menu_manager = gameobject:new{layer=4}
   menu_m = menu_manager:add_component(menu_manager_t:new())
-  instantiate(menu_manager)
 
   local end_menu = gameobject:new{layer=4}
   end_menu_m = end_menu:add_component(end_level_menu_t:new())
-  instantiate(end_menu)
 
   local level_ui = gameobject:new{layer=4}
   level_ui_m = level_ui:add_component(level_ui_t:new())
-  instantiate(level_ui)
 
   local help_menu = gameobject:new{layer=4}
   help_m = help_menu:add_component(help_menu_t:new())
-  instantiate(help_menu)
 
   local particle_manager = gameobject:new{layer=1}
   particle_m = particle_manager:add_component(particle_manager_t:new())
-  instantiate(particle_manager)
 
   local mouse = gameobject:new{layer=5}
   mouse_m = mouse:add_component(mouse_t:new())
-  instantiate(mouse)
-
-
 end
 
 function _update60()
-  if (paused) then
-    return
-  end
-
   --if (not btnp(5) and time_scale == 1) then
   --  return
   --end
@@ -162,7 +146,6 @@ function _draw()
     end
   end
 
-
   --print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
   --print('obj: '..#gameobjects[1]..' '..#gameobjects[2]..' '..#gameobjects[3]..' '..#gameobjects[4], 1, 7, 0)
   --print('mem: '..stat(0), 1, 13, 0)
@@ -188,6 +171,8 @@ function gameobject:new(o)
   setmetatable(o, self)
   self.__index = self
 
+  -- instantiate
+  add(_to_start, o)
   return o
 end
 
@@ -243,11 +228,6 @@ function instanceof(obj, typ)
     end
   end
   return false
-end
-
--- unlike the unity version, does not clone!
-function instantiate(gameobject)
-  add(_to_start, gameobject)
 end
 
 function destroy(gameobject)
@@ -524,12 +504,12 @@ function particle_manager_t:draw()
   end
 end
 
-function particle_manager_t:add_particle_shadowed(x, y, vx, vy, ax, ay, color, frames, layer)
-  self:add_particle(x, y, vx, vy, ax, ay, color, frames, layer)
-  self:add_particle(x, y+1, vx, vy, ax, ay, gradients[color], frames, layer)
+function particle_manager_t:add_particle_shadowed(x, y, vx, vy, ax, ay, color, frames)
+  self:add_particle(x, y, vx, vy, ax, ay, color, frames)
+  self:add_particle(x, y+1, vx, vy, ax, ay, gradients[color], frames)
 end
 
-function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames, layer)
+function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames)
   local seek = 10
   while (seek > 0) do
     seek -= 1
@@ -785,7 +765,10 @@ function rigidbody_t:update()
           end
         end,
         function()
-          --sfx(3, -1, 0, 1)
+          sfx(3)
+          for i=1, flr(abs(self.vx)*5) do
+            particle_m:add_particle(self.go.x+1.5+sgn(self.vx), self.go.y+1.5, rnd(0.1)*sgn(-self.vx), rnd(0.5)-0.25, 0, 0, 7, 10+rnd(20))
+          end
           self.angular_vel = -vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vx *= -self.bounciness
           self.vy *= self.bounce_friction
@@ -804,7 +787,10 @@ function rigidbody_t:update()
           end
         end,
         function()
-          --sfx(3, -1, 0, 1)
+          sfx(3)
+          for i=1, flr(abs(self.vy)*5) do
+            particle_m:add_particle(self.go.x+1.5, self.go.y+1.5+sgn(self.vy), rnd(0.5)-0.25, rnd(0.1)*sgn(-self.vy), 0, 0, 7, 10+rnd(20))
+          end
           self.angular_vel = vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vy *= -self.bounciness
           if (abs(self.vy) < 0.5) then
@@ -830,7 +816,7 @@ function rigidbody_t:is_grounded()
     return true
   end
   for portal in all(portal_m.chain) do
-    if (overlaps_portal(portal, self.go.x - 1, self.go.y - 1, self.width + 2, self.height + 2)) then
+    if (overlaps_portal(portal, self.go.x, self.go.y, self.width, self.height+1)) then
       return false
     end
   end
@@ -844,7 +830,7 @@ function rigidbody_t:move_x(amount, portal_callback, wall_callback)
 
   if (move ~= 0) then
     self.x_remainder -= move
-    sign = sgn(move)
+    local sign = sgn(move)
 
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x + sign, self.go.y, self.width, self.height)
@@ -871,7 +857,7 @@ function rigidbody_t:move_y(amount, portal_callback, wall_callback)
 
   if (move ~= 0) then
     self.y_remainder -= move
-    sign = sgn(move)
+    local sign = sgn(move)
 
     while (move ~= 0) do
       overlap_state = overlaps_solids(self.go.x, self.go.y + sign, self.width, self.height)
@@ -1159,7 +1145,7 @@ function level_manager_t:play_sim()
 end
 
 function level_manager_t:stop_sim()
-  sfx(3, -1, 0, 2)
+  --sfx(3)
   level_ui_m.btn_play.text = "play"
   self:restart_level()
 end
@@ -1205,9 +1191,8 @@ function level_manager_t:restart_level()
       -- 34 == pickup sprite
       if (mget2(x, y) == 34) then
         self.num_pickups += 1
-        pickup = gameobject:new{x=x*8, y=y*8}
+        local pickup = gameobject:new{x=x*8, y=y*8}
         pickup:add_component(pickup_t:new{collected_last_run=(remaining[x*8 + y*8*16] == nil and self.last_loaded_level == level) and true or false})
-        instantiate(pickup)
       end
     end
   end
@@ -1565,9 +1550,7 @@ end
 
 function make_button(x, y, top_cut, offset, text, cb)
   local button_obj = gameobject:new{x=x, y=y, layer=4}
-  local button_comp = button_obj:add_component(button_t:new{top_cut=top_cut, offset=offset, text=text, click_cb=cb})
-  instantiate(button_obj)
-  return button_comp
+  return button_obj:add_component(button_t:new{top_cut=top_cut, offset=offset, text=text, click_cb=cb})
 end
 
 function level_ui_t:draw()
