@@ -171,7 +171,6 @@ end
 -------------------
 -- base gameobject class
 gameobject = {
-  go = nil, -- gameobject
   components = nil,
   x = 0,
   y = 0,
@@ -182,7 +181,6 @@ gameobject = {
 function gameobject:new(o)
   local o = o or {}
   o.components = {}
-  o.go = self
   setmetatable(o, self)
   self.__index = self
 
@@ -192,47 +190,60 @@ function gameobject:new(o)
 end
 
 function gameobject:start_components()
-  for component in all(self.components) do
-    if (component.start ~= nil) then
-      component:start()
+  for comp in all(self.components) do
+    if (comp.start ~= nil) then
+      comp:start()
     end
   end
 end
 
 function gameobject:update_components()
-  for component in all(self.components) do
-    if (component.update ~= nil) then
-      component:update()
+  for comp in all(self.components) do
+    if (comp.update ~= nil) then
+      comp:update()
     end
   end
 end
 
 function gameobject:draw_components()
-  for component in all(self.components) do
-    if (component.draw ~= nil) then
-      component:draw()
+  for comp in all(self.components) do
+    if (comp.draw ~= nil) then
+      comp:draw()
     end
   end
 end
 
-function gameobject:add_component(component)
-  add(self.components, component)
-  component.go = self
+function gameobject:add_component(comp)
+  add(self.components, comp)
+  comp.go = self
 
-  if (instanceof(component, rigidbody_t)) then
-    self.rb = component
+  if (instanceof(comp, rigidbody_t)) then
+    self.rb = comp
   end
 
-  return component
+  return comp
 end
 
 function gameobject:get_component(prototype)
-  for component in all(self.components) do
-    if (instanceof(component, prototype)) then
-      return component
+  for comp in all(self.components) do
+    if (instanceof(comp, prototype)) then
+      return comp
     end
   end
   return nil
+end
+
+-- base component class
+component = {
+  go = nil -- parent gameobject
+}
+
+function component:new(o)
+  local o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+
+  return o
 end
 
 function instanceof(obj, typ)
@@ -478,7 +489,7 @@ end
 -------------------
 -- game types
 -------------------
-particle_manager_t = gameobject:new({
+particle_manager_t = component:new({
   particles = {},
   index = 1,
   max_particles = 1000
@@ -556,7 +567,7 @@ function particle_manager_t:add_particle(x, y, vx, vy, ax, ay, color, frames)
   p.frames = frames
 end
 
-portal_manager_t = gameobject:new{
+portal_manager_t = component:new{
   candidate = nil,   -- cell_x, cell_y, dir_x, dir_x
   chain = nil, -- [{cell_x, cell_y, dir_x, dir_x}]
   move_index = 0, -- if we're moving a portal, this is the index of that portal
@@ -718,7 +729,7 @@ end
 
 -- rigidbody is any freefalling object in the world.
 -- handles dynamic pixel-perfect movement
-rigidbody_t = gameobject:new{
+rigidbody_t = component:new{
   x_remainder = 0, -- fractional movement. gameobject x, y only allowed ints
   y_remainder = 0,
   vx = 0, -- velocity
@@ -992,7 +1003,7 @@ function rigidbody_t:edge_in_portal(p)
 end
 
 -- the main object the player has to get to the end
-cash_t = gameobject:new{
+cash_t = component:new{
   draw_index = 1, -- index into the particle trail for the highlight
   draw_pause = 0, -- how many frames to pause the highlight
 }
@@ -1134,7 +1145,7 @@ function portal_angle_delta(p1, p2)
   return (portal_dir(p1) - portal_dir(p2)) * 90 + 180
 end
 
-level_manager_t = gameobject:new{
+level_manager_t = component:new{
   num_pickups = 0,
   last_loaded_level = 0,
 }
@@ -1233,7 +1244,7 @@ function level_manager_t:restart_level()
   self.last_loaded_level = level
 end
 
-pickup_t = gameobject:new{
+pickup_t = component:new{
   chase_time = 0,
   collected_last_run = false,
 }
@@ -1276,7 +1287,7 @@ function pickup_t:draw()
   end
 end
 
-menu_manager_t = gameobject:new{
+menu_manager_t = component:new{
   active = true,
   selected_level = -1,
 }
@@ -1355,7 +1366,7 @@ function menu_manager_t:draw()
 
 end
 
-end_level_menu_t = gameobject:new{
+end_level_menu_t = component:new{
   active = false,
   draw_medals = 0, -- 0-3 for none, bronze, etc
   flash_medal = 0, -- 0-3 for none, bronze, etc
@@ -1540,7 +1551,7 @@ function end_level_menu_t:draw()
 end
 
 -- UI at the bottom of the screen
-level_ui_t = gameobject:new{
+level_ui_t = component:new{
   btn_play = nil, -- the play button
   buttons = {},   -- list of all buttons we've created
 }
@@ -1606,7 +1617,7 @@ function level_ui_t:update()
 end
 
 -- Note: x,y is of upper-left corner
-button_t = gameobject:new{
+button_t = component:new{
   text = nil, -- displayed text on button
   click_cb = nil, -- On click callback
   offset = 0, -- y offset for slide-in
@@ -1653,7 +1664,7 @@ function button_t:mouse_over()
      and mouse_m.go.y <= self.go.y + 10 + self.offset
 end
 
-mouse_t = gameobject:new{
+mouse_t = component:new{
   last_mouse = 0, -- Mouse button stat from last frame
   left_mouse = false, -- Left mouse button is being held down this frame
   left_mouse_down = false, -- left/right mouse buttons are being clicked this frame
@@ -1701,7 +1712,7 @@ function mouse_t:reset()
   self.right_mouse_down = false
 end
 
-help_menu_t = gameobject:new{
+help_menu_t = component:new{
   active = false,
   page = 1, -- which help page number are we on
   max_page = 3, -- which help page number are we on
@@ -1780,7 +1791,7 @@ function help_menu_t:update()
 end
 
 -- leaderboards and achievements
-api_manager_t = gameobject:new{
+api_manager_t = component:new{
   queue = {}, -- portal queue
   records = {},
 }
