@@ -737,6 +737,7 @@ rigidbody_t = gameobject:new{
   trail_index = 1, -- index into ring buffer
   trail_size = 50, -- size of ring buffer
   trail_on = true, -- whether or not to render trail
+  portal_offset = 0, -- offset from the center of the last portal we went through
 }
 
 function rigidbody_t:update()
@@ -924,6 +925,13 @@ function rigidbody_t:handle_portal()
       p2 = portal_m.chain[(i%num_portals)+1]
       local p1x, p1y, p1w, p1h = portal_positions(p1)
       local p2x, p2y, p2w, p2h = portal_positions(p2)
+
+      if (p1.dir_x == 0) then
+        self.portal_offset = self.go.x - p1x - 2
+      else
+        self.portal_offset = self.go.y - p1y - 2
+      end
+
       self.go.x = flr(p2x + p2w/2 - self.width/2)
       self.go.y = flr(p2y + p2h/2 - self.height/2)
       self.angle = (self.angle + portal_angle_delta(p1, p2)) % 360
@@ -939,12 +947,12 @@ function rigidbody_t:handle_portal()
         self.vy = abs(v_normal) * p2.dir_y
       end
 
-      dx = p2x - p1x
-      dy = p2y - p1y
+      local dx = p2x - p1x
+      local dy = p2y - p1y
       for i = 1, 20 do
-        particle_m:add_particle(self.go.x + 1, self.go.y + 1, rnd(2)-1 + p2.dir_x, rnd(2)-1 + p2.dir_y, 0, 0.1, i <= 10 and 12 or 1, rnd(10)+10)
+        particle_m:add_particle_faded(self.go.x + 1, self.go.y + 1, rnd(2)-1 + p2.dir_x, rnd(2)-1 + p2.dir_y, 0, 0.1, i <= 10 and 12 or 1, rnd(10)+10)
         local t = i / 21
-        particle_m:add_particle(p1x + dx * t, p1y + dy * t, rnd(0.5)-0.25, rnd(0.5)-0.25, 0, 0, 12, i)
+        particle_m:add_particle_faded(p1x + dx * t, p1y + dy * t, rnd(0.5)-0.25, rnd(0.5)-0.25, 0, 0, 12, i)
       end
 
       sfx(1, -1, 0, 1)
@@ -1077,6 +1085,9 @@ function cash_t:draw()
     if (p2.dir_x == 0) then
       local x = flr(p2x + p2w/2 - self.go.rb.width/2)
       local y = (p2y - 1) - delta * p2.dir_y
+      if dir == -1 then
+        x += self.go.rb.portal_offset
+      end
       if p2.dir_y == 1 then
         sspr(sx, sy + cutoff, sw, sh - cutoff, x, y + cutoff)
       else
@@ -1085,6 +1096,9 @@ function cash_t:draw()
     else
       local x = (p2x - 1) - delta * p2.dir_x
       local y = flr(p2y + p2h/2 - self.go.rb.height/2)
+      if dir == -1 then
+        y += self.go.rb.portal_offset
+      end
       if p2.dir_x == 1 then
         sspr(sx + cutoff, sy, sw - cutoff, sh, x + cutoff, y)
       else
