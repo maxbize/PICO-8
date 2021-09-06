@@ -1868,9 +1868,14 @@ function set_pin(pin, value)
   poke(0x5f80+pin, value)
 end
 
+local music_offsets = {[0]=0, [32]=0}
+local music_lengths = {[0]=4, [32]=12}
 function play_music(track)
   if current_track ~= track then
-    music(track, 1000)
+    if current_track ~= -1 then
+      music_offsets[current_track] = (music_offsets[current_track] + stat(25)) % music_lengths[current_track]
+    end
+    music(track + music_offsets[track])
     current_track = track
   end
 end
