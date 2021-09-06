@@ -827,23 +827,8 @@ function rigidbody_t:update()
 end
 
 function rigidbody_t:is_grounded()
-
-  -- if there's nothing below us, we're grounded
-  if (not solid_at_point(self.go.x + flr(self.width / 2), self.go.y + self.height)) then
-    return false
-  end
-
-  -- if we're in or above an active portal, we're not grounded
-  if (#portal_m.chain < 2) then
-    return true
-  end
-  for portal in all(portal_m.chain) do
-    if (overlaps_portal(portal, self.go.x, self.go.y, self.width, self.height+1)) then
-      return false
-    end
-  end
-
-  return true
+  local overlap_state = overlaps_solids(self.go.x, self.go.y + 1, self.width, self.height)
+  return overlap_state == 2
 end
 
 function rigidbody_t:move_x(amount, portal_callback, wall_callback)
