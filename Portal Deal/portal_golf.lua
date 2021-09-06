@@ -1152,7 +1152,7 @@ level_manager_t = component:new{
 
 function level_manager_t:start()
   time_scale = 0
-  play_music(32)
+  play_music(33)
 end
 
 function level_manager_t:update()
@@ -1204,7 +1204,7 @@ end
 function level_manager_t:restart_level()
   -- reset time
   time_scale = 0
-  play_music(32)
+  play_music(33)
 
   -- reset cash
   l = levels[level]
@@ -1879,12 +1879,14 @@ function set_pin(pin, value)
   poke(0x5f80+pin, value)
 end
 
-local music_offsets = {[0]=0, [32]=0}
-local music_lengths = {[0]=4, [32]=12}
+local music_offsets = {[0]=0, [33]=-1} -- start from -1 because the loop point is on the second measure
+local music_lengths = {[0]=4, [33]=20}
 function play_music(track)
   if current_track ~= track then
     if current_track ~= -1 then
-      music_offsets[current_track] = (music_offsets[current_track] + stat(25)) % music_lengths[current_track]
+      if music_offsets[current_track] >= 0 or stat(25) > 0 then
+        music_offsets[current_track] = (music_offsets[current_track] + stat(25)) % music_lengths[current_track]
+      end
     end
     music(track + music_offsets[track])
     current_track = track
