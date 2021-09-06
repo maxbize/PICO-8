@@ -86,7 +86,7 @@ function _init()
   printh('--------------')
   printh('')
 
-  cartdata('maxbize_portaldeal_1')
+  cartdata('maxbize_portalgolf_1')
 
   poke(0x5f2d, 1) -- enable mouse
 
