@@ -745,6 +745,18 @@ function rigidbody_t:update()
   if (grounded) then
     self.angular_vel = self.vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
     self.vx *= self.friction
+
+    -- if we're stopped and grounded but are mostly over open space, add a little movement to "fall off" the ledge
+    if self.vx == 0 and self.vy == 0 then
+      local left_overlap   = overlaps_solids(self.go.x,   self.go.y + 1, 1, self.height)
+      local middle_overlap = overlaps_solids(self.go.x+1, self.go.y + 1, 1, self.height)
+      local right_overlap  = overlaps_solids(self.go.x+2, self.go.y + 1, 1, self.height)
+      if middle_overlap ~= 2 and right_overlap ~= 2 then
+        self.vx += 0.1
+      elseif middle_overlap ~= 2 and left_overlap ~= 2 then
+        self.vx -= 0.1
+      end
+    end
   end
 
   if (not grounded or self.vy < 0) then
