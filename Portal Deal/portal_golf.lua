@@ -1181,7 +1181,7 @@ function level_manager_t:update()
 end
 
 function level_manager_t:play_sim()
-  play_music(0)
+  --play_music(0)
   sfx(4, -1, 0, 2)
   time_scale = 1
   level_ui_m.btn_play.text = "stop"
