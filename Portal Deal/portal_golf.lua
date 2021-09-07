@@ -759,7 +759,7 @@ function rigidbody_t:update()
     self.vx *= self.friction
 
     -- if we're stopped and grounded but are mostly over open space, add a little movement to "fall off" the ledge
-    if self.vx == 0 and self.vy == 0 then
+    if abs(self.vx) < 0.001 and self.vy == 0 then
       local left_overlap   = overlaps_solids(self.go.x,   self.go.y + 1, 1, self.height)
       local middle_overlap = overlaps_solids(self.go.x+1, self.go.y + 1, 1, self.height)
       local right_overlap  = overlaps_solids(self.go.x+2, self.go.y + 1, 1, self.height)
