@@ -1350,7 +1350,11 @@ function menu_manager_t:draw()
     print_shadowed('level '..(i < 10 and ' ' or '')..i, x, y + i * 9, unlocked and 7 or 1)
     
     if (best ~= 0) then
-      spr(best <= levels[i].gold   and 36 or 39, x+44, (y-1) + i * 9)
+      if (best < levels[i].gold) then
+        spr(35, x+44, (y-1) + i * 9)
+      else
+        spr(best == levels[i].gold   and 36 or 39, x+44, (y-1) + i * 9)
+      end
       spr(best <= levels[i].silver and 37 or 39, x+52, (y-1) + i * 9)
       spr(best <= levels[i].bronze and 38 or 39, x+60, (y-1) + i * 9)
     else
@@ -1407,7 +1411,7 @@ function end_level_menu_t:shake_medal_background(num)
   _yield(20)
 end
 
-function end_level_menu_t:reveal_medal(color, num)
+function end_level_menu_t:reveal_medal(color, num, star)
   x = 75 - 18 * (num - 1)
   self:shake_medal_background(num)
   self.draw_medals = num
@@ -1422,7 +1426,11 @@ function end_level_menu_t:reveal_medal(color, num)
     particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
   end
   for i=0,num-1 do
-    sfx(6 + i)
+    if star then
+      sfx(6 + i, -1, 8, 11)
+    else
+      sfx(6 + i, -1, 0, 6)
+    end
   end
 
   _yield(15)
@@ -1479,7 +1487,7 @@ function end_level_menu_t:activate()
       end
     end
     if num_portals <= levels[level].gold then 
-      self:reveal_medal(10, 3) 
+      self:reveal_medal(10, 3, num_portals < levels[level].gold) 
     end
   end)
 
@@ -1513,7 +1521,13 @@ function end_level_menu_t:draw_medal(num, req)
 
     if #portal_m.chain <= req then
       -- Draw medal
-      sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
+      if num == 3 and #portal_m.chain < req then
+        -- Star
+        sspr(109, 71, 17, 16, draw_x + self.offsets[num]-2, 31) 
+      else
+        -- Regular medal
+        sspr(96 - 15 * (num - 1), 15, 13, 15, draw_x + self.offsets[num], 32) 
+      end
     else
       -- Draw medal background
       sspr(111, 15, 13, 15, draw_x + self.offsets[num], 32 - self.menu_offset)
