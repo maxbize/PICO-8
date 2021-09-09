@@ -64,17 +64,18 @@ for i=1,#levels_split,7 do
   add(levels, {start_x=levels_split[i], start_y=levels_split[i+1], start_vx=levels_split[i+2], start_vy=levels_split[i+3], gold=levels_split[i+4], silver=levels_split[i+5], bronze=levels_split[i+6]})
 end
 
--- singletons (_m == manager)
-local portal_m = nil   -- type portal_manager_t
-local cash = nil       -- type gameobject
-local level_m = nil    -- type level_manager_t
-local particle_m = nil -- type particle_manager_t
-local menu_m = nil     -- type menu_manager_t
-local end_menu_m = nil -- type end_level_menu_t
-local level_ui_m = nil -- type level_ui_t
-local mouse_m = nil    -- type mouse_t
-local help_m = nil     -- type help_menu_t
-local api_m = nil      -- type api_manager_t
+-- singletons (_m == manager). Now defined globally in _init because I ran out of tokens!
+--local portal_m = nil   -- type portal_manager_t
+--local cash = nil       -- type gameobject
+--local level_m = nil    -- type level_manager_t
+--local back_particle_m = nil -- type particle_manager_t
+--local front_particle_m = nil -- type particle_manager_t
+--local menu_m = nil     -- type menu_manager_t
+--local end_menu_m = nil -- type end_level_menu_t
+--local level_ui_m = nil -- type level_ui_t
+--local mouse_m = nil    -- type mouse_t
+--local help_m = nil     -- type help_menu_t
+--local api_m = nil      -- type api_manager_t
 
 local current_track = -1 -- music
 
@@ -115,8 +116,11 @@ function _init()
   local help_menu = gameobject:new{layer=4}
   help_m = help_menu:add_component(help_menu_t:new())
 
-  local particle_manager = gameobject:new{layer=1}
-  particle_m = particle_manager:add_component(particle_manager_t:new())
+  local back_particle_manager = gameobject:new{layer=1}
+  back_particle_m = back_particle_manager:add_component(particle_manager_t:new())
+
+  local front_particle_manager = gameobject:new{layer=5}
+  front_particle_m = front_particle_manager:add_component(particle_manager_t:new())
 
   local mouse = gameobject:new{layer=5}
   mouse_m = mouse:add_component(mouse_t:new())
@@ -489,13 +493,15 @@ end
 -------------------
 -- game types
 -------------------
-particle_manager_t = component:new({
+particle_manager_t = component:new{
   particles = {},
   index = 1,
   max_particles = 1000
-})
+}
 
 function particle_manager_t:start()
+  self.particles = {}
+
   for i=1,self.max_particles do
     self.particles[i] = {
       x = -1,
@@ -820,7 +826,7 @@ function rigidbody_t:update()
         function()
           sfx(3)
           for i=1, flr(abs(self.vx)*5) do
-            particle_m:add_particle_faded(self.go.x+1.5+sgn(self.vx), self.go.y+1.5, rnd(0.1)*sgn(-self.vx), rnd(0.5)-0.25, 0, 0, 7, 10+rnd(20))
+            back_particle_m:add_particle_faded(self.go.x+1.5+sgn(self.vx), self.go.y+1.5, rnd(0.1)*sgn(-self.vx), rnd(0.5)-0.25, 0, 0, 7, 10+rnd(20))
           end
           self.angular_vel = -vy * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vx *= -self.bounciness
@@ -842,7 +848,7 @@ function rigidbody_t:update()
         function()
           sfx(3)
           for i=1, flr(abs(self.vy)*5) do
-            particle_m:add_particle_faded(self.go.x+1.5, self.go.y+1.5+sgn(self.vy), rnd(0.5)-0.25, rnd(0.1)*sgn(-self.vy), 0, 0, 7, 10+rnd(20))
+            back_particle_m:add_particle_faded(self.go.x+1.5, self.go.y+1.5+sgn(self.vy), rnd(0.5)-0.25, rnd(0.1)*sgn(-self.vy), 0, 0, 7, 10+rnd(20))
           end
           self.angular_vel = vx * 40; -- * 60 (speed per sec instead of frame) / 1.5 (radius)
           self.vy *= -self.bounciness
@@ -950,6 +956,9 @@ function rigidbody_t:handle_portal()
         self.portal_offset = self.go.y - p1y - 2
       end
 
+      local last_x = self.go.x
+      local last_y = self.go.y
+
       self.go.x = flr(p2x + p2w/2 - self.width/2)
       self.go.y = flr(p2y + p2h/2 - self.height/2)
       self.angle = (self.angle + portal_angle_delta(p1, p2)) % 360
@@ -965,12 +974,12 @@ function rigidbody_t:handle_portal()
         self.vy = abs(v_normal) * p2.dir_y
       end
 
-      local dx = p2x - p1x
-      local dy = p2y - p1y
-      for i = 1, 20 do
-        particle_m:add_particle_faded(self.go.x + 1, self.go.y + 1, rnd(2)-1 + p2.dir_x, rnd(2)-1 + p2.dir_y, 0, 0.1, i <= 10 and 12 or 1, rnd(10)+10)
-        local t = i / 21
-        particle_m:add_particle_faded(p1x + dx * t, p1y + dy * t, rnd(0.5)-0.25, rnd(0.5)-0.25, 0, 0, 12, i)
+      local dx = self.go.x - last_x
+      local dy = self.go.y - last_y
+      for i = 1, 40 do
+        back_particle_m:add_particle_faded(self.go.x + 1, self.go.y + 1, rnd(1)-0.5 + p2.dir_x*0.5, rnd(1)-0.5 + p2.dir_y*0.5, 0, 0, i <= 20 and 12 or 1, rnd(10)+10)
+        local t = i / 41
+        front_particle_m:add_particle_faded(last_x + dx * t, last_y + dy * t, rnd(0.5)-0.25, rnd(0.5)-0.25, 0, 0, 12, i)
       end
 
       sfx(1, -1, 0, 1)
@@ -1276,7 +1285,7 @@ function pickup_t:update()
   
   if (distance < 7.5) then
     for i = 1, 10 do
-      particle_m:add_particle_shadowed(self.draw_x + 4, self.draw_y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
+      back_particle_m:add_particle_shadowed(self.draw_x + 4, self.draw_y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
     destroy(self.go)
@@ -1385,7 +1394,7 @@ function menu_manager_t:draw()
 
   end
 
-  particle_m:draw()
+  --particle_m:draw()
 
 end
 
@@ -1439,10 +1448,10 @@ function end_level_menu_t:reveal_medal(color, num, star)
   _yield(4)
   self.flash_medal = 0
   for i=1,75 do
-    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, color,            100)
+    front_particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, color,            100)
   end
   for i=1,25 do
-    particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
+    front_particle_m:add_particle_shadowed(x + rnd(13), 32 + rnd(15), rnd(1.5)-0.75, rnd(1)-1.75, 0, 0.06, gradients[color], 100)
   end
   for i=0,num-1 do
     if star then
@@ -1516,7 +1525,8 @@ end
 function end_level_menu_t:hide()
   del(actions, self.activate_action)
   self.active = false
-  particle_m:start()
+  back_particle_m:start()
+  front_particle_m:start()
   level_m:restart_level()
   for btn in all(self.buttons) do
     btn.offset = -128
@@ -1579,7 +1589,7 @@ function end_level_menu_t:draw()
   print_shadowed("portals: " .. tostr(#portal_m.chain), 33, 72 - self.menu_offset, 7)
 
   -- HACK! Draw particles again so they draw over the UI
-  particle_m:draw()
+  --particle_m:draw()
 
 end
 
