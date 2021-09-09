@@ -688,7 +688,14 @@ function portal_manager_t:draw()
   self.highlighted_portal = nil
 
   for i = 1, #self.chain do
-    self:draw_portal(self.chain[i], i < #self.chain and 9 or 12)
+    local color = 9 -- default orange
+    if self.chain[i].flash_frames ~= nil and self.chain[i].flash_frames > 0 then
+      color = self.chain[i].flash_frames % 2 == 0 and 10 or 9
+      self.chain[i].flash_frames -= 1
+    elseif i == #self.chain then
+      color = 12
+    end
+    self:draw_portal(self.chain[i], color)
     if (time_scale == 0 and not end_menu_m.active) then
       self:draw_portal_number(i)
       if (self.candidate ~= nil and portals_equal(self.chain[i], self.candidate)) then
@@ -967,6 +974,8 @@ function rigidbody_t:handle_portal()
       end
 
       sfx(1, -1, 0, 1)
+      p1.flash_frames = 6
+      p2.flash_frames = 6
 
 --      local speed = dist(0, 0, self.vx, self.vy)
 --      self.vx = speed * p2.dir_x
