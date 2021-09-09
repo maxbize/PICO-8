@@ -1152,7 +1152,8 @@ level_manager_t = component:new{
 
 function level_manager_t:start()
   time_scale = 0
-  play_music(33)
+  --play_music(33)
+  music(33)
 end
 
 function level_manager_t:update()
@@ -1204,7 +1205,7 @@ end
 function level_manager_t:restart_level()
   -- reset time
   time_scale = 0
-  play_music(33)
+  --play_music(33)
 
   -- reset cash
   l = levels[level]
@@ -1247,32 +1248,26 @@ end
 pickup_t = component:new{
   chase_time = 0,
   collected_last_run = false,
+  spawn_x = 0,
+  spawn_y = 0,
+  draw_x = 0,
+  draw_y = 0,
 }
 
 function pickup_t:start()
   self.spawn_x = self.go.x
   self.spawn_y = self.go.y
+  self.draw_x = self.spawn_x
+  self.draw_y = self.spawn_y
 end
 
 function pickup_t:update()
   -- 4 == half sprite width/height
   local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
   
-
-  if (self.chase_time == 0 and distance < 7.5) then
-    self.chase_time = time()
-  end
-
-  if (self.chase_time > 0) then
-    self.go.x += (cash.x + cash.rb.width/2  - self.go.x - 4) * 0.8
-    self.go.y += (cash.y + cash.rb.height/2 - self.go.y - 3) * 0.8
-  end
-
-  local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
-
-  if (distance < 1) then
+  if (distance < 7.5) then
     for i = 1, 10 do
-      particle_m:add_particle_shadowed(self.go.x + 4, self.go.y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
+      particle_m:add_particle_shadowed(self.draw_x + 4, self.draw_y + 3, rnd(2)-1, rnd(2)-1, 0, 0, i <= 3 and 9 or 10, rnd(5)+5)
     end
     level_m:notify_pickup()
     destroy(self.go)
@@ -1280,10 +1275,25 @@ function pickup_t:update()
 end
 
 function pickup_t:draw()
+  local distance = dist(self.go.x + 4, self.go.y + 3, cash.x + cash.rb.width/2, cash.y + cash.rb.height/2)
+  local target_x = self.spawn_x + (self.collected_last_run and 0 or sin(time() - self.spawn_x/128))
+  local target_y = self.spawn_y + (self.collected_last_run and 0 or cos(time() - self.spawn_y/128))
+
+  if distance < 10 then
+    local to_cash_x = ((cash.x + 1.5) - (self.go.x + 4))
+    local to_cash_y = ((cash.y + 1.5) - (self.go.y + 3))
+    target_x = self.go.x + to_cash_x * (2 - 2*distance/10)
+    target_y = self.go.y + to_cash_y * (2 - 2*distance/10)
+  end
+
+  self.draw_x += (target_x - self.draw_x) * 0.2
+  self.draw_y += (target_y - self.draw_y) * 0.2
+
   if self.collected_last_run then
-    spr(50, self.go.x, self.go.y)
+    spr(50, self.draw_x, self.draw_y)
   else
-    spr(34, self.go.x + sin(time() - self.spawn_x/128), self.go.y + cos(time() - self.spawn_y/128))
+    line(self.spawn_x+4, self.spawn_y+3, self.draw_x+4, self.draw_y+3, 1)
+    spr(34, self.draw_x, self.draw_y)
   end
 end
 
@@ -1893,16 +1903,16 @@ function set_pin(pin, value)
   poke(0x5f80+pin, value)
 end
 
-local music_offsets = {[0]=0, [33]=-1} -- start from -1 because the loop point is on the second measure
-local music_lengths = {[0]=4, [33]=20}
-function play_music(track)
-  if current_track ~= track then
-    if current_track ~= -1 then
-      if music_offsets[current_track] >= 0 or stat(25) > 0 then
-        music_offsets[current_track] = (music_offsets[current_track] + stat(25)) % music_lengths[current_track]
-      end
-    end
-    music(track + music_offsets[track])
-    current_track = track
-  end
-end
+--local music_offsets = {[0]=0, [33]=-1} -- start from -1 because the loop point is on the second measure
+--local music_lengths = {[0]=4, [33]=20}
+--function play_music(track)
+--  if current_track ~= track then
+--    if current_track ~= -1 then
+--      if music_offsets[current_track] >= 0 or stat(25) > 0 then
+--        music_offsets[current_track] = (music_offsets[current_track] + stat(25)) % music_lengths[current_track]
+--      end
+--    end
+--    music(track + music_offsets[track])
+--    current_track = track
+--  end
+--end
