@@ -1171,7 +1171,7 @@ level_manager_t = component:new{
 function level_manager_t:start()
   time_scale = 0
   --play_music(33)
-  music(33)
+  music(32)
 end
 
 function level_manager_t:update()
