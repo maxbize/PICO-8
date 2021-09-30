@@ -1845,7 +1845,9 @@ function api_manager_t:start()
     self.records[i] = 100
   end
   for i=1,10 do
-    self:level_complete(i, dget(i), false)
+    if dget(i) > 0 then
+      self:level_complete(i, dget(i), false)
+    end
   end
 end
 
