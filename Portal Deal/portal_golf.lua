@@ -1360,7 +1360,9 @@ function menu_manager_t:draw()
   rectfill(0, 0, 128, 128, 15)
   rectfill(0, 25, 128, 116, 4)
 
-  sspr(0, 32, 128, 20, 0, 2)
+  palt(0, false)
+  sspr(0, 97, 128, 23, 0, 1)
+  palt(0, true)
   print_shadowed('@maxbize', 48, 120, 7)
   print_shadowed('v 1.1', 103, 120, 7)
 
