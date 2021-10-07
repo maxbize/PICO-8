@@ -1,30 +1,48 @@
-ants = {}
+-- pico defense force
+-- by @maxbize
 
+--------------------
+-- Global State
+--------------------
+objects = {}
+
+
+--------------------
+-- Built-in Methods
+--------------------
 function _init()
+  -- Use blue as alpha
   palt(0, false)
   palt(1, true)
 
   for i=1,100 do
     spawn_ant(rnd(128), rnd(128))
   end
+
+  spawn_player()
 end
 
 function _update60()
-  for ant in all(ants) do
-    ant.update(ant)
+  for obj in all(objects) do
+    obj.update(obj)
   end
 end
 
 function _draw()
   cls(1)
 
-  for ant in all(ants) do
-    ant.draw(ant)
+  for obj in all(objects) do
+    obj.draw(obj)
   end
 
   print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
   --print('mem: '..stat(0), 1, 13, 0)
 end
+
+
+--------------------
+-- Utility Methods
+--------------------
 
 -- rotate a sprite
 -- col 15 is transparent
@@ -58,11 +76,57 @@ function rspr(sx,sy,x,y,a,w)
     end
 end
 
+--------------------
+-- Player class
+--------------------
+function spawn_player()
+  local player = {
+    update = _player_update,
+    draw = _player_draw,
+    x = 64,
+    y = 64,
+    angle = 0,
+    speed = 0.8
+  }
+  add(objects, player)
+end
+
+function _player_update(self)
+
+  -- movement
+  local move_x = 0
+  local move_y = 0
+
+  if btn(0) then
+    move_x -= self.speed
+  end
+  if btn(1) then
+    move_x += self.speed
+  end
+  if btn(2) then
+    move_y -= self.speed
+  end
+  if btn(3) then
+    move_y += self.speed
+  end
+
+  -- don't let the player speed walk diagonally. todo: remove???
+  if move_x ~= 0 and move_y ~= 0 then
+    move_x *= 0.707
+    move_y *= 0.707
+  end
+
+  self.x += move_x
+  self.y += move_y
+end
+
+function _player_draw(self)
+  spr(8, self.x, self.y)
+end
 
 --------------------
 -- Ant class
 --------------------
-
 function spawn_ant(x, y)
   local ant = {
     update = _ant_update,
@@ -73,10 +137,11 @@ function spawn_ant(x, y)
     i = rnd(4),          -- animation timer
     frame = flr(rnd(4)), -- animation frame
   }
-  add(ants, ant)
+  add(objects, ant)
 end
 
 function _ant_update(self)
+
 
   -- advance animation state
   self.i += 1
