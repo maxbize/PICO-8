@@ -98,6 +98,15 @@ function draw_rotated_anim(x, y, angle, start_frame, frame)
   end
 end
 
+function rand(l, r)
+  if r == nil then
+    r = l
+    l = 0
+  end
+
+  return rnd(r-l) - (r-l)/2
+end
+
 --------------------
 -- Player class
 --------------------
@@ -150,9 +159,7 @@ function _player_update(self)
 
   -- weapons
   if btn(5) then
-    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
-    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
-    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
+    add_projectile(self.x+4, self.y+4, rand(-0.3, 0.3), -1, 90, 10)
   end
 end
 
@@ -187,6 +194,9 @@ function _ant_update(self)
 
   -- face player
   self.angle = atan2(player.x - self.x, player.y - self.y) * 360
+
+  -- collision registration
+  register_ant(self)
 end
 
 function _ant_draw(self)
@@ -204,6 +214,7 @@ function create_projectile_manager()
     max_projectiles = 100,
     projectiles = {},
     index = 1, -- insertion index
+    partitions = {}, -- shootable objects of the world indexed by 8x8 chunked positions
   }
   add(objects, projectile_m)
 
@@ -235,14 +246,43 @@ function add_projectile(x, y, vx, vy, frames, color)
   p.color = color
 end
 
+-- todo: we can save 1-3% CPU per 100 ants by inlining this
+-- note: with a 4096x4096 playable world, the min chunk size is 16x16 or we'll overflow the int.
+--         We could do 8x8 if we use the fractional bits. e.g. index 1.00, 1.25, 1.5, 1.75 would be the four quadrants of index 1
+function register_ant(ant)
+  local index = flr((ant.x + 3) / 16) + flr(ant.y + 3) * 16
+
+  if projectile_m.partitions[index] == nil then
+    projectile_m.partitions[index] = {}
+  end
+  add(projectile_m.partitions[index], ant)
+end
+
 function _projectile_manager_update(self)
   for p in all(self.projectiles) do
     if (p.frames > 0) then
+      -- update projectiles
       p.x += p.vx
       p.y += p.vy
       p.frames -= 1
+
+      -- check collisions
+      local index = flr(p.x / 16) + flr(p.y) * 16
+      for ant in all(self.partitions[index]) do
+        -- todo: is there a faster way to check a pixel overlapping a box???
+        if p.x >= ant.x and p.x < ant.x + 8 and p.y >= ant.y and p.y < ant.y + 8 then
+          p.frames = 0
+          del(objects, ant)
+          break
+        end
+      end
     end
+
   end
+
+
+  -- clear partitions
+  self.partitions = {}
 end
 
 function _projectile_manager_draw(self)
