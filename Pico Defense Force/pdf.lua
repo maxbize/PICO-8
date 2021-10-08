@@ -86,15 +86,14 @@ end
 function draw_rotated_anim(x, y, angle, start_frame, frame)
   frame += start_frame
 
-  if     angle <  22.5 then spr(frame + 32, x, y, 1, 1, true , false) -- E
-  elseif angle <  67.5 then spr(frame + 16, x, y, 1, 1, true , true ) -- SE
-  elseif angle < 112.5 then spr(frame     , x, y, 1, 1, false, true ) -- S
-  elseif angle < 157.5 then spr(frame + 16, x, y, 1, 1, false, true ) -- SW
-  elseif angle < 202.5 then spr(frame + 32, x, y, 1, 1, false, false) -- W
-  elseif angle < 247.5 then spr(frame + 16, x, y, 1, 1, false, false) -- NW
-  elseif angle < 292.5 then spr(frame     , x, y, 1, 1, false, false) -- N
-  elseif angle < 337.5 then spr(frame + 16, x, y, 1, 1, true , false) -- NE
-  else                      spr(frame + 32, x, y, 1, 1, true , false) -- E
+  if     angle < 0.0625 or angle >= 0.9375 then spr(frame + 32, x, y, 1, 1, true , false) -- E
+  elseif angle < 0.1875                    then spr(frame + 16, x, y, 1, 1, true , true ) -- SE
+  elseif angle < 0.3125                    then spr(frame     , x, y, 1, 1, false, true ) -- S
+  elseif angle < 0.4375                    then spr(frame + 16, x, y, 1, 1, false, true ) -- SW
+  elseif angle < 0.5625                    then spr(frame + 32, x, y, 1, 1, false, false) -- W
+  elseif angle < 0.6875                    then spr(frame + 16, x, y, 1, 1, false, false) -- NW
+  elseif angle < 0.8125                    then spr(frame     , x, y, 1, 1, false, false) -- N
+  else                                          spr(frame + 16, x, y, 1, 1, true , false) -- NE
   end
 end
 
@@ -106,6 +105,16 @@ function rand(l, r)
 
   return rnd(r-l) - (r-l)/2
 end
+
+function angle_vector(theta, magnitude)
+  return magnitude * cos(theta),
+         magnitude * sin(theta)
+end
+
+--------------------
+-- Weapons
+--------------------
+
 
 --------------------
 -- Player class
@@ -154,7 +163,7 @@ function _player_update(self)
 
   -- rotation
   if not btn(5) and (move_x ~= 0 or move_y ~= 0) then
-    self.angle = atan2(move_x, move_y) * 360
+    self.angle = atan2(move_x, move_y)
   end
 
   -- weapons
@@ -176,7 +185,7 @@ function spawn_ant(x, y)
     draw = _ant_draw,
     x = x,
     y = y,
-    angle = 0,           -- animation angle (0-360)
+    angle = 0,           -- animation angle (0-1)
     i = rnd(4),          -- animation timer
     frame = flr(rnd(4)), -- animation frame
   }
@@ -193,7 +202,7 @@ function _ant_update(self)
   end
 
   -- face player
-  self.angle = atan2(player.x - self.x, player.y - self.y) * 360
+  self.angle = atan2(player.x - self.x, player.y - self.y)
 
   -- collision registration
   register_ant(self)
@@ -277,9 +286,7 @@ function _projectile_manager_update(self)
         end
       end
     end
-
   end
-
 
   -- clear partitions
   self.partitions = {}
