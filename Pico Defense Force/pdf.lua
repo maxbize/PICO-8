@@ -16,12 +16,14 @@ function _init()
   palt(0, false)
   palt(1, true)
 
+  srand(0) -- debugging. cost random seed
+
   -- Init singletons
   create_projectile_manager()
   spawn_player()
 
-  for i=1,100 do
-    spawn_ant(rnd(128), rnd(128))
+  for i = 1, 100 do
+    spawn_ant(rnd(120), rnd(120))
   end
 
 end
@@ -123,7 +125,7 @@ function spawn_player()
   player = {
     update = _player_update,
     draw = _player_draw,
-    x = 64,
+    x = 60,
     y = 64,
     angle = 0,
     speed = 0.5,
@@ -168,7 +170,8 @@ function _player_update(self)
 
   -- weapons
   if btn(5) then
-    add_projectile(self.x+4, self.y+4, rand(-0.3, 0.3), -1, 90, 10)
+    local vx, vy = angle_vector(self.angle + rand(-0.1, 0.1), 2)
+    add_projectile(self.x+4, self.y+4, vx, vy, 30, 10)
   end
 end
 
@@ -220,7 +223,7 @@ function create_projectile_manager()
   projectile_m = {
     update = _projectile_manager_update,
     draw = _projectile_manager_draw,
-    max_projectiles = 100,
+    max_projectiles = 250,
     projectiles = {},
     index = 1, -- insertion index
     partitions = {}, -- shootable objects of the world indexed by 8x8 chunked positions
@@ -255,16 +258,34 @@ function add_projectile(x, y, vx, vy, frames, color)
   p.color = color
 end
 
--- todo: we can save 1-3% CPU per 100 ants by inlining this
--- note: with a 4096x4096 playable world, the min chunk size is 16x16 or we'll overflow the int.
+-- TODO: We can save 1-3% CPU per 100 ants by inlining this (tested on single insertion)
+-- Note: With a 4096x4096 playable world, the min chunk size is 16x16 or we'll overflow the int.
 --         We could do 8x8 if we use the fractional bits. e.g. index 1.00, 1.25, 1.5, 1.75 would be the four quadrants of index 1
 function register_ant(ant)
-  local index = flr((ant.x + 3) / 16) + flr(ant.y + 3) * 16
+  -- Single insertion at center (fast)
+--  local index = flr((ant.x + 3) / 16) + flr(ant.y + 3) * 16
+--
+--  if projectile_m.partitions[index] == nil then
+--    projectile_m.partitions[index] = {}
+--  end
+--  add(projectile_m.partitions[index], ant)
 
-  if projectile_m.partitions[index] == nil then
-    projectile_m.partitions[index] = {}
+  -- Four corner insertion (accurate but +13% CPU at 100 ants vs single insert)
+  for i = 0, 1 do
+    for j = 0, 1 do
+      local index = flr((ant.x + i*7) / 16) + flr(ant.y + j*7) * 16
+    
+      if projectile_m.partitions[index] == nil then
+        projectile_m.partitions[index] = {}
+      end
+
+      local parts = projectile_m.partitions[index]
+      if parts[#parts] ~= ant then
+        add(parts, ant)
+      end
+
+    end
   end
-  add(projectile_m.partitions[index], ant)
 end
 
 function _projectile_manager_update(self)
