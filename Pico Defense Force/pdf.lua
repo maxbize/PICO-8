@@ -4,8 +4,9 @@
 --------------------
 -- Global State
 --------------------
-objects = {}
-
+local objects = {}
+local player = nil
+local projectile_m = nil
 
 --------------------
 -- Built-in Methods
@@ -15,11 +16,14 @@ function _init()
   palt(0, false)
   palt(1, true)
 
+  -- Init singletons
+  create_projectile_manager()
+  spawn_player()
+
   for i=1,100 do
     spawn_ant(rnd(128), rnd(128))
   end
 
-  spawn_player()
 end
 
 function _update60()
@@ -29,14 +33,15 @@ function _update60()
 end
 
 function _draw()
-  cls(1)
+  cls(6)
 
   for obj in all(objects) do
     obj.draw(obj)
   end
 
-  print('cpu: '..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
-  --print('mem: '..stat(0), 1, 13, 0)
+  rectfill(0, 0, 53, 6, 7, true)
+  print('cpu:'..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), 1, 1, 0)
+  print('mem:'..(stat(0) / 2048 * 100 < 10 and '0' or '')..flr(stat(0) / 2048 * 100), 28, 1, 0)
 end
 
 
@@ -76,17 +81,35 @@ function rspr(sx,sy,x,y,a,w)
     end
 end
 
+-- todo: E should be 0, S should be 90, etc...
+-- todo: optimize tokens
+function draw_rotated_anim(x, y, angle, start_frame, frame)
+  frame += start_frame
+
+  if     angle <  22.5 then spr(frame + 32, x, y, 1, 1, true , false) -- E
+  elseif angle <  67.5 then spr(frame + 16, x, y, 1, 1, true , true ) -- SE
+  elseif angle < 112.5 then spr(frame     , x, y, 1, 1, false, true ) -- S
+  elseif angle < 157.5 then spr(frame + 16, x, y, 1, 1, false, true ) -- SW
+  elseif angle < 202.5 then spr(frame + 32, x, y, 1, 1, false, false) -- W
+  elseif angle < 247.5 then spr(frame + 16, x, y, 1, 1, false, false) -- NW
+  elseif angle < 292.5 then spr(frame     , x, y, 1, 1, false, false) -- N
+  elseif angle < 337.5 then spr(frame + 16, x, y, 1, 1, true , false) -- NE
+  else                      spr(frame + 32, x, y, 1, 1, true , false) -- E
+  end
+end
+
 --------------------
 -- Player class
 --------------------
 function spawn_player()
-  local player = {
+  player = {
     update = _player_update,
     draw = _player_draw,
     x = 64,
     y = 64,
     angle = 0,
-    speed = 0.8
+    speed = 0.5,
+    frame = 0
   }
   add(objects, player)
 end
@@ -116,12 +139,25 @@ function _player_update(self)
     move_y *= 0.707
   end
 
+  -- translation
   self.x += move_x
   self.y += move_y
+
+  -- rotation
+  if not btn(5) and (move_x ~= 0 or move_y ~= 0) then
+    self.angle = atan2(move_x, move_y) * 360
+  end
+
+  -- weapons
+  if btn(5) then
+    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
+    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
+    add_projectile(self.x+4, self.y+4, rnd(0.2)-0.1, -1, 90, 9)
+  end
 end
 
 function _player_draw(self)
-  spr(8, self.x, self.y)
+  draw_rotated_anim(self.x, self.y, self.angle, 8, self.frame)
 end
 
 --------------------
@@ -142,31 +178,78 @@ end
 
 function _ant_update(self)
 
-
   -- advance animation state
   self.i += 1
   if self.i > 3 then
     self.i = 0
     self.frame = (self.frame + 1) % 4
   end
+
+  -- face player
+  self.angle = atan2(player.x - self.x, player.y - self.y) * 360
 end
 
--- todo: optimize tokens
 function _ant_draw(self)
-  if     self.angle <  22.5 then spr(self.frame     , self.x, self.y, 1, 1, false, false) -- S
-  elseif self.angle <  67.5 then spr(self.frame + 16, self.x, self.y, 1, 1, false, false) -- SW
-  elseif self.angle < 112.5 then spr(self.frame + 32, self.x, self.y, 1, 1, false, false) -- W
-  elseif self.angle < 157.5 then spr(self.frame + 16, self.x, self.y, 1, 1, false, true ) -- NW
-  elseif self.angle < 202.5 then spr(self.frame     , self.x, self.y, 1, 1, false, true ) -- N
-  elseif self.angle < 247.5 then spr(self.frame + 16, self.x, self.y, 1, 1, true , true ) -- NE
-  elseif self.angle < 292.5 then spr(self.frame + 32, self.x, self.y, 1, 1, true , false) -- E
-  elseif self.angle < 337.5 then spr(self.frame + 16, self.x, self.y, 1, 1, true , false) -- SE
-  else                           spr(self.frame     , self.x, self.y, 1, 1, false, false) -- S
-  end
+  draw_rotated_anim(self.x, self.y, self.angle, 0, self.frame)
   --rspr(self.frame * 8, 0, self.x, self.y, 0.125, 1) 
 end
 
 --------------------
--- 
+-- Projectile Manager
 --------------------
+function create_projectile_manager()
+  projectile_m = {
+    update = _projectile_manager_update,
+    draw = _projectile_manager_draw,
+    max_projectiles = 100,
+    projectiles = {},
+    index = 1, -- insertion index
+  }
+  add(objects, projectile_m)
+
+  for i = 1, projectile_m.max_projectiles do
+    projectile_m.projectiles[i] = {
+      x = 0,
+      y = 0,
+      vx = 0,
+      vy = 0,
+      frames = 0,
+      color = 0
+    }
+  end
+end
+
+function add_projectile(x, y, vx, vy, frames, color)
+  projectile_m.index += 1
+  if (projectile_m.index > projectile_m.max_projectiles) then
+    projectile_m.index = 1
+  end
+
+  local p = projectile_m.projectiles[projectile_m.index]
+
+  p.x = x
+  p.y = y
+  p.vx = vx
+  p.vy = vy
+  p.frames = frames
+  p.color = color
+end
+
+function _projectile_manager_update(self)
+  for p in all(self.projectiles) do
+    if (p.frames > 0) then
+      p.x += p.vx
+      p.y += p.vy
+      p.frames -= 1
+    end
+  end
+end
+
+function _projectile_manager_draw(self)
+  for p in all(self.projectiles) do
+    if (p.frames > 0) then
+      pset(p.x, p.y, p.color)
+    end
+  end
+end
 
