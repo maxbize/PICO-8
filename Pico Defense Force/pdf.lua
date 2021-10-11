@@ -117,6 +117,10 @@ function angle_vector(theta, magnitude)
          magnitude * sin(theta)
 end
 
+function round(n)
+  return n%1 < 0.5 and flr(n) or -flr(-n)
+end
+
 --------------------
 -- World Map
 --------------------
@@ -135,7 +139,7 @@ function draw_map()
 
 
   -- Find the map index of the top-left map segment
-  local top_left = flr(player.x / 32) + 64 * flr(player.y / 32)
+  local top_left = flr((player.cam_x + 64) / 32) + 64 * flr((player.cam_y + 64) / 32)
 
   -- Draw all map segments surrounding the player
   for x = -2, 2 do
@@ -219,7 +223,9 @@ function spawn_player()
     angle = 0,
     speed = 0.5,
     frame = 0,
-    weapon = weapon_data
+    weapon = weapon_data,
+    cam_x = 30 * 32,
+    cam_y = 30 * 32,
   }
   add(objects, player)
 end
@@ -277,10 +283,25 @@ function _player_update(self)
   end
 
   -- camera locked to player
-  camera(self.x - 64, self.y - 64)
+  -- TODO: lots of jitter, especially when moving diagonally
+  local offset_x, offset_y = angle_vector(self.angle, 20)
+  local target_x = self.x - 60 + offset_x
+  local target_y = self.y - 60 + offset_y
+  self.cam_x += (target_x - self.cam_x) * 0.05
+  self.cam_y += (target_y - self.cam_y) * 0.05
+  camera(self.cam_x, self.cam_y)
 end
 
 function _player_draw(self)
+--  local offset_x, offset_y = angle_vector(self.angle, 20)
+--  local target_x = self.x - 60 + offset_x
+--  local target_y = self.y - 60 + offset_y
+--  local camera_x = peek2(0x5f28)
+--  local camera_y = peek2(0x5f2a)
+--  pset(target_x + 30, target_y + 30, 15)
+--  pset(camera_x + 30, camera_y + 30, 14)
+--  pset(self.x + offset_x, self.y + offset_y, 13)
+
   draw_rotated_anim(self.x, self.y, self.angle, 4, self.frame)
 end
 
