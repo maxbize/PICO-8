@@ -23,7 +23,7 @@ function _init()
   spawn_player()
 
   for i = 1, 100 do
-    spawn_ant(28*32 + rnd(120), 28*32 + rnd(120))
+    spawn_ant(28*32 + rnd(120), 27*32 + rnd(60))
   end
 
 end
@@ -111,6 +111,15 @@ end
 function angle_vector(theta, magnitude)
   return magnitude * cos(theta),
          magnitude * sin(theta)
+end
+
+function dist(dx, dy)
+  return sqrt(dx * dx + dy * dy)
+end
+
+function normalized(x, y)
+  local mag = dist(x, y)
+  return x / mag, y / mag
 end
 
 function round(n)
@@ -260,7 +269,7 @@ function spawn_player()
     draw = _player_draw,
     x = 30 * 32,
     y = 30 * 32,
-    angle = 0,
+    angle = 0.25,
     speed = 0.5,
     frame = 0,
     weapon = weapon_data,
@@ -361,6 +370,8 @@ function spawn_ant(x, y)
     frame = flr(rnd(4)), -- animation frame
     health = 60, -- TODO: this should be the health on easy
     flash_frames = 0, -- flash on hit
+    speed = 0.25,
+    move_pause_frames = 0,
   }
   add(objects, ant)
 end
@@ -373,11 +384,33 @@ function _ant_update(self)
     self.frame = (self.frame + 1) % 4
   end
 
-  -- face player
-  self.angle = atan2(player.x - self.x, player.y - self.y)
-
   -- collision registration
-  register_ant(self)
+  local num_in_part = register_ant(self)
+
+  -- move towards player
+  local to_player_x, to_player_y = normalized(player.x - self.x, player.y - self.y)
+  local player_dist = dist(player.x - self.x, player.y - self.y)
+  if player_dist <= 6 then
+    self.angle = atan2(to_player_x, to_player_y)
+  elseif self.move_pause_frames == 0 then
+    if (num_in_part < 3) then
+      if (player_dist > 6) then
+        self.x += to_player_x * self.speed
+        self.y += to_player_y * self.speed
+        self.angle = atan2(to_player_x, to_player_y)
+      end
+    else
+      self.move_pause_frames = 60
+      self.angle = atan2(to_player_x + rand(-5, 5), to_player_y + rand(-5, 5))
+    end
+  else
+    local vx, vy = angle_vector(self.angle, self.speed)
+    self.x += vx
+    self.y += vy
+    self.move_pause_frames -= 1
+  end    
+
+
 end
 
 function _ant_draw(self)
@@ -411,6 +444,7 @@ function create_projectile_manager()
     projectiles = {},
     index = 1, -- insertion index
     partitions = {}, -- shootable objects of the world indexed by 8x8 chunked positions
+    last_partitions = {}, -- cache of the partitioned objects from the previous frame
   }
   add(objects, projectile_m)
 
@@ -457,6 +491,7 @@ function register_ant(ant)
 --  add(projectile_m.partitions[index], ant)
 
   -- Four corner insertion (accurate but +13% CPU at 100 ants vs single insert)
+  local max_corner = 1
   for i = 0, 1 do
     for j = 0, 1 do
       local index = flr((ant.x + i*7) / 16) + flr(ant.y + j*7) * 16
@@ -468,10 +503,14 @@ function register_ant(ant)
       local parts = projectile_m.partitions[index]
       if parts[#parts] ~= ant then
         add(parts, ant)
+        local last_parts = projectile_m.last_partitions[index]
+        max_corner = max(last_parts ~= nil and #last_parts or 0, max_corner)
       end
 
     end
   end
+
+  return max_corner
 end
 
 function _projectile_manager_update(self)
@@ -496,6 +535,7 @@ function _projectile_manager_update(self)
   end
 
   -- clear partitions
+  self.last_partitions = self.partitions
   self.partitions = {}
 end
 
