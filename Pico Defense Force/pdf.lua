@@ -390,11 +390,22 @@ function _ant_update(self)
   -- move towards player
   local to_player_x, to_player_y = normalized(player.x - self.x, player.y - self.y)
   local player_dist = dist(player.x - self.x, player.y - self.y)
-  if player_dist <= 6 then
-    self.angle = atan2(to_player_x, to_player_y)
+  if player_dist <= 8 then
+    if num_in_part < 6 then
+      self.angle = atan2(to_player_x, to_player_y)
+      self.move_pause_frames = 0
+    elseif self.move_pause_frames == 0 then
+      self.move_pause_frames = 60
+      self.angle = atan2(-to_player_x, -to_player_y)
+    else
+      local vx, vy = angle_vector(self.angle, self.speed)
+      self.x += vx
+      self.y += vy
+      self.move_pause_frames -= 1
+    end
   elseif self.move_pause_frames == 0 then
     if (num_in_part < 3) then
-      if (player_dist > 6) then
+      if (player_dist > 8) then
         self.x += to_player_x * self.speed
         self.y += to_player_y * self.speed
         self.angle = atan2(to_player_x, to_player_y)
