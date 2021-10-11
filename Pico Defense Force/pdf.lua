@@ -43,11 +43,7 @@ function _draw()
     obj.draw(obj)
   end
 
-  camera_x = peek2(0x5f28)
-  camera_y = peek2(0x5f2a)
-  rectfill(camera_x, camera_y, camera_x + 53, camera_y + 6, 7, true)
-  print('cpu:'..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), camera_x + 1, camera_y + 1, 0)
-  print('mem:'..(stat(0) / 2048 * 100 < 10 and '0' or '')..flr(stat(0) / 2048 * 100), camera_x + 28, camera_y + 1, 0)
+  draw_gui()
 end
 
 
@@ -119,6 +115,50 @@ end
 
 function round(n)
   return n%1 < 0.5 and flr(n) or -flr(-n)
+end
+
+function pad(str, len, char)
+  if #str < len then
+    return pad(char .. str, len, char)
+  end
+  return str
+end
+
+--------------------
+-- GUI
+--------------------
+-- TODO: All of this could be moved to strings to save tokens
+function draw_gui()
+  camera_x = peek2(0x5f28)
+  camera_y = peek2(0x5f2a)
+
+  -- Health
+  rect(camera_x + 2, camera_y +  75, camera_x + 11, camera_y + 115, 0)
+  rectfill(camera_x + 2, camera_y + 115, camera_x + 22, camera_y + 125, 0)
+  rect(camera_x + 3, camera_y +  76, camera_x + 10, camera_y + 116, 7)
+  rect(camera_x + 3, camera_y + 116, camera_x + 21, camera_y + 124, 7)
+  rectfill(camera_x + 4, camera_y +  77, camera_x + 9, camera_y +  77 + (38 * (1 - player.health / player.max_health)), 5)
+  rectfill(camera_x + 4, camera_y + 115, camera_x + 9, camera_y + 115 - (38 *     (player.health / player.max_health)),  3)
+  line(camera_x + 4, camera_y +  86, camera_x +  6, camera_y +  86, 6)
+  line(camera_x + 4, camera_y +  96, camera_x +  6, camera_y +  96, 6)
+  line(camera_x + 4, camera_y + 106, camera_x +  6, camera_y + 106, 6)
+  print(pad(tostr(player.health), 4, ' '), camera_x + 5, camera_y + 118, 3)
+
+  -- Weapon + Ammo
+  local name_len = #player.weapon.name
+  local ammo_len = #tostr(player.weapon.capacity) * 2 + 1
+  rectfill(camera_x + 125 - name_len * 4 - 4, camera_y + 107, camera_x + 125, camera_y + 117, 0)
+  rectfill(camera_x + 125 - ammo_len * 4 - 4, camera_y + 115, camera_x + 125, camera_y + 125, 0)
+  rect(camera_x + 126 - name_len * 4 - 4, camera_y + 108, camera_x + 124, camera_y + 116, 7)
+  rect(camera_x + 126 - ammo_len * 4 - 4, camera_y + 116, camera_x + 124, camera_y + 124, 7)
+  rect(camera_x + 126 - min(ammo_len, name_len) * 4 - 3, camera_y + 116, camera_x + 123, camera_y + 116, 6)
+  print(player.weapon.name, camera_x + 124 - name_len * 4, camera_y + 110, 3)
+  print(pad(tostr(player.weapon.ammo), #tostr(player.weapon.capacity), '0') .. '/' .. player.weapon.capacity, camera_x + 124 - ammo_len * 4, camera_y + 118, 3)
+
+  -- Debug info  
+  rectfill(camera_x, camera_y, camera_x + 53, camera_y + 6, 7, true)
+  print('cpu:'..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), camera_x + 1, camera_y + 1, 0)
+  print('mem:'..(stat(0) / 2048 * 100 < 10 and '0' or '')..flr(stat(0) / 2048 * 100), camera_x + 28, camera_y + 1, 0)
 end
 
 --------------------
@@ -226,6 +266,8 @@ function spawn_player()
     weapon = weapon_data,
     cam_x = 30 * 32,
     cam_y = 30 * 32,
+    health = 200,
+    max_health = 200,
   }
   add(objects, player)
 end
