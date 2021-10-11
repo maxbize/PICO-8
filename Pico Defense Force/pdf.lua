@@ -307,8 +307,11 @@ function _player_update(self)
   end
 
   -- translation
-  self.x += move_x
-  self.y += move_y
+  local overlapping = overlaps_ant(self.x + 3 + move_x, self.y + 3 + move_y, 0, 0)
+  if not overlapping then
+    self.x += move_x
+    self.y += move_y
+  end
 
   -- rotation
   if not btn(5) and (move_x ~= 0 or move_y ~= 0) then
@@ -548,6 +551,17 @@ function _projectile_manager_update(self)
   -- clear partitions
   self.last_partitions = self.partitions
   self.partitions = {}
+end
+
+-- somehow, collision and projectiles code got tangled xD
+function overlaps_ant(x, y, w, h)
+  local index = flr(x / 16) + flr(y) * 16
+  for ant in all(projectile_m.last_partitions[index]) do
+    if x >= ant.x and x + w < ant.x + 8 and y >= ant.y and y + h < ant.y + 8 then
+      return true
+    end
+  end
+  return false
 end
 
 function _projectile_manager_draw(self)
