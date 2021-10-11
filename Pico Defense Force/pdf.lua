@@ -23,7 +23,7 @@ function _init()
   spawn_player()
 
   for i = 1, 100 do
-    --spawn_ant(28*32 + rnd(120), 28*32 + rnd(120))
+    spawn_ant(28*32 + rnd(120), 28*32 + rnd(120))
   end
 
 end
@@ -267,7 +267,7 @@ function _player_update(self)
   if btn(5) and self.weapon.ammo > 0 and self.weapon.fire_frames_remaining <= 0 then
     for i = 1, self.weapon.projectiles_per_fire do
       local vx, vy = angle_vector(self.angle + rand(-self.weapon.projectile_spread, self.weapon.projectile_spread), self.weapon.projectile_speed + rand(-self.weapon.projectile_speed_random, self.weapon.projectile_speed_random))
-      add_projectile(self.x+4, self.y+4, vx, vy, self.weapon.projectile_lifetime, self.weapon.projectile_color)
+      add_projectile(self.x+4, self.y+4, vx, vy, self.weapon.projectile_lifetime, self.weapon.projectile_color, self.weapon.damage)
       self.weapon.fire_frames_remaining = self.weapon.fire_rate
       self.weapon.ammo -= 1
       if self.weapon.ammo == 0 then
@@ -296,12 +296,13 @@ function spawn_ant(x, y)
     angle = 0,           -- animation angle (0-1)
     i = rnd(4),          -- animation timer
     frame = flr(rnd(4)), -- animation frame
+    health = 60, -- TODO: this should be the health on easy
+    flash_frames = 0, -- flash on hit
   }
   add(objects, ant)
 end
 
 function _ant_update(self)
-
   -- advance animation state
   self.i += 1
   if self.i > 3 then
@@ -317,8 +318,23 @@ function _ant_update(self)
 end
 
 function _ant_draw(self)
-  draw_rotated_anim(self.x, self.y, self.angle, 0, self.frame)
+  if self.flash_frames > 0 then
+    self.flash_frames -= 1
+    pal(5, 7)
+    draw_rotated_anim(self.x, self.y, self.angle, 0, self.frame)
+    pal(5, 5)
+  else
+    draw_rotated_anim(self.x, self.y, self.angle, 0, self.frame)
+  end
   --rspr(self.frame * 8, 0, self.x, self.y, 0.125, 1) 
+end
+
+function damage_ant(self, damage)
+  self.health -= damage
+  self.flash_frames = 3
+  if self.health <= 0 then
+    del(objects, self)
+  end
 end
 
 --------------------
@@ -342,12 +358,13 @@ function create_projectile_manager()
       vx = 0,
       vy = 0,
       frames = 0,
-      color = 0
+      color = 0,
+      damage = 0
     }
   end
 end
 
-function add_projectile(x, y, vx, vy, frames, color)
+function add_projectile(x, y, vx, vy, frames, color, damage)
   projectile_m.index += 1
   if (projectile_m.index > projectile_m.max_projectiles) then
     projectile_m.index = 1
@@ -361,6 +378,7 @@ function add_projectile(x, y, vx, vy, frames, color)
   p.vy = vy
   p.frames = frames
   p.color = color
+  p.damage = damage
 end
 
 -- TODO: We can save 1-3% CPU per 100 ants by inlining this (tested on single insertion)
@@ -407,7 +425,7 @@ function _projectile_manager_update(self)
         -- todo: is there a faster way to check a pixel overlapping a box???
         if p.x >= ant.x and p.x < ant.x + 8 and p.y >= ant.y and p.y < ant.y + 8 then
           p.frames = 0
-          del(objects, ant)
+          damage_ant(ant, p.damage)
           break
         end
       end
