@@ -138,8 +138,8 @@ end
 --------------------
 -- TODO: All of this could be moved to strings to save tokens
 function draw_gui()
-  camera_x = peek2(0x5f28)
-  camera_y = peek2(0x5f2a)
+  local camera_x = peek2(0x5f28)
+  local camera_y = peek2(0x5f2a)
 
   -- Health
   rect(camera_x + 2, camera_y +  75, camera_x + 11, camera_y + 115, 0)
@@ -188,7 +188,9 @@ function draw_map()
 
 
   -- Find the map index of the top-left map segment
-  local top_left = flr((player.cam_x + 64) / 32) + 64 * flr((player.cam_y + 64) / 32)
+  local camera_x = peek2(0x5f28)
+  local camera_y = peek2(0x5f2a)
+  local top_left = flr((camera_x + 64) / 32) + 64 * flr((camera_y + 64) / 32)
 
   -- Draw all map segments surrounding the player
   for x = -2, 2 do
@@ -270,55 +272,51 @@ function spawn_player()
     x = 30 * 32,
     y = 30 * 32,
     angle = 0.25,
-    speed = 0.5,
     frame = 0,
     weapon = weapon_data,
     cam_x = 30 * 32,
     cam_y = 30 * 32,
     health = 200,
     max_health = 200,
+    last_move = 0,
   }
   add(objects, player)
 end
 
 function _player_update(self)
-
-  -- movement
+  -- Movement
   local move_x = 0
   local move_y = 0
 
   if btn(0) then
-    move_x -= self.speed
+    move_x -= 1
   end
   if btn(1) then
-    move_x += self.speed
+    move_x += 1
   end
   if btn(2) then
-    move_y -= self.speed
+    move_y -= 1
   end
   if btn(3) then
-    move_y += self.speed
+    move_y += 1
   end
 
-  -- don't let the player speed walk diagonally. todo: remove???
-  if move_x ~= 0 and move_y ~= 0 then
-    move_x *= 0.707
-    move_y *= 0.707
-  end
-
-  -- translation
+  -- Translation
+  -- We only move in whole pixels to remove camera jitter. One pixel per two frames, any direction
+  self.last_move += 1
   local overlapping = overlaps_ant(self.x + 3 + move_x, self.y + 3 + move_y, 0, 0)
-  if not overlapping then
+  if not overlapping and self.last_move >= 2 then
     self.x += move_x
     self.y += move_y
+    self.last_move = 0
   end
 
-  -- rotation
+  -- Rotation
   if not btn(5) and (move_x ~= 0 or move_y ~= 0) then
     self.angle = atan2(move_x, move_y)
   end
 
-  -- weapons
+  -- Weapons
   self.weapon.reload_frames_remaining -= 1
   if self.weapon.reload_frames_remaining == 0 then
     self.weapon.ammo = self.weapon.capacity
@@ -336,26 +334,15 @@ function _player_update(self)
     end
   end
 
-  -- camera locked to player
-  -- TODO: lots of jitter, especially when moving diagonally
-  local offset_x, offset_y = angle_vector(self.angle, 20)
-  local target_x = self.x - 60 + offset_x
-  local target_y = self.y - 60 + offset_y
-  self.cam_x += (target_x - self.cam_x) * 0.05
-  self.cam_y += (target_y - self.cam_y) * 0.05
-  camera(self.cam_x, self.cam_y)
+  -- Camera locked to player at an offset.
+  -- Camera lerps the relative offset, but not the absolute position in order to avoid jitter
+  local target_x, target_y = angle_vector(self.angle, 20)
+  self.cam_x += (target_x - self.cam_x) * 0.25
+  self.cam_y += (target_y - self.cam_y) * 0.25
+  camera(self.x - 60 + self.cam_x, self.y - 60 + self.cam_y)
 end
 
 function _player_draw(self)
---  local offset_x, offset_y = angle_vector(self.angle, 20)
---  local target_x = self.x - 60 + offset_x
---  local target_y = self.y - 60 + offset_y
---  local camera_x = peek2(0x5f28)
---  local camera_y = peek2(0x5f2a)
---  pset(target_x + 30, target_y + 30, 15)
---  pset(camera_x + 30, camera_y + 30, 14)
---  pset(self.x + offset_x, self.y + offset_y, 13)
-
   draw_rotated_anim(self.x, self.y, self.angle, 4, self.frame)
 end
 
@@ -375,6 +362,8 @@ function spawn_ant(x, y)
     flash_frames = 0, -- flash on hit
     speed = 0.25,
     move_pause_frames = 0,
+    move_x = 0,
+    move_y = 0,
   }
   add(objects, ant)
 end
@@ -391,6 +380,8 @@ function _ant_update(self)
   local num_in_part = register_ant(self)
 
   -- move towards player
+  local move_x = 0
+  local move_y = 0
   local to_player_x, to_player_y = normalized(player.x - self.x, player.y - self.y)
   local player_dist = dist(player.x - self.x, player.y - self.y)
   if player_dist <= 8 then
@@ -402,15 +393,15 @@ function _ant_update(self)
       self.angle = atan2(-to_player_x, -to_player_y)
     else
       local vx, vy = angle_vector(self.angle, self.speed)
-      self.x += vx
-      self.y += vy
+      self.move_x += vx
+      self.move_y += vy
       self.move_pause_frames -= 1
     end
   elseif self.move_pause_frames == 0 then
     if (num_in_part < 3) then
       if (player_dist > 8) then
-        self.x += to_player_x * self.speed
-        self.y += to_player_y * self.speed
+        self.move_x += to_player_x * self.speed
+        self.move_y += to_player_y * self.speed
         self.angle = atan2(to_player_x, to_player_y)
       end
     else
@@ -419,12 +410,19 @@ function _ant_update(self)
     end
   else
     local vx, vy = angle_vector(self.angle, self.speed)
-    self.x += vx
-    self.y += vy
+    self.move_x += vx
+    self.move_y += vy
     self.move_pause_frames -= 1
   end    
 
-
+  -- Decrease jitter by synchronizing ant movement to player movement.
+  -- Only move when player is moving or when they're standing still
+  if player.last_move == 0 or player.last_move >= 2 then
+    self.x += self.move_x
+    self.y += self.move_y
+    self.move_x = 0
+    self.move_y = 0
+  end
 end
 
 function _ant_draw(self)
