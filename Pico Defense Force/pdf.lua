@@ -164,6 +164,18 @@ function draw_gui()
   print(player.weapon.name, camera_x + 124 - name_len * 4, camera_y + 110, 3)
   print(pad(tostr(player.weapon.ammo), #tostr(player.weapon.capacity), '0') .. '/' .. player.weapon.capacity, camera_x + 124 - ammo_len * 4, camera_y + 118, 3)
 
+  -- Reload
+  if player.weapon.reload_frames_remaining > 0 then
+    local reload_percent = 1 - player.weapon.reload_frames_remaining / player.weapon.reload_frames
+    rect(           camera_x + 49, camera_y + 28, camera_x + 79,                       camera_y + 37,  0)
+    rect(           camera_x + 50, camera_y + 29, camera_x + 78,                       camera_y + 36,  7)
+    rectfill(       camera_x + 51, camera_y + 30, camera_x + 52 + 26 * reload_percent, camera_y + 35, 11)
+    line(           camera_x + 51, camera_y + 30, camera_x + 77,                       camera_y + 30,  3)
+    line(           camera_x + 53, camera_y + 31, camera_x + 75,                       camera_y + 31,  3)
+    line(           camera_x + 53, camera_y + 32, camera_x + 75,                       camera_y + 32,  3)
+    print('reload', camera_x + 53, camera_y + 27,                                                      8)
+  end
+
   -- Debug info  
   rectfill(camera_x, camera_y, camera_x + 53, camera_y + 6, 7, true)
   print('cpu:'..(stat(1) < 0.1 and '0' or '')..flr(stat(1) * 100), camera_x + 1, camera_y + 1, 0)
@@ -337,8 +349,8 @@ function _player_update(self)
   -- Camera locked to player at an offset.
   -- Camera lerps the relative offset, but not the absolute position in order to avoid jitter
   local target_x, target_y = angle_vector(self.angle, 20)
-  self.cam_x += (target_x - self.cam_x) * 0.25
-  self.cam_y += (target_y - self.cam_y) * 0.25
+  self.cam_x += (target_x - self.cam_x) * 0.15
+  self.cam_y += (target_y - self.cam_y) * 0.15
   camera(self.x - 60 + self.cam_x, self.y - 60 + self.cam_y)
 end
 
