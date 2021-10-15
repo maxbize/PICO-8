@@ -5,6 +5,7 @@
 -- Global State
 --------------------
 local objects = {}
+local ants = {}
 local player = nil
 local projectile_m = nil
 
@@ -32,6 +33,10 @@ function _update60()
   for obj in all(objects) do
     obj.update(obj)
   end
+
+  for ant in all(ants) do
+    ant.update(ant)
+  end
 end
 
 function _draw()
@@ -41,6 +46,10 @@ function _draw()
 
   for obj in all(objects) do
     obj.draw(obj)
+  end
+
+  for ant in all(ants) do
+    ant.draw(ant)
   end
 
   draw_gui()
@@ -260,6 +269,7 @@ local weapon_data = {
   capacity = 120,
   reload_frames = 90,
   damage = 10,
+  aoe = 0,
   fire_rate = 5, -- Frames per bullet. Fractional not yet supported
   projectile_lifetime = 30,
   projectile_color = 10,
@@ -270,6 +280,29 @@ local weapon_data = {
 
   -- runtime data
   ammo = 120,
+  reload_frames_remaining = 0,
+  fire_frames_remaining = 0,
+}
+
+-- Temporary until we have proper weapon data string
+local weapon_data2 = {
+  -- static config
+  name = "sTINGRAY m1",
+  type = "rOCKET lAUNCHER",
+  capacity = 2,
+  reload_frames = 108,
+  damage = 100,
+  aoe = 5,
+  fire_rate = 60, -- Frames per bullet. Fractional not yet supported
+  projectile_lifetime = 60,
+  projectile_color = 9,
+  projectile_speed = 1,
+  projectile_speed_random = 0,
+  projectile_spread = 0.005,
+  projectiles_per_fire = 1,
+
+  -- runtime data
+  ammo = 2,
   reload_frames_remaining = 0,
   fire_frames_remaining = 0
 }
@@ -286,6 +319,7 @@ function spawn_player()
     angle = 0.25,
     frame = 0,
     weapon = weapon_data,
+    weapon2 = weapon_data2, -- Un-equipped weapon
     cam_x = 30 * 32,
     cam_y = 30 * 32,
     health = 200,
@@ -329,6 +363,12 @@ function _player_update(self)
   end
 
   -- Weapons
+  if btnp(4) then
+    local tmp = self.weapon
+    self.weapon = self.weapon2
+    self.weapon2 = tmp
+  end
+
   self.weapon.reload_frames_remaining -= 1
   if self.weapon.reload_frames_remaining == 0 then
     self.weapon.ammo = self.weapon.capacity
@@ -337,7 +377,7 @@ function _player_update(self)
   if btn(5) and self.weapon.ammo > 0 and self.weapon.fire_frames_remaining <= 0 then
     for i = 1, self.weapon.projectiles_per_fire do
       local vx, vy = angle_vector(self.angle + rand(-self.weapon.projectile_spread, self.weapon.projectile_spread), self.weapon.projectile_speed + rand(-self.weapon.projectile_speed_random, self.weapon.projectile_speed_random))
-      add_projectile(self.x+4, self.y+4, vx, vy, self.weapon.projectile_lifetime, self.weapon.projectile_color, self.weapon.damage)
+      add_projectile(self.x+4, self.y+4, vx, vy, self.weapon.projectile_lifetime, self.weapon.projectile_color, self.weapon.damage, self.weapon.aoe)
       self.weapon.fire_frames_remaining = self.weapon.fire_rate
       self.weapon.ammo -= 1
       if self.weapon.ammo == 0 then
@@ -377,7 +417,7 @@ function spawn_ant(x, y)
     move_x = 0,
     move_y = 0,
   }
-  add(objects, ant)
+  add(ants, ant)
 end
 
 function _ant_update(self)
@@ -453,7 +493,7 @@ function damage_ant(self, damage)
   self.health -= damage
   self.flash_frames = 3
   if self.health <= 0 then
-    del(objects, self)
+    del(ants, self)
   end
 end
 
@@ -480,12 +520,13 @@ function create_projectile_manager()
       vy = 0,
       frames = 0,
       color = 0,
-      damage = 0
+      damage = 0,
+      aoe = 0
     }
   end
 end
 
-function add_projectile(x, y, vx, vy, frames, color, damage)
+function add_projectile(x, y, vx, vy, frames, color, damage, aoe)
   projectile_m.index += 1
   if (projectile_m.index > projectile_m.max_projectiles) then
     projectile_m.index = 1
@@ -500,6 +541,7 @@ function add_projectile(x, y, vx, vy, frames, color, damage)
   p.frames = frames
   p.color = color
   p.damage = damage
+  p.aoe = aoe
 end
 
 -- TODO: We can save 1-3% CPU per 100 ants by inlining this (tested on single insertion)
@@ -551,7 +593,11 @@ function _projectile_manager_update(self)
         -- todo: is there a faster way to check a pixel overlapping a box???
         if p.x >= ant.x and p.x < ant.x + 8 and p.y >= ant.y and p.y < ant.y + 8 then
           p.frames = 0
-          damage_ant(ant, p.damage)
+          if p.aoe == 0 then
+            damage_ant(ant, p.damage)
+          else
+            handle_explosion(p.x, p.y, p.aoe, p.damage)
+          end
           break
         end
       end
@@ -567,11 +613,39 @@ end
 function overlaps_ant(x, y, w, h)
   local index = flr(x / 16) + flr(y) * 16
   for ant in all(projectile_m.last_partitions[index]) do
-    if x >= ant.x and x + w < ant.x + 8 and y >= ant.y and y + h < ant.y + 8 then
+    if not ((x > ant.x + 8) or (x + w < ant.x) or (y > ant.y + 8) or (y + h < ant.y)) then
       return true
     end
   end
   return false
+end
+
+-- current maximum radius = 12 pixels
+function handle_explosion(x, y, r, damage)
+  for ant in all(ants) do
+    if not ((x - r > ant.x + 8) or (x + r < ant.x) or (y - r > ant.y + 8) or (y + r < ant.y)) then
+      damage_ant(ant, damage)
+      
+      -- Smoke effect
+      add(objects, {
+        fill = 0b0.1,
+        frames = 30,
+        update = function(self)
+          self.frames -= 1
+          self.fill |= 1 << rnd(16)
+          self.fill |= 1 << rnd(16)
+          if self.frames == 0 then
+            del(objects, self)
+          end
+        end,
+        draw = function(self)
+          fillp(self.fill)
+          circfill(x, y, r * 1.5, self.frames > 25 and 7 or 9)
+          fillp()
+        end
+      })
+    end
+  end
 end
 
 function _projectile_manager_draw(self)
