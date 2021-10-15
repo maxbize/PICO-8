@@ -30,12 +30,12 @@ function _init()
 end
 
 function _update60()
-  for obj in all(objects) do
-    obj.update(obj)
-  end
-
   for ant in all(ants) do
     ant.update(ant)
+  end
+
+  for obj in all(objects) do
+    obj.update(obj)
   end
 end
 
@@ -44,12 +44,12 @@ function _draw()
 
   draw_map()
 
-  for obj in all(objects) do
-    obj.draw(obj)
-  end
-
   for ant in all(ants) do
     ant.draw(ant)
+  end
+
+  for obj in all(objects) do
+    obj.draw(obj)
   end
 
   draw_gui()
@@ -350,7 +350,7 @@ function _player_update(self)
   -- Translation
   -- We only move in whole pixels to remove camera jitter. One pixel per two frames, any direction
   self.last_move += 1
-  local overlapping = overlaps_ant(self.x + 3 + move_x, self.y + 3 + move_y, 0, 0)
+  local overlapping = overlaps_ant(self.x + 3 + move_x, self.y + 3 + move_y, 1, 1)
   if not overlapping and self.last_move >= 2 then
     self.x += move_x
     self.y += move_y
@@ -405,8 +405,8 @@ function spawn_ant(x, y)
   local ant = {
     update = _ant_update,
     draw = _ant_draw,
-    x = x,
-    y = y,
+    x = flr(x),
+    y = flr(y),
     angle = 0,           -- animation angle (0-1)
     i = rnd(4),          -- animation timer
     frame = flr(rnd(4)), -- animation frame
@@ -470,10 +470,16 @@ function _ant_update(self)
   -- Decrease jitter by synchronizing ant movement to player movement.
   -- Only move when player is moving or when they're standing still
   if player.last_move == 0 or player.last_move >= 2 then
-    self.x += self.move_x
-    self.y += self.move_y
-    self.move_x = 0
-    self.move_y = 0
+    -- Only move in integer increments. TODO: token optimization?
+    -- TODO: Still required? Maybe we can let collision accuracy suffer a bit for perf/tokens?
+    self.x += flr(self.move_x) + (self.move_x > 0 and 0 or 1)
+    self.y += flr(self.move_y) + (self.move_y > 0 and 0 or 1)
+    self.move_x = self.move_x > 0 and self.move_x % 1 or (1 - self.move_x % 1) * -1
+    self.move_y = self.move_y > 0 and self.move_y % 1 or (1 - self.move_y % 1) * -1
+    --self.x += self.move_x
+    --self.y += self.move_y
+    --self.move_x = 0
+    --self.move_y = 0
   end
 end
 
@@ -560,7 +566,8 @@ function register_ant(ant)
   local max_corner = 1
   for i = 0, 1 do
     for j = 0, 1 do
-      local index = flr((ant.x + i*7) / 16) + flr(ant.y + j*7) * 16
+      -- TODO: if we make a 4096 map, index will overflow to negative on the bottom half of the map. Is that OK?
+      local index = flr((ant.x + i*7) / 16) + flr((ant.y + j*7) / 16) * 256
     
       if projectile_m.partitions[index] == nil then
         projectile_m.partitions[index] = {}
@@ -588,10 +595,10 @@ function _projectile_manager_update(self)
       p.frames -= 1
 
       -- check collisions
-      local index = flr(p.x / 16) + flr(p.y) * 16
+      local index = flr(p.x / 16) + flr(p.y / 16) * 256
       for ant in all(self.partitions[index]) do
         -- todo: is there a faster way to check a pixel overlapping a box???
-        if p.x >= ant.x and p.x < ant.x + 8 and p.y >= ant.y and p.y < ant.y + 8 then
+        if not ((p.x > ant.x + 7) or (p.x < ant.x) or (p.y > ant.y + 7) or (p.y < ant.y)) then
           p.frames = 0
           if p.aoe == 0 then
             damage_ant(ant, p.damage)
@@ -611,10 +618,13 @@ end
 
 -- somehow, collision and projectiles code got tangled xD
 function overlaps_ant(x, y, w, h)
-  local index = flr(x / 16) + flr(y) * 16
-  for ant in all(projectile_m.last_partitions[index]) do
-    if not ((x > ant.x + 8) or (x + w < ant.x) or (y > ant.y + 8) or (y + h < ant.y)) then
-      return true
+  -- Check top-left and bottom-left corners in case they're in different parts
+  for i = 0, 1 do
+    local index = flr((x + w * i) / 16) + flr((y + h * i) / 16) * 256
+    for ant in all(projectile_m.last_partitions[index]) do
+      if not ((x > ant.x + 7) or (x + w < ant.x) or (y > ant.y + 7) or (y + h < ant.y)) then
+        return true
+      end
     end
   end
   return false
@@ -654,5 +664,6 @@ function _projectile_manager_draw(self)
       pset(p.x, p.y, p.color)
     end
   end
+
 end
 
