@@ -17,7 +17,7 @@ function _init()
   palt(0, false)
   palt(1, true)
 
-  srand(0) -- debugging. cost random seed
+  srand(0) -- debugging. const random seed
 
   -- Init singletons
   create_projectile_manager()
@@ -388,7 +388,7 @@ function _player_update(self)
 
   -- Camera locked to player at an offset.
   -- Camera lerps the relative offset, but not the absolute position in order to avoid jitter
-  local target_x, target_y = angle_vector(self.angle, 20)
+  local target_x, target_y = angle_vector(self.angle, 10)
   self.cam_x += (target_x - self.cam_x) * 0.15
   self.cam_y += (target_y - self.cam_y) * 0.15
   camera(self.x - 60 + self.cam_x, self.y - 60 + self.cam_y)
@@ -635,26 +635,50 @@ function handle_explosion(x, y, r, damage)
   for ant in all(ants) do
     if not ((x - r > ant.x + 8) or (x + r < ant.x) or (y - r > ant.y + 8) or (y + r < ant.y)) then
       damage_ant(ant, damage)
-      
-      -- Smoke effect
-      add(objects, {
-        fill = 0b0.1,
-        frames = 30,
-        update = function(self)
-          self.frames -= 1
-          self.fill |= 1 << rnd(16)
-          self.fill |= 1 << rnd(16)
-          if self.frames == 0 then
-            del(objects, self)
-          end
-        end,
-        draw = function(self)
+    end
+  end
+
+  -- Smoke effect
+  for i = 1, 10 do
+    add(objects, {
+      frames = 35,
+      fill = 0b0.1,
+      vx = rnd(2)-1,
+      vy = rnd(2)-1,
+      x = x,
+      y = y,
+      r = r,
+      update = function(self)
+        self.x += self.vx
+        self.y += self.vy
+        self.r -= 0.1
+        self.vx *= 0.95
+        self.vy *= 0.95
+
+        self.frames -= 1
+        if self.frames == 0 then
+          del(objects, self)
+        elseif self.frames == 20 then
+          self.fill = 0b0011001111001100.1
+        elseif self.frames == 10 then
+          self.fill = 0b1101111011110111.1
+        elseif self.frames == 05 then
+          self.fill = 0b1111011110111111.1
+        end
+      end,
+      draw = function(self)
+        if self.frames > 25 then
+          circfill(x, y, self.r * 2, self.frames > 25 and 7)
+        end
+        if self.frames < 28 then
           fillp(self.fill)
-          circfill(x, y, r * 1.5, self.frames > 25 and 7 or 9)
+          circfill(self.x, self.y + 1, self.r, 8)
+          circfill(self.x    , self.y    , self.r, 9)
           fillp()
         end
-      })
-    end
+        
+      end
+    })
   end
 end
 
