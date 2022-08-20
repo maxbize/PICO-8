@@ -660,6 +660,7 @@ function handle_explosion(x, y, r, damage)
           del(objects, self)
         elseif self.frames == 20 then
           self.fill = 0b0011001111001100.1
+        elseif self.frames == 08 then
           self.fill = 0b1101111011110111.1
         elseif self.frames == 02 then
           self.fill = 0b1111011110111111.1
