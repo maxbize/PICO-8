@@ -1,4 +1,4 @@
--- drifters
+-- driftmania
 -- by @maxbize
 
 --------------------
@@ -46,9 +46,11 @@ function spawn_player()
   player = {
     update = _player_update,
     draw = _player_draw,
-    x = 0,
-    y = 0,
+    x = 64,
+    y = 64,
     angle = 0,
+    target_angle = 0,
+    turn_rate = 0.03,
     speed_x = 0,
     speed_y = 0,
     accel_x = 0.1,
@@ -79,19 +81,44 @@ function _player_update(self)
 
   -- Rotation
   if move_x ~= 0 or move_y ~= 0 then
-    self.angle = atan2(move_x, move_y)
+    self.target_angle = atan2(move_x, move_y)
   end
 
+  -- TODO: Cleanup ;)
+  if abs(self.angle - self.target_angle) < self.turn_rate * 1.1 then
+    self.angle = self.target_angle
+  else
+    a = self.target_angle - self.angle
+    if a < 0 then
+      a += 1
+    end
+    if a < 0.5 then
+      self.angle += self.turn_rate
+    else
+      self.angle -= self.turn_rate
+    end
+    if self.angle < 0 then
+      self.angle += 1
+    elseif self.angle > 1 then
+      self.angle -= 1
+    end
+  end
+
+
+
+  -- Acceleration
   self.speed_x += move_x * self.accel_x
+  self.speed_y += move_y * self.accel_y
+
+  -- Speed limit
   if abs(self.speed_x) > self.max_speed_x then
     self.speed_x = sgn(self.speed_x) * self.max_speed_x
   end
-  self.speed_y += move_y * self.accel_y
   if abs(self.speed_y) > self.max_speed_y then
     self.speed_y = sgn(self.speed_y) * self.max_speed_y
   end
 
-
+  -- Apply Movement
   self.x += self.speed_x
   self.y += self.speed_y
 
