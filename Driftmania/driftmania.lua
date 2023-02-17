@@ -46,6 +46,12 @@ function dist(dx, dy)
   return sqrt(dx * dx + dy * dy)
 end
 
+-- Round a number 0-1 to its nearest 1/8th
+function round_8th(x)
+  local lower = flr(x * 8) / 8
+  return x - lower < .0625 and lower or lower + 0.125
+end
+
 --------------------
 -- Player class
 --------------------
@@ -55,14 +61,14 @@ function spawn_player()
     draw = _player_draw,
     x = 64,
     y = 64,
-    angle = 0,
-    target_angle = 0,
-    turn_rate = 0.03,
-    speed_x = 0,
-    speed_y = 0,
-    accel_x = 0.1,
-    accel_y = 0.1,
-    max_speed = 2,
+    angle_fwd = 0,
+    angle_vel = 0,
+    speed = 0,
+    turn_rate_fwd = 0.015,
+    turn_rate_vel = 0.01,
+    accel = 0.1,
+    max_speed_fwd = 2,
+    max_speed_rev = -1,
     f_friction = 0.05,
     f_corrective = 0.05,
   }
@@ -70,88 +76,81 @@ function spawn_player()
 end
 
 function _player_update(self)
-  -- Movement
-  local move_x = 0
-  local move_y = 0
+  -- Input
+  local move_side = 0
+  local move_fwd = 0
+  if btn(0) then move_side += 1 end
+  if btn(1) then move_side -= 1 end
+  if btn(2) then move_fwd  += 1 end
+  if btn(3) then move_fwd  -= 1 end
 
-  if btn(0) then
-    move_x -= 1
+  -- Visual Rotation
+  self.angle_fwd += move_side * self.turn_rate_fwd
+  if move_side == 0 then
+    -- If there's no more side input, snap to the nearest 1/8th
+    self.angle_fwd = round_8th(self.angle_fwd)
   end
-  if btn(1) then
-    move_x += 1
-  end
-  if btn(2) then
-    move_y -= 1
-  end
-  if btn(3) then
-    move_y += 1
-  end
-
-  -- Rotation
-  if move_x ~= 0 or move_y ~= 0 then
-    self.target_angle = atan2(move_x, move_y)
+  if self.angle_fwd < 0 then
+    self.angle_fwd += 1
+  elseif self.angle_fwd >= 1 then
+    self.angle_fwd -= 1
   end
 
+  -- Velocity Rotation
   -- TODO: Cleanup ;)
-  if abs(self.angle - self.target_angle) < self.turn_rate * 1.1 then
-    self.angle = self.target_angle
+  if abs(self.angle_vel - self.angle_fwd) < self.turn_rate_vel * 1.1 then
+    self.angle_vel = self.angle_fwd
   else
-    local a = self.target_angle - self.angle
+    local a = self.angle_fwd - self.angle_vel
     if a < 0 then
       a += 1
     end
     if a < 0.5 then
-      self.angle += self.turn_rate
+      self.angle_vel += self.turn_rate_vel
     else
-      self.angle -= self.turn_rate
+      self.angle_vel -= self.turn_rate_vel
     end
-    if self.angle < 0 then
-      self.angle += 1
-    elseif self.angle > 1 then
-      self.angle -= 1
+    if self.angle_vel < 0 then
+      self.angle_vel += 1
+    elseif self.angle_vel > 1 then
+      self.angle_vel -= 1
     end
   end
 
   -- Acceleration
-  self.speed_x += move_x * self.accel_x
-  self.speed_y += move_y * self.accel_y
+  self.speed += move_fwd * self.accel
 
   -- Friction
---  if self.speed_x > 0 then
---    self.speed_x = max(0, self.speed_x - self.f_friction)
---  else
---    self.speed_x = min(0, self.speed_x + self.f_friction)
---  end
---  if self.speed_y > 0 then
---    self.speed_y = max(0, self.speed_y - self.f_friction)
---  else
---    self.speed_y = min(0, self.speed_y + self.f_friction)
---  end
+  if self.speed > 0 then
+    self.speed = max(0, self.speed - self.f_friction)
+  elseif self.speed < 0 then
+    self.speed = min(0, self.speed + self.f_friction)
+  end
 
   -- Corrective force
 
 
   -- Speed limit
-  -- This is a more proper speed limit (doesn't let the car go faster diagonally) but it unintentionally changes the car's 
-  --  movement direction. Need to not instead increase speed when already at limit
-  --local theta = atan2(self.speed_x, self.speed_y)
-  --self.speed_x, self.speed_y = angle_vector(theta, min(self.max_speed, dist(self.speed_x, self.speed_y)))
-
-  if abs(self.speed_x) > self.max_speed then
-    self.speed_x = sgn(self.speed_x) * self.max_speed
-  end
-  if abs(self.speed_y) > self.max_speed then
-    self.speed_y = sgn(self.speed_y) * self.max_speed
-  end
+  self.speed = mid(self.speed, self.max_speed_fwd, self.max_speed_rev)
 
   -- Apply Movement
-  self.x += self.speed_x
-  self.y += self.speed_y
+  local speed_x, speed_y = angle_vector(self.angle_vel, self.speed)
+  self.x += speed_x
+  self.y += speed_y
 
 end
 
 function _player_draw(self)
-  i = flr(self.angle * 8)
+  i = round_8th(self.angle_fwd) * 8
+  if i == 8 then
+    i = 0
+  end
   sspr(i * 12, 12, 12, 12, self.x, self.y)
+
+  -- debugging
+  local look_x, look_y = angle_vector(self.angle_fwd, self.speed + 5)
+  line(self.x, self.y, self.x + look_x * 5, self.y + look_y * 5, 1)
+  local speed_x, speed_y = angle_vector(self.angle_vel, self.speed + 5)
+  line(self.x, self.y, self.x + speed_x * 5, self.y + speed_y * 5, 3)
 end
 
