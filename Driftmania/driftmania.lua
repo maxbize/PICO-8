@@ -37,7 +37,14 @@ end
 -- Utility Methods
 --------------------
 
+function angle_vector(theta, magnitude)
+  return magnitude * cos(theta),
+         magnitude * sin(theta)
+end
 
+function dist(dx, dy)
+  return sqrt(dx * dx + dy * dy)
+end
 
 --------------------
 -- Player class
@@ -55,8 +62,9 @@ function spawn_player()
     speed_y = 0,
     accel_x = 0.1,
     accel_y = 0.1,
-    max_speed_x = 2,
-    max_speed_y = 2,
+    max_speed = 2,
+    f_friction = 0.05,
+    f_corrective = 0.05,
   }
   add(objects, player)
 end
@@ -88,7 +96,7 @@ function _player_update(self)
   if abs(self.angle - self.target_angle) < self.turn_rate * 1.1 then
     self.angle = self.target_angle
   else
-    a = self.target_angle - self.angle
+    local a = self.target_angle - self.angle
     if a < 0 then
       a += 1
     end
@@ -104,18 +112,36 @@ function _player_update(self)
     end
   end
 
-
-
   -- Acceleration
   self.speed_x += move_x * self.accel_x
   self.speed_y += move_y * self.accel_y
 
+  -- Friction
+--  if self.speed_x > 0 then
+--    self.speed_x = max(0, self.speed_x - self.f_friction)
+--  else
+--    self.speed_x = min(0, self.speed_x + self.f_friction)
+--  end
+--  if self.speed_y > 0 then
+--    self.speed_y = max(0, self.speed_y - self.f_friction)
+--  else
+--    self.speed_y = min(0, self.speed_y + self.f_friction)
+--  end
+
+  -- Corrective force
+
+
   -- Speed limit
-  if abs(self.speed_x) > self.max_speed_x then
-    self.speed_x = sgn(self.speed_x) * self.max_speed_x
+  -- This is a more proper speed limit (doesn't let the car go faster diagonally) but it unintentionally changes the car's 
+  --  movement direction. Need to not instead increase speed when already at limit
+  --local theta = atan2(self.speed_x, self.speed_y)
+  --self.speed_x, self.speed_y = angle_vector(theta, min(self.max_speed, dist(self.speed_x, self.speed_y)))
+
+  if abs(self.speed_x) > self.max_speed then
+    self.speed_x = sgn(self.speed_x) * self.max_speed
   end
-  if abs(self.speed_y) > self.max_speed_y then
-    self.speed_y = sgn(self.speed_y) * self.max_speed_y
+  if abs(self.speed_y) > self.max_speed then
+    self.speed_y = sgn(self.speed_y) * self.max_speed
   end
 
   -- Apply Movement
