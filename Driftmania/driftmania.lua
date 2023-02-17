@@ -26,6 +26,8 @@ end
 function _draw()
   cls(0)
 
+  map(0, 0, 0, 0)
+
   for obj in all(objects) do
     obj.draw(obj)
   end
@@ -145,12 +147,11 @@ function _player_draw(self)
   if i == 8 then
     i = 0
   end
-  sspr(i * 12, 12, 12, 12, self.x, self.y)
+  sspr(i * 12, 0, 12, 12, self.x, self.y)
 
   -- debugging
-  local look_x, look_y = angle_vector(self.angle_fwd, self.speed + 5)
-  line(self.x, self.y, self.x + look_x * 5, self.y + look_y * 5, 1)
-  local speed_x, speed_y = angle_vector(self.angle_vel, self.speed + 5)
-  line(self.x, self.y, self.x + speed_x * 5, self.y + speed_y * 5, 3)
+  --local look_x, look_y = angle_vector(self.angle_fwd, self.speed + 5)
+  --line(self.x, self.y, self.x + look_x * 5, self.y + look_y * 5, 1)
+  --local speed_x, speed_y = angle_vector(self.angle_vel, self.speed + 5)
+  --line(self.x, self.y, self.x + speed_x * 5, self.y + speed_y * 5, 3)
 end
-
