@@ -9,6 +9,11 @@ local player = nil
 local projectile_m = nil
 
 --------------------
+-- Data
+--------------------
+local map_data = '01010101010101010101010703060703060101010104010404010506010101040104040101040101010401050801070801010105060101070801010701010503030801010708010101010101010104010107030303030303020307080101010101010401'
+
+--------------------
 -- Built-in Methods
 --------------------
 
@@ -26,7 +31,7 @@ end
 function _draw()
   cls(0)
 
-  map(0, 0, 0, 0)
+  draw_map()
 
   for obj in all(objects) do
     obj.draw(obj)
@@ -136,6 +141,8 @@ function _player_update(self)
   -- Apply Movement
   self.x += self.v_x
   self.y += self.v_y
+
+  camera(self.x - 64, self.y - 64)
 end
 
 function _player_draw(self)
@@ -150,4 +157,36 @@ function _player_draw(self)
   --line(self.x, self.y, self.x + look_x * 5, self.y + look_y * 5, 1)
   --local speed_x, speed_y = angle_vector(self.angle_vel, self.speed + 5)
   --line(self.x, self.y, self.x + speed_x * 5, self.y + speed_y * 5, 3)
+end
+
+--------------------
+-- Map
+--------------------
+
+function draw_map()
+
+  -- Find the map index of the top-left map segment
+  local camera_x = peek2(0x5f28)
+  local camera_y = peek2(0x5f2a)
+  local top_left = flr((camera_x + 64) / 32) + 64 * flr((camera_y + 64) / 32)
+
+  -- Draw all map segments surrounding the player
+  for x = -2, 2 do
+    for y = -2, 2 do
+      --local data_index = top_left + x + 64 * y
+      --local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
+      --map_tile -= 1 -- Tiled uses index 0 for "empty" but we use it as tile 0
+      --map(map_tile % 32 * 4, flr(map_tile / 32) * 4, data_index % 64 * 32, flr(data_index / 64) * 32, 4, 4)
+    end
+  end
+
+  for x = 0, 9 do
+    for y = 0, 9 do
+      local data_index = y * 10 + x
+      local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
+      map_tile -= 1 -- Tiled uses index 0 for "empty" but we use it as tile 0
+      map(map_tile % 48 * 6, flr(map_tile / 48) * 6, x * 48, y * 48, 6, 6)
+    end
+  end
+
 end
