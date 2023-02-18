@@ -39,13 +39,24 @@ end
 -- Utility Methods
 --------------------
 
+-- Given an angle and a magnitude return x, y components
 function angle_vector(theta, magnitude)
   return magnitude * cos(theta),
          magnitude * sin(theta)
 end
 
+-- Dot product
+function dot(x1, y1, x2, y2)
+  return x1 * x2 + y1 * y2
+end
+
 function dist(dx, dy)
   return sqrt(dx * dx + dy * dy)
+end
+
+function normalized(x, y)
+  local mag = dist(x, y)
+  return x / mag, y / mag
 end
 
 -- Round a number 0-1 to its nearest 1/8th
@@ -64,15 +75,15 @@ function spawn_player()
     x = 64,
     y = 64,
     angle_fwd = 0,
-    angle_vel = 0,
-    speed = 0,
-    turn_rate_fwd = 0.015,
-    turn_rate_vel = 0.01,
+    v_x = 0,
+    v_y = 0,
+    turn_rate = 0.015,
     accel = 0.1,
+    brake = 0.1,
     max_speed_fwd = 2,
-    max_speed_rev = -1,
-    f_friction = 0.05,
-    f_corrective = 0.05,
+    max_speed_rev = -1, -- TODO: fix
+    f_friction = 0.025,
+    f_corrective = 0.04,
   }
   add(objects, player)
 end
@@ -87,7 +98,7 @@ function _player_update(self)
   if btn(3) then move_fwd  -= 1 end
 
   -- Visual Rotation
-  self.angle_fwd += move_side * self.turn_rate_fwd
+  self.angle_fwd += move_side * self.turn_rate
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_8th(self.angle_fwd)
@@ -98,48 +109,33 @@ function _player_update(self)
     self.angle_fwd -= 1
   end
 
-  -- Velocity Rotation
-  -- TODO: Cleanup ;)
-  if abs(self.angle_vel - self.angle_fwd) < self.turn_rate_vel * 1.1 then
-    self.angle_vel = self.angle_fwd
-  else
-    local a = self.angle_fwd - self.angle_vel
-    if a < 0 then
-      a += 1
-    end
-    if a < 0.5 then
-      self.angle_vel += self.turn_rate_vel
-    else
-      self.angle_vel -= self.turn_rate_vel
-    end
-    if self.angle_vel < 0 then
-      self.angle_vel += 1
-    elseif self.angle_vel > 1 then
-      self.angle_vel -= 1
-    end
+  local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+  local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
+
+  -- Acceleration, friction, breaking. Note: mid is to stop over-correction
+  if move_fwd > 0 then
+    self.v_x += fwd_x * self.accel
+    self.v_y += fwd_y * self.accel
+  elseif move_fwd == 0 then
+    self.v_x -= mid(v_x_normalized * self.f_friction, self.v_x, -self.v_x)
+    self.v_y -= mid(v_y_normalized * self.f_friction, self.v_y, -self.v_y)
+  elseif move_fwd < 0 then
+    self.v_x -= mid(v_x_normalized * self.brake, self.v_x, -self.v_x)
+    self.v_y -= mid(v_y_normalized * self.brake, self.v_y, -self.v_y)
   end
 
-  -- Acceleration
-  self.speed += move_fwd * self.accel
-
-  -- Friction
-  if self.speed > 0 then
-    self.speed = max(0, self.speed - self.f_friction)
-  elseif self.speed < 0 then
-    self.speed = min(0, self.speed + self.f_friction)
-  end
-
-  -- Corrective force
-
+  -- Corrective side force
+  local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
+  self.v_x -= mid((1 - abs(vel_dot_fwd)) * v_x_normalized * self.f_corrective, self.v_x, -self.v_x)
+  self.v_y -= mid((1 - abs(vel_dot_fwd)) * v_y_normalized * self.f_corrective, self.v_y, -self.v_y)
 
   -- Speed limit
-  self.speed = mid(self.speed, self.max_speed_fwd, self.max_speed_rev)
+  local v_theta = atan2(self.v_x, self.v_y)
+  self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd, self.max_speed_rev))
 
   -- Apply Movement
-  local speed_x, speed_y = angle_vector(self.angle_vel, self.speed)
-  self.x += speed_x
-  self.y += speed_y
-
+  self.x += self.v_x
+  self.y += self.v_y
 end
 
 function _player_draw(self)
