@@ -101,12 +101,13 @@ function spawn_player()
     angle_fwd = 0,
     v_x = 0,
     v_y = 0,
-    turn_rate = 0.008,
+    turn_rate_fwd = 0.008,
+    turn_rate_vel = 0.005,
     accel = 0.075,
     brake = 0.1,
     max_speed_fwd = 2,
     max_speed_rev = -1, -- TODO: fix
-    f_friction = 0.015,
+    f_friction = 0.005,
     f_corrective = 0.1,
   }
   add(objects, player)
@@ -122,7 +123,7 @@ function _player_update(self)
   if btn(3) then move_fwd  -= 1 end
 
   -- Visual Rotation
-  self.angle_fwd += move_side * self.turn_rate
+  self.angle_fwd += move_side * self.turn_rate_fwd
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
@@ -157,8 +158,30 @@ function _player_update(self)
   self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
 
   -- Speed limit
-  local v_theta = atan2(self.v_x, self.v_y)
+  local angle_vel = atan2(self.v_x, self.v_y)
   self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd, self.max_speed_rev))
+
+  -- Velocity rotation
+  -- TODO: Cleanup ;)
+  local a = self.angle_fwd - angle_vel
+  if abs(a) < self.turn_rate_vel * 1.1 then
+    angle_vel = self.angle_fwd
+  else
+    if a < 0 then
+      a += 1
+    end
+    if a < 0.5 then
+      angle_vel += self.turn_rate_vel * abs(vel_dot_right)
+    else
+      angle_vel -= self.turn_rate_vel * abs(vel_dot_right)
+    end
+    if angle_vel < 0 then
+      angle_vel += 1
+    elseif angle_vel > 1 then
+      angle_vel -= 1
+    end
+  end
+  self.v_x, self.v_y = angle_vector(angle_vel, dist(self.v_x, self.v_y))
 
   -- Apply Movement
   self.x += self.v_x
