@@ -61,6 +61,9 @@ end
 
 function normalized(x, y)
   local mag = dist(x, y)
+  if mag == 0 then
+    return 0, 0
+  end
   return x / mag, y / mag
 end
 
@@ -98,13 +101,13 @@ function spawn_player()
     angle_fwd = 0,
     v_x = 0,
     v_y = 0,
-    turn_rate = 0.015,
+    turn_rate = 0.008,
     accel = 0.075,
     brake = 0.1,
     max_speed_fwd = 2,
     max_speed_rev = -1, -- TODO: fix
-    f_friction = 0.025,
-    f_corrective = 0.05,
+    f_friction = 0.015,
+    f_corrective = 0.1,
   }
   add(objects, player)
 end
@@ -146,9 +149,12 @@ function _player_update(self)
   end
 
   -- Corrective side force
+  -- Note: (x, y, 0) cross (0, 0, 1) -> (y, -x, 0)
+  local right_x, right_y = fwd_y, -fwd_x
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
-  self.v_x -= mid((1 - abs(vel_dot_fwd)) * v_x_normalized * self.f_corrective, self.v_x, -self.v_x)
-  self.v_y -= mid((1 - abs(vel_dot_fwd)) * v_y_normalized * self.f_corrective, self.v_y, -self.v_y)
+  local vel_dot_right = dot(right_x, right_y, v_x_normalized, v_y_normalized)
+  self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective, self.v_x, -self.v_x)
+  self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
 
   -- Speed limit
   local v_theta = atan2(self.v_x, self.v_y)
