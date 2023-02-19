@@ -64,10 +64,26 @@ function normalized(x, y)
   return x / mag, y / mag
 end
 
--- Round a number 0-1 to its nearest 1/8th
-function round_8th(x)
-  local lower = flr(x * 8) / 8
-  return x - lower < .0625 and lower or lower + 0.125
+-- Round a number 0-1 to its nearest 1/n th
+function round_nth(x, n)
+  local lower = flr(x * n) / n
+  return x - lower < (0.5 / n) and lower or lower + 1 / n
+end
+
+-- Courtesy TheRoboZ
+function pd_rotate(x,y,rot,mx,my,w,flip,scale)
+  scale=scale or 1
+  w*=scale*4
+
+  local cs, ss = cos(rot)*.125/scale,sin(rot)*.125/scale
+  local sx, sy = mx+cs*-w, my+ss*-w
+  local hx = flip and -w or w
+
+  local halfw = -w
+  for py=y-w, y+w do
+    tline(x-hx, py, x+hx, py, sx-ss*halfw, sy+cs*halfw, cs, ss)
+    halfw+=1
+  end
 end
 
 --------------------
@@ -83,12 +99,12 @@ function spawn_player()
     v_x = 0,
     v_y = 0,
     turn_rate = 0.015,
-    accel = 0.1,
+    accel = 0.075,
     brake = 0.1,
     max_speed_fwd = 2,
     max_speed_rev = -1, -- TODO: fix
     f_friction = 0.025,
-    f_corrective = 0.04,
+    f_corrective = 0.05,
   }
   add(objects, player)
 end
@@ -106,7 +122,7 @@ function _player_update(self)
   self.angle_fwd += move_side * self.turn_rate
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
-    self.angle_fwd = round_8th(self.angle_fwd)
+    self.angle_fwd = round_nth(self.angle_fwd, 32)
   end
   if self.angle_fwd < 0 then
     self.angle_fwd += 1
@@ -146,11 +162,18 @@ function _player_update(self)
 end
 
 function _player_draw(self)
-  i = round_8th(self.angle_fwd) * 8
-  if i == 8 then
-    i = 0
+  palt(0, false)
+  palt(15, true)
+  local scale = 1
+  -- Costs 6% of CPU budget
+  for i = 0, 4 do
+    pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,8.5 - i*2,2,true,scale)
   end
-  sspr(i * 12, 0, 12, 12, self.x, self.y)
+  palt(0, true)
+  palt(15, false)
+
+  --function pd_rotate(x,y,rot,mx,my,w,flip,scale)
+  --pd_rotate(self.x,self.y,-self.angle_fwd,72,3,2,false,1)
 
   -- debugging
   --local look_x, look_y = angle_vector(self.angle_fwd, self.speed + 5)
