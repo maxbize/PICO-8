@@ -11,7 +11,7 @@ local projectile_m = nil
 --------------------
 -- Data
 --------------------
-local map_data = '01010101010101010101010703060703060101010104010404010506010101040104040101040101010401050801070801010105060101070801010701010503030801010708010101010101010104010107030303030303020307080101010101010401'
+local map_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001020303040501020303060700000000000000000008090a0b090c08090a0d090e0700000000000000000f10111213140f10110015090e07000000000000000f1400000f140f14000000150916000000000000000f1400000f140f14000000000f14000000000000000f1400000f140f14000000000f14000000000000000f1400001709091800000019091a000000000000000f140000121b1c11000019091d1e000000000000001f092000000000000019091d1e0000000000000000212209200000000019091d1e0000000000000000000021220903030303091d1e00000000000000000000000021230d0d0d0d241e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
 --------------------
 -- Built-in Methods
@@ -104,7 +104,7 @@ function spawn_player()
     turn_rate_fwd = 0.008,
     turn_rate_vel = 0.005,
     accel = 0.075,
-    brake = 0.1,
+    brake = 0.05,
     max_speed_fwd = 2,
     max_speed_rev = -1, -- TODO: fix
     f_friction = 0.005,
@@ -196,7 +196,7 @@ function _player_draw(self)
   local scale = 1
   -- Costs 6% of CPU budget
   for i = 0, 4 do
-    pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,8.5 - i*2,2,true,scale)
+    pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
   end
   palt(0, true)
   palt(15, false)
@@ -216,6 +216,11 @@ end
 --------------------
 
 function draw_map()
+  -- Constants for the map string (todo: move to string header)
+  local chunk_size = 3
+  local pix_per_chunk = chunk_size * 8
+  local map_size = 21 -- 21x21 chunk map (63x63 tiles)
+  local chunks_per_row = flr(128/chunk_size)
 
   -- Find the map index of the top-left map segment
   local camera_x = peek2(0x5f28)
@@ -232,13 +237,34 @@ function draw_map()
     end
   end
 
-  for x = 0, 9 do
-    for y = 0, 9 do
-      local data_index = y * 10 + x
-      local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
-      map_tile -= 1 -- Tiled uses index 0 for "empty" but we use it as tile 0
-      map(map_tile % 48 * 6, flr(map_tile / 48) * 6, x * 48, y * 48, 6, 6)
-    end
+--  for x = 0, map_size - 1 do
+--    for y = 0, map_size - 1 do
+--      local data_index = y * map_size + x
+--      local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
+--      map(map_tile % pix_per_chunk * chunk_size, flr(map_tile / pix_per_chunk) * chunk_size, x * pix_per_chunk, y * pix_per_chunk, chunk_size, chunk_size)
+--    end
+--  end
+
+-- MAP(TILE_X, TILE_Y, [SX, SY], [TILE_W, TILE_H], [LAYERS])
+
+  for i = 0, #map_data / 2 - 1 do
+    -- The actual chunk index
+    local chunk_index = tonum("0x" .. sub(map_data, i * 2 + 1, i * 2 + 2))
+
+    -- top left corner of chunk in pico8 tile map
+    local tile_x = chunk_index * chunk_size
+    local tile_y = 0 -- todo: multi-row maps
+
+    -- Re-interpret i into a "chunk map" x, y
+    local x_index = i % map_size
+    local y_index = flr(i / map_size)
+
+    -- top left corner of chunk in world
+    local world_x = x_index * chunk_size * 8
+    local world_y = y_index * chunk_size * 8
+
+    map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
+
   end
 
 end
