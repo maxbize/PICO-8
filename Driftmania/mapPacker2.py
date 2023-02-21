@@ -9,6 +9,13 @@ import math
 import sys
 import xml.etree.ElementTree as ET
 
+# Using pico-8 extended charset for data requires the terminal to support utf-8
+sys.stdout.reconfigure(encoding='utf-8')
+
+# https://gist.githubusercontent.com/joelsgp/bf930961230731fe370e5c25ba05c5d3/raw/d837ae7bff7b5b6375f684dc69b6e9195f02e78a/p8scii.json
+# Note: the single quote (') has an extra escape in front of it so that it will not end the string when pasting as Lua code
+p8scii = ["\\0", "\\*", "\\#", "\\-", "\\|", "\\+", "\\^", "\\a", "\\b", "\\t", "\\n", "\\v", "\\f", "\\r", "\\014", "\\015", "▮", "■", "□", "⁙", "⁘", "‖", "◀", "▶", "「", "」", "¥", "•", "、", "。", "゛", "゜", " ", "!", "\"", "#", "$", "%", "&", "\\'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~", "○", "█", "▒", "🐱", "⬇️", "░", "✽", "●", "♥", "☉", "웃", "⌂", "⬅️", "😐", "♪", "🅾️", "◆", "…", "➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤", "▥", "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と", "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ", "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り", "る", "れ", "ろ", "わ", "を", "ん", "っ", "ゃ", "ゅ", "ょ", "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ヲ", "ン", "ッ", "ャ", "ュ", "ョ", "◜", "◝"]
+
 # Get index,index,.. of chunk size n*n starting at x,y
 def get_chunk(data, x, y, n):
 	chunk = ''
@@ -41,34 +48,55 @@ def write_map(chunks, n):
 	print('\n'.join(p8_map_str))
 	print()
 
-# Given the full uncompressed map string, compress it -> less bits, repeats have counts
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
-# Note: chr/ord stores 7 bits per character (valid range 33-255), hex stores 4 bits per character
-def compress_map_str(map_hex, num_chunks):
-	if (num_chunks <= 2**6 and False):
-		# Compression mode: 6 bits index stored in chr, 1 bit flag to specify if next chr is index or count (1-2 chars per token)
-		pass
-	elif(num_chunks <= 2**7 and False):
-		# Compression mode: 7 bits stored in chr, 7 bits count (2 chars per token)
-		# Note: could also do 7 bits stored in hex, 1 bit flag (2-4 chars per token)
-		pass
-	elif(num_chunks <= 2**8):
-		# Compression mode: 8 bits stored in hex, 8 bits count (4 chars per token)
-		i = 2
-		val = map_hex[i:i+2]
-		map_hex_comp = val
-		count = 1
-		while i < len(map_hex):
-			next_val = map_hex[i:i+2]
-			if val == next_val and count < 0xff:
-				count += 1
-			else:
-				val = next_val
-				map_hex_comp += f'{count:0{2}x}{next_val}'
-				count = 1
-			i += 2
-		return map_hex_comp
-	return
+# Note: chr/ord stores 7 bits per character (valid range 16-255), hex stores 4 bits per character
+# Note: "flag" refers to a single bit flag specifying if the next value will be an index (0) or count (1)
+# Compression levels:
+#  0: uncompressed
+#  1: 8 bit index, 8 bit count as hex (4 chars per token)
+#  2: 7 bit index + 1 bit count flag, 8 bit count as hex (2-4 chars per token). Requires <= 2**7 chunks
+#  3: 7 bit index, 7 bit count as unicode (2 chars per token). Requires <= 2**7 chunks
+#  4: 6 bit index + 1 bit count flag, 7 bit count as unicode (1-2 chars per token). Requires <= 2**6 chunks
+# TODO: None of the compressions have been tested ;) There's probably bugs
+def compress_map_str(map_hex, num_chunks, compression_level):
+	if compression_level == 0:
+		return map_hex
+	if ([0, 2**8, 2**7, 2**7, 2**6])[compression_level] < num_chunks:
+		raise Exception(f'Cannot use compression level {compression_level} - too many chunks ({num_chunks})')
+	max_count = ([0, 2**8, 2**8, 2**7, 2**7])[compression_level]
+	map_str_comp = ""
+	i = 0
+	val = map_hex[i:i+2]
+	current_val = val
+	count = 0
+	while i < len(map_hex):
+		next_val = map_hex[i:i+2]
+		i += 2
+		if val == next_val and count < max_count:
+			count += 1
+		else:
+			val_int = int(val, 16)
+			# Build out the map string depending on the compression level
+			if compression_level == 1:
+				map_str_comp += f'{val}{count:0{2}x}'
+			elif compression_level == 2:
+				if count == 1:
+					map_str_comp += f'{val}'
+				else:
+					val_int |= 1<<7 # Flag is 8th bit
+					map_str_comp += f'{val_int:0{2}x}{count:0{2}x}'
+			elif compression_level == 3:
+				map_str_comp += f'{p8scii[val_int+16]}{p8scii[count+16]}'
+			elif compression_level == 4:
+				if count == 1:
+					map_str_comp += f'{p8scii[val_int+16]}'
+				else:
+					val_int |= 1<<6 # Flag is 7th bit
+					map_str_comp += f'{p8scii[val_int+16]}{p8scii[count+16]}'
+			val = next_val
+			count = 1
+
+	return map_str_comp
 
 def build_map(data, n, pad_x, pad_y):
 	map_hex = ""  # The map tile values. 8 bits per tile
@@ -90,7 +118,7 @@ def build_map(data, n, pad_x, pad_y):
 	# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 	# Compress the string. First byte is index, second byte is count
-	map_str_comp = compress_map_str(map_hex, num_chunks)
+	map_str_comp = compress_map_str(map_hex, num_chunks, 4)
 
 	if n == 3 and pad_x == 0 and pad_y == 0:
 		write_map(chunks, n)
@@ -124,7 +152,7 @@ for i in range(1, 7):
 			results.append([i, pad_x, pad_y, map_len, map_len_comp, chunk_len, chunk_len * i * i])
 
 # To see other possibilities - uncomment
-#print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
-#print('\n'.join(str(r) for r in results))
+print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
+print('\n'.join(str(r) for r in results))
 
 
