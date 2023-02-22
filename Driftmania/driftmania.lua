@@ -12,6 +12,7 @@ local projectile_m = nil
 -- Data
 --------------------
 local map_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001020303040501020303060700000000000000000008090a0b090c08090a0d090e0700000000000000000f10111213140f10110015090e07000000000000000f1400000f140f14000000150916000000000000000f1400000f140f14000000000f14000000000000000f1400000f140f14000000000f14000000000000000f1400001709091800000019091a000000000000000f140000121b1c11000019091d1e000000000000001f092000000000000019091d1e0000000000000000212209200000000019091d1e0000000000000000000021220903030303091d1e00000000000000000000000021230d0d0d0d241e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local prop_data = '000000000000000000000000000000000000000000000025262727282925262727272a0000000000000000252b000000002c2b000000002d2a000000000000002e0000000000000000000000002d2a0000000000002f000030310000000030282900002d2a00000000002f00002f2f000000002f002c2900002f00000000002f00002f2f000000002f00003200002f00000000002f00002f2f000000002f00003300002f00000000002f00002f34000000003300353600002f00000000002f00003437380000353635360000393a00000000002f00003738373b3c3635360000393a0000000000002d2a0000373b27273c360000393a00000000000000002d2a0000000000000000393a000000000000000000002d2a000000000000393a0000000000000000000000002d2727272727273a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
 --------------------
 -- Built-in Methods
@@ -31,13 +32,13 @@ end
 function _draw()
   cls(0)
 
-  draw_map()
+  draw_map(map_data)
 
   for obj in all(objects) do
     obj.draw(obj)
   end
 
-  draw_props()
+  draw_map(prop_data)
 
 end
 
@@ -221,7 +222,7 @@ end
 -- Map
 --------------------
 
-function draw_map()
+function draw_map(data)
   -- Constants for the map string (todo: move to string header)
   local chunk_size = 3
   local pix_per_chunk = chunk_size * 8
@@ -237,7 +238,7 @@ function draw_map()
   for x = -2, 2 do
     for y = -2, 2 do
       --local data_index = top_left + x + 64 * y
-      --local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
+      --local map_tile = tonum("0x" .. sub(data, data_index * 2 + 1, data_index * 2 + 2))
       --map_tile -= 1 -- Tiled uses index 0 for "empty" but we use it as tile 0
       --map(map_tile % 32 * 4, flr(map_tile / 32) * 4, data_index % 64 * 32, flr(data_index / 64) * 32, 4, 4)
     end
@@ -246,20 +247,20 @@ function draw_map()
 --  for x = 0, map_size - 1 do
 --    for y = 0, map_size - 1 do
 --      local data_index = y * map_size + x
---      local map_tile = tonum("0x" .. sub(map_data, data_index * 2 + 1, data_index * 2 + 2))
+--      local map_tile = tonum("0x" .. sub(data, data_index * 2 + 1, data_index * 2 + 2))
 --      map(map_tile % pix_per_chunk * chunk_size, flr(map_tile / pix_per_chunk) * chunk_size, x * pix_per_chunk, y * pix_per_chunk, chunk_size, chunk_size)
 --    end
 --  end
 
 -- MAP(TILE_X, TILE_Y, [SX, SY], [TILE_W, TILE_H], [LAYERS])
 
-  for i = 0, #map_data / 2 - 1 do
+  for i = 0, #data / 2 - 1 do
     -- The actual chunk index
-    local chunk_index = tonum("0x" .. sub(map_data, i * 2 + 1, i * 2 + 2))
+    local chunk_index = tonum("0x" .. sub(data, i * 2 + 1, i * 2 + 2))
 
     -- top left corner of chunk in pico8 tile map
-    local tile_x = chunk_index * chunk_size
-    local tile_y = 0 -- todo: multi-row maps
+    local tile_x = (chunk_index % chunks_per_row) * chunk_size
+    local tile_y = flr(chunk_index / chunks_per_row) * chunk_size
 
     -- Re-interpret i into a "chunk map" x, y
     local x_index = i % map_size
@@ -272,27 +273,5 @@ function draw_map()
     map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
 
   end
-
-end
-
-
-function draw_props()
-
-  local camera_y = peek2(0x5f2a)
-  local delta = mid(round((camera_y+30)/20), -1, 1)
-  print(camera_y)
-
-  for x = 0, 10 do
-    for i = 0, 2 do
-      spr(43 + i, 75 + x * 8, 30 - i * delta)
-    end
-  end
-
-  for x = 0, 10 do
-    for i = 0, 3 do
-      --spr(59 + i, 75-8 - x * 8, 30+8 + x * 8 - i * delta)
-    end
-  end
-
 
 end

@@ -39,7 +39,7 @@ def write_map(chunks, n):
 			for y in range(n):
 				start_index = (x + y * n) * 3 # 3 chars per int
 				val = int(chunks_by_index[i][start_index:start_index+3])
-				p8_map[math.floor(i / chunks_per_row) + y][(i % chunks_per_row) * n + x] = val
+				p8_map[math.floor(i / chunks_per_row) * n + y][(i % chunks_per_row) * n + x] = val
 
 	# Convert map to string
 	p8_map_str = [''.join([f'{val:0{2}x}' for val in row]) for row in p8_map]
@@ -58,6 +58,7 @@ def write_map(chunks, n):
 #  3: 7 bit index, 7 bit count as unicode (2 chars per token). Requires <= 2**7 chunks
 #  4: 6 bit index + 1 bit count flag, 7 bit count as unicode (1-2 chars per token). Requires <= 2**6 chunks
 # TODO: None of the compressions have been tested ;) There's probably bugs
+# TODO: If the num_chunks is per layer, and sprites aren't shared between layers, you could use higher compression
 def compress_map_str(map_hex, num_chunks, compression_level):
 	if compression_level == 0:
 		return map_hex
@@ -98,32 +99,36 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 
 	return map_str_comp
 
-def build_map(data, n, pad_x, pad_y):
-	map_hex = ""  # The map tile values. 8 bits per tile
+def build_map(data_list, n, pad_x, pad_y):
 	chunks = {} # string of index,index,.. -> chunk index
 	chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
-	num_rows = len(data)
-	num_cols = len(data[0])
 
-	# Process the map in chunks
-	for y in range(math.ceil(num_rows / n)):
-		for x in range(math.ceil(num_cols / n)):
-			chunk = get_chunk(data, x * n - pad_x, y * n - pad_y, n)
-			if chunk not in chunks:
-				chunks[chunk] = len(chunks)
-			chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
-			map_hex += f'{chunks[chunk]:0{2}x}' # 0{2} == pad to two digits
-	num_chunks = len(chunks)
+	for data in data_list:
+		map_hex = ""  # The map tile values. 8 bits per tile
+		num_rows = len(data)
+		num_cols = len(data[0])
 
-	# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
+		# Process the map in chunks
+		for y in range(math.ceil(num_rows / n)):
+			for x in range(math.ceil(num_cols / n)):
+				chunk = get_chunk(data, x * n - pad_x, y * n - pad_y, n)
+				if chunk not in chunks:
+					chunks[chunk] = len(chunks)
+				chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
+				map_hex += f'{chunks[chunk]:0{2}x}' # 0{2} == pad to two digits
+		num_chunks = len(chunks)
 
-	# Compress the string. First byte is index, second byte is count
-	map_str_comp = compress_map_str(map_hex, num_chunks, 4)
+		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
+
+		# Compress the string. First byte is index, second byte is count
+		map_str_comp = compress_map_str(map_hex, num_chunks, 4)
+
+		print(f'\nmap_data (raw):\n{map_hex}')
+		print(f'\nmap_data (compressed):\n{map_str_comp}')
+
 
 	if n == 3 and pad_x == 0 and pad_y == 0:
 		write_map(chunks, n)
-		print(f'\nmap_data (compressed):\n{map_str_comp}')
-		print(f'\nmap_data (raw):\n{map_hex}')
 		print()
 		print(f'For n = {n}, pad_x = {pad_x}, pad_y = {pad_y}')
 		print(f'Map string length (raw): {len(map_hex)}')
@@ -131,28 +136,32 @@ def build_map(data, n, pad_x, pad_y):
 		print(f'Number of chunks: {num_chunks}')
 		print(f'Chunk space on map: {num_chunks * n * n} (out of {128*32})')
 		print()
+
 	return len(map_hex), len(map_str_comp), num_chunks
 
 
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
 # Data has forward and trailing blank lines
-data = root.find("layer").find("data").text[1:-1]
+data_list = [layer.find("data").text[1:-1] for layer in root.findall("layer")]
 # Data has trailing commas
 # Data is 1-indexed so subtract one. Side effect: 0 is used for "empty" which we want to keep at 0 (rather than -1)
-data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
+for i, data in enumerate(data_list):
+	data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
+	data_list[i] = data
 # Data is now indexed by [row][col] aka [y][x]
 
 # Iterate all possibilities to find the best result
-results = []
-for i in range(1, 7):
-	for pad_x in range(i):
-		for pad_y in range(i):
-			map_len, map_len_comp, chunk_len = build_map(data, i, pad_x, pad_y)
-			results.append([i, pad_x, pad_y, map_len, map_len_comp, chunk_len, chunk_len * i * i])
+#results = []
+#for i in range(1, 7):
+#	for pad_x in range(i):
+#		for pad_y in range(i):
+#			map_len, map_len_comp, chunk_len = build_map(data_list, i, pad_x, pad_y)
+#			results.append([i, pad_x, pad_y, map_len, map_len_comp, chunk_len, chunk_len * i * i])
 
-# To see other possibilities - uncomment
-print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
-print('\n'.join(str(r) for r in results))
+# Uncomment to see other possibilities
+#print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
+#print('\n'.join(str(r) for r in results))
 
 
+build_map(data_list, 3, 0, 0)
