@@ -201,8 +201,6 @@ function _player_update(self)
   self.v_x, self.v_y = angle_vector(angle_vel, dist(self.v_x, self.v_y))
 
   -- Apply Movement
---  self.x += self.v_x
---  self.y += self.v_y
   self.x, _, self.x_remainder, x_blocked = _player_move(self, self.v_x, self.x_remainder, 1, 0)
   _, self.y, self.y_remainder, y_blocked = _player_move(self, self.v_y, self.y_remainder, 0, 1)
   if x_blocked then
@@ -346,22 +344,26 @@ function draw_map(map_chunks, map_size, chunk_size)
   -- Find the map index of the top-left map segment
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
-  local top_left = flr((camera_x + 64) / 32) + 64 * flr((camera_y + 64) / 32)
-
-
   local chunks_per_row = flr(128/chunk_size)
+  local draw_distance = -flr(-16/chunk_size) -- -flr(-x) == ceil(x)
 
-  for x = 1, map_size - 1 do
-    for y = 1, map_size - 1 do
-      local chunk_index = map_chunks[x][y]
+  for i = 0, draw_distance do
+    for j = 0, draw_distance do
+      local chunk_x = flr(camera_x / 8 / chunk_size)
+      local chunk_y = flr(camera_y / 8 / chunk_size)
+
+      chunk_x = mid(chunk_x + i, 0, map_size)
+      chunk_y = mid(chunk_y + j, 0, map_size)
+
+      local chunk_index = map_chunks[chunk_x][chunk_y]
 
       -- top left corner of chunk in pico8 tile map
       local tile_x = (chunk_index % chunks_per_row) * chunk_size
       local tile_y = flr(chunk_index / chunks_per_row) * chunk_size
 
       -- top left corner of chunk in world
-      local world_x = x * chunk_size * 8
-      local world_y = y * chunk_size * 8
+      local world_x = chunk_x * chunk_size * 8
+      local world_y = chunk_y * chunk_size * 8
 
       map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
 
