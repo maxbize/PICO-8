@@ -47,7 +47,7 @@ function _draw()
   end
 
   draw_map(map_prop_chunks, 21, 3)
-  _player_debug_draw(player)
+  --_player_debug_draw(player)
 
 end
 
@@ -114,6 +114,8 @@ function spawn_player()
     draw = _player_draw,
     x = 64,
     y = 64,
+    x_remainder = 0,
+    y_remainder = 0,
     angle_fwd = 0,
     v_x = 0,
     v_y = 0,
@@ -139,15 +141,14 @@ function _player_update(self)
   if btn(3) then move_fwd  -= 1 end
 
   -- Visual Rotation
-  self.angle_fwd += move_side * self.turn_rate_fwd
+  local new_angle = (self.angle_fwd + move_side * self.turn_rate_fwd) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
-    self.angle_fwd = round_nth(self.angle_fwd, 32)
+    new_angle = round_nth(self.angle_fwd, 32)
   end
-  if self.angle_fwd < 0 then
-    self.angle_fwd += 1
-  elseif self.angle_fwd >= 1 then
-    self.angle_fwd -= 1
+  -- TODO: If we can't turn because of colliding, move the car to a position it can turn
+  if _player_collides_at(self.x, self.y, new_angle) == false then
+    self.angle_fwd = new_angle
   end
 
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
@@ -200,8 +201,16 @@ function _player_update(self)
   self.v_x, self.v_y = angle_vector(angle_vel, dist(self.v_x, self.v_y))
 
   -- Apply Movement
-  self.x += self.v_x
-  self.y += self.v_y
+--  self.x += self.v_x
+--  self.y += self.v_y
+  self.x, _, self.x_remainder, x_blocked = _player_move(self, self.v_x, self.x_remainder, 1, 0)
+  _, self.y, self.y_remainder, y_blocked = _player_move(self, self.v_y, self.y_remainder, 0, 1)
+  if x_blocked then
+    self.v_x *= 0.25
+  end
+  if y_blocked then
+    self.v_y *= 0.25
+  end
 
   camera(self.x - 64, self.y - 64)
 end
@@ -218,14 +227,50 @@ function _player_draw(self)
   palt(15, false)
 end
 
+-- Modified from https://maddymakesgames.com/articles/celeste_and_towerfall_physics/index.html
+-- Returns final x, y pos and whether the move was blocked
+function _player_move(self, amount, remainder, x_mask, y_mask)
+  local x = self.x
+  local y = self.y
+  remainder += amount;
+  local move = round(remainder);
+  if move ~= 0 then
+    remainder -= move;
+    local sign = sgn(move);
+    while move ~= 0 do
+      if _player_collides_at(x + sign * x_mask, y + sign * y_mask, self.angle_fwd) then
+        return x, y, remainder, true
+      else
+        x += sign * x_mask
+        y += sign * y_mask
+        move -= sign
+      end
+    end
+  end
+  return x, y, remainder, false
+end
+
+function _player_collides_at(x, y, angle)
+  for i = -1, 1, 2 do
+    for j = -1, 1, 2 do
+      local check_x = flr(x) + cos(angle + 0.1 * i) * 5 * j
+      local check_y = flr(y) + sin(angle + 0.1 * i) * 4 * j
+      if (collides_at(check_x, check_y)) then
+        return true
+      end
+    end
+  end
+  return false
+end
+
 function _player_debug_draw(self)
   -- Collision point visualization
-  pset(self.x, self.y, 3)
+  --pset(self.x, self.y, 3)
 
   -- Front/back collision points
   for i = -1, 1, 2 do
     for j = -1, 1, 2 do
-      local x = flr(self.x) + cos(self.angle_fwd + 0.1 * i) * 4 * j
+      local x = flr(self.x) + cos(self.angle_fwd + 0.1 * i) * 5 * j
       local y = flr(self.y) + sin(self.angle_fwd + 0.1 * i) * 4 * j
       pset(x, y, collides_at(x, y) and 8 or 11)
     end
