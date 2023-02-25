@@ -49,7 +49,7 @@ function _draw()
 
   draw_map(map_prop_chunks, 21, 3, true, false)
 
-  _player_debug_draw(player)
+  --_player_debug_draw(player)
 
 end
 
@@ -148,9 +148,14 @@ function _player_update(self)
     -- If there's no more side input, snap to the nearest 1/8th
     new_angle = round_nth(self.angle_fwd, 32)
   end
+  self.angle_fwd = new_angle
   -- TODO: If we can't turn because of colliding, move the car to a position it can turn
-  if _player_collides_at(self.x, self.y, new_angle) == false then
-    self.angle_fwd = new_angle
+  local collides, collides_x, collides_y = _player_collides_at(self.x, self.y, new_angle)
+  while collides do
+    local to_collision_x, to_collision_y = normalized(collides_x - self.x, collides_y - self.y)
+    self.x -= round(to_collision_x)
+    self.y -= round(to_collision_y)
+    collides, collides_x, collides_y = _player_collides_at(self.x, self.y, new_angle)
   end
 
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
@@ -256,7 +261,7 @@ function _player_collides_at(x, y, angle)
       local check_x = flr(x) + cos(angle + 0.1 * i) * 5 * j
       local check_y = flr(y) + sin(angle + 0.1 * i) * 4 * j
       if (collides_at(check_x, check_y)) then
-        return true
+        return true, check_x, check_y
       end
     end
   end
