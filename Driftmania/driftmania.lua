@@ -40,14 +40,16 @@ end
 function _draw()
   cls(0)
 
-  draw_map(map_road_chunks, 21, 3)
+  draw_map(map_road_chunks, 21, 3, true, true)
+  draw_map(map_prop_chunks, 21, 3, false, true)
 
   for obj in all(objects) do
     obj.draw(obj)
   end
 
-  draw_map(map_prop_chunks, 21, 3)
-  --_player_debug_draw(player)
+  draw_map(map_prop_chunks, 21, 3, true, false)
+
+  _player_debug_draw(player)
 
 end
 
@@ -263,14 +265,14 @@ end
 
 function _player_debug_draw(self)
   -- Collision point visualization
-  --pset(self.x, self.y, 3)
+  pset(self.x, self.y, 3)
 
   -- Front/back collision points
   for i = -1, 1, 2 do
     for j = -1, 1, 2 do
       local x = flr(self.x) + cos(self.angle_fwd + 0.1 * i) * 5 * j
       local y = flr(self.y) + sin(self.angle_fwd + 0.1 * i) * 4 * j
-      pset(x, y, collides_at(x, y) and 8 or 11)
+      --pset(x, y, collides_at(x, y) and 8 or 11)
     end
   end
 
@@ -340,7 +342,15 @@ function load_map(data, map_size, chunk_size)
   return map_chunks, map_tiles
 end
 
-function draw_map(map_chunks, map_size, chunk_size)
+local sprite_sorts = {
+  [43] = {y_intercept = 4, slope = 1}, 
+  [44] = {y_intercept = -99, slope = 0}, -- Always draw car above vertical walls. To flip behavior, comment this out
+  [45] = {y_intercept = 11, slope = -1}, 
+  [59] = {y_intercept = -4, slope = 1}, 
+  [60] = {y_intercept = 3, slope = 0}, 
+  [61] = {y_intercept = 3, slope = -1}, 
+}
+function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player)
   -- Find the map index of the top-left map segment
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
@@ -365,7 +375,34 @@ function draw_map(map_chunks, map_size, chunk_size)
       local world_x = chunk_x * chunk_size * 8
       local world_y = chunk_y * chunk_size * 8
 
-      map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
+      -- draw map with proper sorting
+      for i = 0, chunk_size - 1 do
+        local strip_world_y = world_y + i * 8 -- map strip
+        local above_player = strip_world_y < player.y
+        local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size * 8 and player.x + 5 > world_x - 2
+        if (above_player and draw_above_player) or (not above_player and draw_below_player) or contains_player then
+          if not contains_player then
+            map(tile_x, tile_y + i, world_x, strip_world_y, chunk_size, 1)
+          else
+            for j = 0, chunk_size - 1 do
+              local sprite_index = mget(tile_x + j, tile_y + i)
+              local draw = true
+              local sprite_x = world_x + j * 8
+              local sprite_y = world_y + i * 8
+              if sprite_sorts[sprite_index] ~= nil then
+                -- Project a line and see if the car is above or below it
+                local sprite_y_intercept = sprite_y + sprite_sorts[sprite_index].y_intercept
+                local car_y_intercept = player.y + (sprite_x - player.x) * sprite_sorts[sprite_index].slope
+                above_player = sprite_y_intercept < car_y_intercept
+                draw = (above_player and draw_above_player) or (not above_player and draw_below_player)
+              end
+              if draw then
+                spr(sprite_index, sprite_x, sprite_y)
+              end
+            end
+          end
+        end
+      end
 
     end
   end
