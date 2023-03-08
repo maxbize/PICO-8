@@ -6,18 +6,24 @@
 --------------------
 local objects = {}
 local player = nil
+local level_m = nil
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
 local map_road_chunks = nil
+local map_decl_tiles = nil
+local map_decl_chunks = nil
 local map_prop_tiles = nil
 local map_prop_chunks = nil
 
 --------------------
 -- Data
 --------------------
-local map_road_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001020303040501020303060700000000000000000008090a0b090c08090a0d090e0700000000000000000f10111213140f10110015090e07000000000000000f1400000f140f14000000150916000000000000000f1400000f140f14000000000f14000000000000000f1400000f140f14000000000f14000000000000000f1400001709091800000019091a000000000000000f140000121b1c11000019091d1e000000000000001f092000000000000019091d1e0000000000000000212209200000000019091d1e0000000000000000000021220903030303091d1e00000000000000000000000021230d0d0d0d241e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-local map_prop_data = '000000000000000000000000000000000000000000000025262727282925262727272a0000000000000000252b000000002c2b000000002d2a000000000000002e0000000000000000000000002d2a0000000000002f000030310000000030282900002d2a00000000002f00002f2f000000002f002c2900002f00000000002f00002f2f000000002f00003200002f00000000002f00002f2f000000002f00003300002f00000000002f00002f34000000003300353600002f00000000002f00003437380000353635360000393a00000000002f00003738373b3c3635360000393a0000000000002d2a0000373b27273c360000393a00000000000000002d2a0000000000000000393a000000000000000000002d2a000000000000393a0000000000000000000000002d2727272727273a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local map_road_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001020303040501020303060700000000000000000008090a0b090c0d090a0e090f0700000000000000001011121314090911120015090f070000000000000010160000100909160000001509170000000000000010160000100909160000000010160000000000000010160000100909160000000010160000000000000010160000180909190000001a091b0000000000000010160000131c1d1200001a091e1f000000000000002009210000000000001a091e1f000000000000000022230921000000001a091e1f0000000000000000000022230903030303091e1f00000000000000000000000022240e0e0e0e251f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local map_decl_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026270000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local map_prop_data = '0000000000000000000000000000000000000000000000292a2b2b2c2d292a2b2b2b2e0000000000000000292f00000000303100000000322e0000000000000033000000000034350000000000322e000000000000360000373800343500372c2d0000322e00000000003600003636003435003600392d00003600000000003600003636003435003600003a00003600000000003600003636003b3c003600003d0000360000000000360000363e000000003d003f4000003600000000003600003e414200003f403f400000434400000000003600004142414546403f4000004344000000000000322e000041452b2b4640000043440000000000000000322e0000000000000000434400000000000000000000322e0000000000004344000000000000000000000000322b2b2b2b2b2b44000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local map_settings = {laps=3}
+local map_checkpoints = {{x=19.5*8, y=36*8, w=2, h=6*8, spawn_x=21*8, spawn_y=39*8, spawn_dir=0.5}, {x=24*8, y=14*8+3, w=6*8, h=2}}
 
 --------------------
 -- Built-in Methods
@@ -25,8 +31,10 @@ local map_prop_data = '000000000000000000000000000000000000000000000025262727282
 
 function _init()
   map_road_chunks, map_road_tiles = load_map(map_road_data, 21, 3)
+  map_decl_chunks, map_decl_tiles = load_map(map_decl_data, 21, 3)
   map_prop_chunks, map_prop_tiles = load_map(map_prop_data, 21, 3)
 
+  spawn_level_manager()
   spawn_player()
 end
 
@@ -41,6 +49,7 @@ function _draw()
   cls(0)
 
   draw_map(map_road_chunks, 21, 3, true, true)
+  draw_map(map_decl_chunks, 21, 3, true, true)
   draw_map(map_prop_chunks, 21, 3, false, true)
 
   for obj in all(objects) do
@@ -111,14 +120,18 @@ end
 -- Player class
 --------------------
 function spawn_player()
+  local x = level_m.checkpoints[1].spawn_x
+  local y = level_m.checkpoints[1].spawn_y
+  local dir = level_m.checkpoints[1].spawn_dir  
+
   player = {
     update = _player_update,
     draw = _player_draw,
-    x = 64,
-    y = 64,
+    x = x,
+    y = y,
     x_remainder = 0,
     y_remainder = 0,
-    angle_fwd = 0,
+    angle_fwd = dir,
     v_x = 0,
     v_y = 0,
     turn_rate_fwd = 0.008,
@@ -249,10 +262,24 @@ function _player_move(self, amount, remainder, x_mask, y_mask)
         x += sign * x_mask
         y += sign * y_mask
         move -= sign
+        _on_player_moved(x, y, self.angle_fwd)
       end
     end
   end
   return x, y, remainder, false
+end
+
+-- Called whenever the player occupies a new position. Can be called multiple times per frame
+function _on_player_moved(x, y, angle)
+  for i = -1, 1, 2 do
+    for j = -1, 1, 2 do
+      local check_x = flr(x) + cos(angle + 0.1 * i) * 5 * j
+      local check_y = flr(y) + sin(angle + 0.1 * i) * 4 * j
+      if (collides_checkpoint_at(check_x, check_y)) then
+        on_checkpoint_crossed(level_m)
+      end
+    end
+  end
 end
 
 function _player_collides_at(x, y, angle)
@@ -260,7 +287,7 @@ function _player_collides_at(x, y, angle)
     for j = -1, 1, 2 do
       local check_x = flr(x) + cos(angle + 0.1 * i) * 5 * j
       local check_y = flr(y) + sin(angle + 0.1 * i) * 4 * j
-      if (collides_at(check_x, check_y)) then
+      if (collides_wall_at(check_x, check_y)) then
         return true, check_x, check_y
       end
     end
@@ -277,7 +304,8 @@ function _player_debug_draw(self)
     for j = -1, 1, 2 do
       local x = flr(self.x) + cos(self.angle_fwd + 0.1 * i) * 5 * j
       local y = flr(self.y) + sin(self.angle_fwd + 0.1 * i) * 4 * j
-      --pset(x, y, collides_at(x, y) and 8 or 11)
+      --pset(x, y, collides_wall_at(x, y) and 8 or 11)
+      checkpoint_check(x, y)
     end
   end
 
@@ -285,25 +313,110 @@ function _player_debug_draw(self)
 --  for i = -1, 1, 2 do
 --    local x = flr(self.x) + cos(self.angle_fwd + 0.25 * i) * 2
 --    local y = flr(self.y) + sin(self.angle_fwd + 0.25 * i) * 2
---    pset(x, y, collides_at(x, y) and 8 or 11)
+--    pset(x, y, collides_wall_at(x, y) and 8 or 11)
 --  end
 
 end
 
 -- Checks if the given position on the map overlaps a wall
-local collision_sprites = {[43]=true, [44]=true, [45]=true, [59]=true, [60]=true, [61]=true}
-function collides_at(x, y)
+local wall_collision_sprites = {[43]=true, [44]=true, [45]=true, [59]=true, [60]=true, [61]=true}
+function collides_wall_at(x, y)
   local sprite_index = map_prop_tiles[flr(x/8)][flr(y/8)]
   if sprite_index == nil then
     return false
   end
-  if collision_sprites[sprite_index] then
+  if wall_collision_sprites[sprite_index] then
     local sx = (sprite_index % 16) * 8 + x % 8
     local sy = flr(sprite_index / 16) * 8 + y % 8
     local col = sget(sx, sy)
     return col == 6
   end
   return false
+end
+
+function collides_checkpoint_at(x, y)
+  local cp = level_m.checkpoints[level_m.next_checkpoint]
+  local overlaps = 
+    x >= cp.x and
+    x < cp.x + cp.w and
+    y >= cp.y and
+    y < cp.y + cp.h
+  return overlaps
+end
+
+--------------------
+-- Level Management
+--------------------
+function spawn_level_manager()
+  level_m = {
+    update = _level_manager_update,
+    draw = _level_manager_draw,
+    index = index,
+    settings = map_settings,
+    checkpoints = map_checkpoints,
+    next_checkpoint = 2,
+    checkpoint_frames = {}, -- Order: 2, 3, 4, ... 1
+    best_checkpoint_frames = {},
+    frame = 0,
+  }
+  add(objects, level_m)
+end
+
+function _level_manager_update(self)
+  if (self.frame < 0x7fff) then
+    self.frame += 1
+  end
+end
+
+function _level_manager_draw(self)
+end
+
+function frame_to_time_str(frames)
+  -- mm:ss.mm. Max time 546.13 sec
+  local min = '0' .. tostr(flr(frames/3600))
+  local sec = tostr(flr(frames/60%60))
+  local sub_sec = tostr(flr(frames%60))
+  return min .. ':' .. (#sec == 1 and '0' or '') .. sec .. '.' .. (#sub_sec == 1 and '0' or '') .. sub_sec
+end
+
+function on_checkpoint_crossed(self)
+  -- Record checkpoint time
+  self.checkpoint_frames[self.next_checkpoint] = self.frame
+
+  -- Display checkpoint time and delta
+  add(objects, {
+    time = self.frame,
+    best_time = count(self.best_checkpoint_frames) > 0 and self.best_checkpoint_frames[self.next_checkpoint] or 0,
+    life = 60,
+    update = function(self)
+      self.life -= 1
+      if self.life == 0 then
+        del(objects, self)
+      end
+    end,
+    draw = function(self)
+      print(frame_to_time_str(self.time), player.x - 14, player.y - 32, 7)
+      if self.best_time ~= 0 then
+        print((self.best_time > self.time and '-' or '+') 
+          .. frame_to_time_str(abs(self.best_time - self.time)), player.x - 18, player.y - 26,
+          self.best_time > self.time and 11 or 8)
+      end
+    end,
+  })
+
+  -- Completed a lap
+  if self.next_checkpoint == 1 then
+    if count(self.best_checkpoint_frames) == 0 or self.best_checkpoint_frames[1] > self.frame then
+      self.best_checkpoint_frames = {}
+      for frame in all(self.checkpoint_frames) do
+        add(self.best_checkpoint_frames, frame)
+      end
+    end
+    self.frame = 0
+  end
+
+  -- Advance checkpoint marker
+  self.next_checkpoint = (self.next_checkpoint % count(self.checkpoints)) + 1
 end
 
 --------------------
@@ -408,7 +521,6 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
           end
         end
       end
-
     end
   end
 end
