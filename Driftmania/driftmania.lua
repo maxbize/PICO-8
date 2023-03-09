@@ -16,6 +16,17 @@ local map_decl_chunks = nil
 local map_prop_tiles = nil
 local map_prop_chunks = nil
 
+-- Ghost cars
+local ghost_recording = {}
+local ghost_playback = {}
+local ghost_start_last = {} -- x, y, etc for first frame
+local ghost_start_best = {} -- x, y, etc for first frame
+-- Allocate buffers on init
+for i = 1, 0x7fff do
+  add(ghost_recording, 0)
+  add(ghost_playback, 0)
+end
+
 --------------------
 -- Data
 --------------------
@@ -43,6 +54,8 @@ function _update60()
     obj.update(obj)
   end
 
+  _car_update(player)
+
 end
 
 function _draw()
@@ -55,6 +68,8 @@ function _draw()
   for obj in all(objects) do
     obj.draw(obj)
   end
+
+  _car_draw(player)
 
   draw_map(map_prop_chunks, 21, 3, true, false)
 
@@ -117,23 +132,40 @@ function pd_rotate(x,y,rot,mx,my,w,flip,scale)
 end
 
 --------------------
--- Player class
+-- Car class (player + ghost)
 --------------------
 function spawn_player()
   local x = level_m.checkpoints[1].spawn_x
   local y = level_m.checkpoints[1].spawn_y
   local dir = level_m.checkpoints[1].spawn_dir  
 
-  player = {
-    update = _player_update,
-    draw = _player_draw,
+  player = create_car(x, y, 0, 0, 0, 0, dir, false)
+  _set_ghost_start(player)
+
+  -- Not adding to objects to have better control over draw order
+  --add(objects, player)
+end
+
+function spawn_ghost()
+  local gs = ghost_start_best
+  local ghost = create_car(gs.x, gs.y, gs.x_remainder, gs.y_remainder, gs.v_x, gs.v_y, gs.dir, true)
+  ghost.update = _ghost_update
+  ghost.buffer = ghost_playback
+  ghost.frame = 1
+  add(objects, ghost)
+end
+
+function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
+  return {
+    update = _car_update,
+    draw = _car_draw,
     x = x,
     y = y,
-    x_remainder = 0,
-    y_remainder = 0,
+    x_remainder = x_remainder,
+    y_remainder = y_remainder,
     angle_fwd = dir,
-    v_x = 0,
-    v_y = 0,
+    v_x = v_x,
+    v_y = v_y,
     turn_rate_fwd = 0.008,
     turn_rate_vel = 0.005,
     accel = 0.075,
@@ -142,18 +174,50 @@ function spawn_player()
     max_speed_rev = -1, -- TODO: fix
     f_friction = 0.005,
     f_corrective = 0.1,
+    is_ghost = is_ghost,
   }
-  add(objects, player)
 end
 
-function _player_update(self)
+function _set_ghost_start(self)
+  ghost_start_last = {
+    x = self.x,
+    y = self.y,
+    x_remainder = self.x_remainder,
+    y_remainder = self.y_remainder,
+    dir = self.angle_fwd,
+    v_x = self.v_x,
+    v_y = self.v_y,
+  }
+end
+
+function _car_update(self)
+  _car_move(self, btn())
+
+  -- Record ghost
+  ghost_recording[level_m.frame] = btn()
+
+  -- Move camera
+  camera(self.x - 64, self.y - 64)
+end
+
+function _ghost_update(self)
+  local btns = self.buffer[self.frame]
+  if btns == -1 then
+    del(objects, self)
+  else
+    _car_move(self, btns)
+  end
+  self.frame += 1
+end
+
+function _car_move(self, btns)
   -- Input
   local move_side = 0
   local move_fwd = 0
-  if btn(0) then move_side += 1 end
-  if btn(1) then move_side -= 1 end
-  if btn(2) then move_fwd  += 1 end
-  if btn(3) then move_fwd  -= 1 end
+  if btns & 0x1 > 0 then move_side += 1 end
+  if btns & 0x2 > 0 then move_side -= 1 end
+  if btns & 0x4 > 0 then move_fwd  += 1 end
+  if btns & 0x8 > 0 then move_fwd  -= 1 end
 
   -- Visual Rotation
   local new_angle = (self.angle_fwd + move_side * self.turn_rate_fwd) % 1
@@ -229,20 +293,24 @@ function _player_update(self)
   if y_blocked then
     self.v_y *= 0.25
   end
-
-  camera(self.x - 64, self.y - 64)
 end
 
-function _player_draw(self)
+function _car_draw(self)
   palt(0, false)
   palt(15, true)
   local scale = 1
+  if self.is_ghost then
+    pal(8, 2)
+    pal(10, 4)
+    pal(12, 13)
+    pal(7, 6)
+    pal(6, 1)
+  end
   -- Costs 6% of CPU budget
   for i = 0, 4 do
     pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
   end
-  palt(0, true)
-  palt(15, false)
+  pal()
 end
 
 -- Modified from https://maddymakesgames.com/articles/celeste_and_towerfall_physics/index.html
@@ -262,7 +330,9 @@ function _player_move(self, amount, remainder, x_mask, y_mask)
         x += sign * x_mask
         y += sign * y_mask
         move -= sign
-        _on_player_moved(x, y, self.angle_fwd)
+        if not self.is_ghost then
+          _on_player_moved(x, y, self.angle_fwd)
+        end
       end
     end
   end
@@ -411,7 +481,12 @@ function on_checkpoint_crossed(self)
       for frame in all(self.checkpoint_frames) do
         add(self.best_checkpoint_frames, frame)
       end
+      ghost_recording, ghost_playback = ghost_playback, ghost_recording
+      ghost_playback[self.frame + 1] = -1
+      ghost_start_best = ghost_start_last
     end
+    spawn_ghost()
+    _set_ghost_start(player)
     self.frame = 0
   end
 
