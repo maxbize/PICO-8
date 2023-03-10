@@ -7,6 +7,7 @@
 local objects = {}
 local player = nil
 local level_m = nil
+local trail_m = nil
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -47,6 +48,7 @@ function _init()
 
   spawn_level_manager()
   spawn_player()
+  spawn_trail_manager()
 end
 
 function _update60()
@@ -175,6 +177,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     f_friction = 0.005,
     f_corrective = 0.1,
     is_ghost = is_ghost,
+    drifting = false,
   }
 end
 
@@ -194,6 +197,9 @@ function _car_update(self)
   _car_move(self, btn())
 
   -- Record ghost
+  if level_m.frame == 0 then
+    throw()
+  end
   ghost_recording[level_m.frame] = btn()
 
   -- Move camera
@@ -255,6 +261,7 @@ function _car_move(self, btns)
   local right_x, right_y = fwd_y, -fwd_x
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
   local vel_dot_right = dot(right_x, right_y, v_x_normalized, v_y_normalized)
+  self.drifting = abs(vel_dot_right) > 0.65
   self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective, self.v_x, -self.v_x)
   self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
 
@@ -347,6 +354,9 @@ function _on_player_moved(x, y, angle)
       local check_y = flr(y) + sin(angle + 0.1 * i) * 4 * j
       if (collides_checkpoint_at(check_x, check_y)) then
         on_checkpoint_crossed(level_m)
+      end
+      if j == -1 and player.drifting then -- back wheels
+        add_trail_point(trail_m, check_x, check_y)
       end
     end
   end
@@ -485,9 +495,9 @@ function on_checkpoint_crossed(self)
       ghost_playback[self.frame + 1] = -1
       ghost_start_best = ghost_start_last
     end
-    spawn_ghost()
+    --pawn_ghost() -- TODO: Ghost is not accurate
     _set_ghost_start(player)
-    self.frame = 0
+    self.frame = 1
   end
 
   -- Advance checkpoint marker
@@ -599,3 +609,41 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
     end
   end
 end
+
+--------------------
+-- VFX
+--------------------
+
+function spawn_trail_manager()
+  trail_m = {
+    update = _trail_manager_update,
+    draw = _trail_manager_draw,
+    points = {},
+    points_i = 1,
+    max_points = 1000,
+  }
+
+  for i = 1, trail_m.max_points do
+    add(trail_m.points, {x=0, y=0})
+  end
+
+  add(objects, trail_m)
+end
+
+function add_trail_point(self, x, y)
+  self.points[self.points_i] = {x=x, y=y}
+  self.points_i = (self.points_i % self.max_points) + 1
+end
+
+function _trail_manager_update(self)
+end
+
+function _trail_manager_draw(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    pset(p.x, p.y, 0)
+  end
+end
+
+
+
