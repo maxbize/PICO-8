@@ -35,7 +35,7 @@ local map_road_data = '000000000000000000000000000000000000000000000000000000000
 local map_decl_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026270000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 local map_prop_data = '0000000000000000000000000000000000000000000000292a2b2b2c2d292a2b2b2b2e0000000000000000292f00000000303100000000322e0000000000000033000000000034350000000000322e000000000000360000373800343500372c2d0000322e00000000003600003636003435003600392d00003600000000003600003636003435003600003a00003600000000003600003636003b3c003600003d0000360000000000360000363e000000003d003f4000003600000000003600003e414200003f403f400000434400000000003600004142414546403f4000004344000000000000322e000041452b2b4640000043440000000000000000322e0000000000000000434400000000000000000000322e0000000000004344000000000000000000000000322b2b2b2b2b2b44000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 local map_settings = {laps=3}
-local map_checkpoints = {{x=19.5*8, y=36*8, w=2, h=6*8, spawn_x=21*8, spawn_y=39*8, spawn_dir=0.5}, {x=24*8, y=14*8+3, w=6*8, h=2}}
+local map_checkpoints = {{x=19.5*8, y=35*8, w=2, h=8*8, spawn_x=21*8, spawn_y=39*8, spawn_dir=0.5}, {x=24*8, y=14*8+3, w=8*8, h=2}}
 
 --------------------
 -- Built-in Methods
@@ -174,7 +174,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     brake = 0.05,
     max_speed_fwd = 2,
     max_speed_rev = -1, -- TODO: fix
-    f_friction = 0.005,
+    f_friction = 0.01,
     f_corrective = 0.1,
     is_ghost = is_ghost,
     drifting = false,
@@ -224,9 +224,10 @@ function _car_move(self, btns)
   if btns & 0x2 > 0 then move_side -= 1 end
   if btns & 0x4 > 0 then move_fwd  += 1 end
   if btns & 0x8 > 0 then move_fwd  -= 1 end
+  local d_brake = btns & 0x10 > 0
 
   -- Visual Rotation
-  local new_angle = (self.angle_fwd + move_side * self.turn_rate_fwd) % 1
+  local new_angle = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     new_angle = round_nth(self.angle_fwd, 32)
@@ -245,15 +246,23 @@ function _car_move(self, btns)
   local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
 
   -- Acceleration, friction, breaking. Note: mid is to stop over-correction
-  if move_fwd > 0 then
-    self.v_x += fwd_x * self.accel
-    self.v_y += fwd_y * self.accel
-  elseif move_fwd == 0 then
-    self.v_x -= mid(v_x_normalized * self.f_friction, self.v_x, -self.v_x)
-    self.v_y -= mid(v_y_normalized * self.f_friction, self.v_y, -self.v_y)
-  elseif move_fwd < 0 then
-    self.v_x -= mid(v_x_normalized * self.brake, self.v_x, -self.v_x)
-    self.v_y -= mid(v_y_normalized * self.brake, self.v_y, -self.v_y)
+  if d_brake then
+    local f_stop = (move_fwd > 0 and self.f_friction 
+                or (move_fwd == 0 and self.f_friction * 2 
+                or (move_fwd < 0 and self.brake * 2 or 1000)))
+    self.v_x -= mid(v_x_normalized * f_stop, self.v_x, -self.v_x)
+    self.v_y -= mid(v_y_normalized * f_stop, self.v_y, -self.v_y)
+  else
+    if move_fwd > 0 then
+      self.v_x += fwd_x * self.accel
+      self.v_y += fwd_y * self.accel
+    elseif move_fwd == 0 then
+      self.v_x -= mid(v_x_normalized * self.f_friction, self.v_x, -self.v_x)
+      self.v_y -= mid(v_y_normalized * self.f_friction, self.v_y, -self.v_y)
+    elseif move_fwd < 0 then
+      self.v_x -= mid(v_x_normalized * self.brake, self.v_x, -self.v_x)
+      self.v_y -= mid(v_y_normalized * self.brake, self.v_y, -self.v_y)
+    end
   end
 
   -- Corrective side force
@@ -261,9 +270,11 @@ function _car_move(self, btns)
   local right_x, right_y = fwd_y, -fwd_x
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
   local vel_dot_right = dot(right_x, right_y, v_x_normalized, v_y_normalized)
-  self.drifting = abs(vel_dot_right) > 0.65
-  self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective, self.v_x, -self.v_x)
-  self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
+  self.drifting = d_brake --abs(vel_dot_right) > 0.65
+  if not d_brake then
+    self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective, self.v_x, -self.v_x)
+    self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
+  end
 
   -- Speed limit
   local angle_vel = atan2(self.v_x, self.v_y)
