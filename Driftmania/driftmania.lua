@@ -65,6 +65,7 @@ function _draw()
 
   draw_map(map_road_chunks, 21, 3, true, true)
   draw_map(map_decl_chunks, 21, 3, true, true)
+  _trail_manager_draw(trail_m)
   draw_map(map_prop_chunks, 21, 3, false, true)
 
   for obj in all(objects) do
@@ -179,6 +180,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     is_ghost = is_ghost,
     drifting = false,
     wheel_offsets = {{x=0, y=0}, {x=0, y=0}, {x=0, y=0}, {x=0, y=0}},
+    dirt_frames = {0, 0, 0, 0},
   }
 end
 
@@ -256,6 +258,15 @@ function _car_move(self, btns)
 
   -- Get the wheel modifiers (boost, road, grass, etc)
   -- TODO
+  for i, offset in pairs(self.wheel_offsets) do
+    local check_x = flr(self.x) + offset.x
+    local check_y = flr(self.y) + offset.y
+    -- Visual only when on the road?
+    if not collides_grass_at(check_x, check_y) and self.dirt_frames[i] > 0 then
+      add_trail_point(trail_m, check_x, check_y, 4)
+      self.dirt_frames[i] -= 1
+    end
+  end
 
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
   local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
@@ -380,8 +391,12 @@ function _on_player_moved(self, x, y, angle)
     if (collides_checkpoint_at(check_x, check_y)) then
       on_checkpoint_crossed(level_m)
     end
+    if i % 2 == 0 and collides_grass_at(check_x, check_y) then -- front wheels
+      self.dirt_frames[i] = 10
+      add_trail_point(trail_m, check_x, check_y, 4)
+    end
     if i % 2 == 1 and self.drifting then -- back wheels
-      add_trail_point(trail_m, check_x, check_y)
+      add_trail_point(trail_m, check_x, check_y, 0)
     end
   end
 end
@@ -430,6 +445,22 @@ function collides_wall_at(x, y)
     local sy = flr(sprite_index / 16) * 8 + y % 8
     local col = sget(sx, sy)
     return col == 6
+  end
+  return false
+end
+
+-- TODO: lots of duplication with above function
+local grass_sprites = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
+function collides_grass_at(x, y)
+  local sprite_index = map_road_tiles[flr(x/8)][flr(y/8)]
+  if sprite_index == nil then
+    return false
+  end
+  if grass_sprites[sprite_index] then
+    local sx = (sprite_index % 16) * 8 + x % 8
+    local sy = flr(sprite_index / 16) * 8 + y % 8
+    local col = sget(sx, sy)
+    return col == 3
   end
   return false
 end
@@ -644,14 +675,15 @@ function spawn_trail_manager()
   }
 
   for i = 1, trail_m.max_points do
-    add(trail_m.points, {x=0, y=0})
+    add(trail_m.points, {x=0, y=0, c=0})
   end
 
-  add(objects, trail_m)
+  -- Not adding to objects to have better control over draw order
+  --add(objects, trail_m)
 end
 
-function add_trail_point(self, x, y)
-  self.points[self.points_i] = {x=x, y=y}
+function add_trail_point(self, x, y, c)
+  self.points[self.points_i] = {x=x, y=y, c=c}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
@@ -661,7 +693,7 @@ end
 function _trail_manager_draw(self)
   for i = 1, self.max_points do
     local p = self.points[i]
-    pset(p.x, p.y, 0)
+    pset(p.x, p.y, p.c)
   end
 end
 

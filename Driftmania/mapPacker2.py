@@ -121,21 +121,21 @@ def build_map(data_list, n, pad_x, pad_y):
 		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 		# Compress the string. First byte is index, second byte is count
-		map_str_comp = compress_map_str(map_hex, num_chunks, 4)
+		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
 
 		print(f'\nmap_data (raw):\n{map_hex}')
 		print(f'\nmap_data (compressed):\n{map_str_comp}')
 
 
-	if n == 3 and pad_x == 0 and pad_y == 0:
-		write_map(chunks, n)
-		print()
-		print(f'For n = {n}, pad_x = {pad_x}, pad_y = {pad_y}')
-		print(f'Map string length (raw): {len(map_hex)}')
-		print(f'Map string length (comp): {len(map_str_comp)}')
-		print(f'Number of chunks: {num_chunks}')
-		print(f'Chunk space on map: {num_chunks * n * n} (out of {128*32})')
-		print()
+	#if n == 6 and pad_x == 0 and pad_y == 0:
+	write_map(chunks, n)
+	print()
+	print(f'For n = {n}, pad_x = {pad_x}, pad_y = {pad_y}')
+	print(f'Map string length (raw): {len(map_hex)}')
+	print(f'Map string length (comp): {len(map_str_comp)}')
+	print(f'Number of chunks: {num_chunks}')
+	print(f'Chunk space on map: {num_chunks * n * n} (out of {128*32})')
+	print()
 
 	return len(map_hex), len(map_str_comp), num_chunks
 
