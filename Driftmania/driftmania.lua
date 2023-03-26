@@ -246,15 +246,18 @@ function _car_move(self, btns)
   end
 
   -- Apply the wheel modifiers
-  local turn_mul = 1
-  local max_vel_mul = 1
+  local mod_turn = 1
+  local mod_max_vel = 1
+  local mod_friction = 1
+  local mod_accel = 1
   if grass_wheels >= 2 then
-    turn_mul = 0.5
-    max_vel_mul = 0.9
+    mod_turn = 0.25
+    mod_max_vel = 0.9
+    mod_accel = 0.5
   end
 
   -- Visual Rotation
-  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1) * turn_mul) % 1
+  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
@@ -292,11 +295,11 @@ function _car_move(self, btns)
     self.v_y -= mid(v_y_normalized * f_stop, self.v_y, -self.v_y)
   else
     if move_fwd > 0 then
-      self.v_x += fwd_x * self.accel
-      self.v_y += fwd_y * self.accel
+      self.v_x += fwd_x * self.accel * mod_accel
+      self.v_y += fwd_y * self.accel * mod_accel
     elseif move_fwd == 0 then
-      self.v_x -= mid(v_x_normalized * self.f_friction, self.v_x, -self.v_x)
-      self.v_y -= mid(v_y_normalized * self.f_friction, self.v_y, -self.v_y)
+      self.v_x -= mid(v_x_normalized * self.f_friction * mod_friction, self.v_x, -self.v_x)
+      self.v_y -= mid(v_y_normalized * self.f_friction * mod_friction, self.v_y, -self.v_y)
     elseif move_fwd < 0 then
       self.v_x -= mid(v_x_normalized * self.brake, self.v_x, -self.v_x)
       self.v_y -= mid(v_y_normalized * self.brake, self.v_y, -self.v_y)
@@ -310,13 +313,13 @@ function _car_move(self, btns)
   local vel_dot_right = dot(right_x, right_y, v_x_normalized, v_y_normalized)
   self.drifting = d_brake --abs(vel_dot_right) > 0.65
   if not d_brake then
-    self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective, self.v_x, -self.v_x)
-    self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective, self.v_y, -self.v_y)
+    self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective * mod_turn, self.v_x, -self.v_x)
+    self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective * mod_turn, self.v_y, -self.v_y)
   end
 
   -- Speed limit
   local angle_vel = atan2(self.v_x, self.v_y)
-  self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd * max_vel_mul, self.max_speed_rev))
+  self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd * mod_max_vel, self.max_speed_rev))
 
   -- Velocity rotation
   -- TODO: Cleanup ;)
@@ -328,9 +331,9 @@ function _car_move(self, btns)
       a += 1
     end
     if a < 0.5 then
-      angle_vel += self.turn_rate_vel * abs(vel_dot_right)
+      angle_vel += self.turn_rate_vel * abs(vel_dot_right) * mod_turn
     else
-      angle_vel -= self.turn_rate_vel * abs(vel_dot_right)
+      angle_vel -= self.turn_rate_vel * abs(vel_dot_right) * mod_turn
     end
     if angle_vel < 0 then
       angle_vel += 1
@@ -683,7 +686,7 @@ function spawn_trail_manager()
     draw = _trail_manager_draw,
     points = {},
     points_i = 1,
-    max_points = 1000,
+    max_points = 1000, -- 10% CPU per 1k
   }
 
   for i = 1, trail_m.max_points do
