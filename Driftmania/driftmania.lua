@@ -8,6 +8,7 @@ local objects = {}
 local player = nil
 local level_m = nil
 local trail_m = nil
+local particle_m = nil
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -49,6 +50,7 @@ function _init()
   spawn_level_manager()
   spawn_player()
   spawn_trail_manager()
+  spawn_particle_manager()
 end
 
 function _update60()
@@ -57,6 +59,7 @@ function _update60()
   end
 
   _car_update(player)
+  _particle_manager_update(particle_m)
 
 end
 
@@ -72,6 +75,7 @@ function _draw()
     obj.draw(obj)
   end
 
+  _particle_manager_draw(particle_m)
   _car_draw(player)
 
   draw_map(map_prop_chunks, 21, 3, true, false)
@@ -181,6 +185,8 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     drifting = false,
     wheel_offsets = {{x=0, y=0}, {x=0, y=0}, {x=0, y=0}, {x=0, y=0}},
     dirt_frames = {0, 0, 0, 0},
+    drift_boost_buildup = 0,
+    drift_boost_frames = 0,
   }
 end
 
@@ -229,6 +235,11 @@ function _car_move(self, btns)
   if btns & 0x8 > 0 then move_fwd  -= 1 end
   local d_brake = btns & 0x10 > 0
 
+  -- Misc data
+  local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+  local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
+  local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
+
   -- Get the wheel modifiers (boost, road, grass, etc)
   local grass_wheels = 0
   for i, offset in pairs(self.wheel_offsets) do
@@ -247,20 +258,60 @@ function _car_move(self, btns)
 
   -- Apply the wheel modifiers
   local mod_turn = 1
+  local mod_corrective = 1
   local mod_max_vel = 1
   local mod_friction = 1
   local mod_accel = 1
   if grass_wheels >= 2 then
     mod_turn = 0.25
+    mod_corrective = 0.25
     mod_max_vel = 0.9
     mod_accel = 0.5
   end
 
   -- Visual Rotation
-  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1)) % 1
+  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.5 * abs(vel_dot_fwd) or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
+  end
+
+  -- Drift boost
+  local buildup_threshold = 15
+  local boost_duration = 45
+  local first_boost_frame = false
+  if d_brake then
+    local speed = dist(self.v_x, self.v_y)
+    if abs(vel_dot_fwd) < 0.85 and speed > 1 then
+      self.drift_boost_buildup += 1
+      if self.drift_boost_buildup >= buildup_threshold then
+        self.drift_boost_buildup = buildup_threshold + 30 -- hold frames
+      end
+      _wheel_particles(self, self.drift_boost_buildup >= buildup_threshold and 12 or 10)
+    else
+      if self.drift_boost_buildup >= buildup_threshold then
+        _wheel_particles(self, 12)
+      end
+      self.drift_boost_buildup -= 1
+    end
+  else
+    if self.drift_boost_buildup >= buildup_threshold then
+      self.drift_boost_frames = boost_duration
+      first_boost_frame = true
+    end
+    self.drift_boost_buildup = 0
+  end
+  if self.drift_boost_frames > 0 then
+    self.drift_boost_frames -= 1
+    mod_max_vel *= 1 + (0.5 * self.drift_boost_frames / boost_duration)
+    mod_turn *= 1 + (5 * self.drift_boost_frames / boost_duration)
+    if first_boost_frame then
+      for i = 1, 10 do
+        _wheel_particles(self, 8)
+      end
+      local angle_vel = atan2(self.v_x, self.v_y)
+      self.v_x, self.v_y = angle_vector(angle_vel, self.max_speed_fwd * mod_max_vel)
+    end
   end
 
   -- Update wheel offsets
@@ -283,12 +334,9 @@ function _car_move(self, btns)
     collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.angle_fwd)
   end
 
-  local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
-  local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
-
   -- Acceleration, friction, breaking. Note: mid is to stop over-correction
   if d_brake then
-    local f_stop = (move_fwd > 0 and self.f_friction 
+    local f_stop = (move_fwd > 0 and self.f_friction * 0.5
                 or (move_fwd == 0 and self.f_friction * 2 
                 or (move_fwd < 0 and self.brake * 2 or 1000)))
     self.v_x -= mid(v_x_normalized * f_stop, self.v_x, -self.v_x)
@@ -309,12 +357,11 @@ function _car_move(self, btns)
   -- Corrective side force
   -- Note: (x, y, 0) cross (0, 0, 1) -> (y, -x, 0)
   local right_x, right_y = fwd_y, -fwd_x
-  local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
   local vel_dot_right = dot(right_x, right_y, v_x_normalized, v_y_normalized)
   self.drifting = d_brake --abs(vel_dot_right) > 0.65
   if not d_brake then
-    self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective * mod_turn, self.v_x, -self.v_x)
-    self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective * mod_turn, self.v_y, -self.v_y)
+    self.v_x -= mid((1 - abs(vel_dot_fwd)) * right_x * sgn(vel_dot_right) * self.f_corrective * mod_corrective, self.v_x, -self.v_x)
+    self.v_y -= mid((1 - abs(vel_dot_fwd)) * right_y * sgn(vel_dot_right) * self.f_corrective * mod_corrective, self.v_y, -self.v_y)
   end
 
   -- Speed limit
@@ -351,6 +398,14 @@ function _car_move(self, btns)
   end
   if y_blocked then
     self.v_y *= 0.25
+  end
+end
+
+function _wheel_particles(self, c)
+  for i = 1, 3, 2 do -- back wheels
+    local wheel_x = flr(self.x) + self.wheel_offsets[i].x
+    local wheel_y = flr(self.y) + self.wheel_offsets[i].y
+    add_particle(particle_m, wheel_x, wheel_y, c, rnd(0.5)-0.25, rnd(0.5)-0.25, 15)
   end
 end
 
@@ -712,5 +767,46 @@ function _trail_manager_draw(self)
   end
 end
 
+
+-- Similar to Trail Manager, but particles are more complex and short-lived
+function spawn_particle_manager()
+  particle_m = {
+    update = _particle_manager_update,
+    draw = _particle_manager_draw,
+    points = {},
+    points_i = 1,
+    max_points = 100,
+  }
+
+  for i = 1, particle_m.max_points do
+    add(particle_m.points, {x=0, y=0, c=0, v_x=0, v_y=0, t=0})
+  end
+
+  -- Not adding to objects to have better control over draw order
+  --add(objects, trail_m)
+end
+
+function add_particle(self, x, y, c, v_x, v_y, t)
+  self.points[self.points_i] = {x=x, y=y, c=c, v_x=v_x, v_y=v_y, t=t}
+  self.points_i = (self.points_i % self.max_points) + 1
+end
+
+function _particle_manager_update(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    p.x += p.v_x
+    p.y += p.v_y
+    p.t -= 1
+  end
+end
+
+function _particle_manager_draw(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    if p.t > 0 then
+      pset(p.x, p.y, p.c)
+    end
+  end
+end
 
 
