@@ -229,8 +229,32 @@ function _car_move(self, btns)
   if btns & 0x8 > 0 then move_fwd  -= 1 end
   local d_brake = btns & 0x10 > 0
 
+  -- Get the wheel modifiers (boost, road, grass, etc)
+  local grass_wheels = 0
+  for i, offset in pairs(self.wheel_offsets) do
+    local check_x = flr(self.x) + offset.x
+    local check_y = flr(self.y) + offset.y
+    -- Visual only when on the road?
+    local collides_grass = collides_grass_at(check_x, check_y)
+    if collides_grass then
+      grass_wheels += 1
+    end
+    if not collides_grass and self.dirt_frames[i] > 0 then
+      add_trail_point(trail_m, check_x, check_y, 4)
+      self.dirt_frames[i] -= 1
+    end
+  end
+
+  -- Apply the wheel modifiers
+  local turn_mul = 1
+  local max_vel_mul = 1
+  if grass_wheels >= 2 then
+    turn_mul = 0.5
+    max_vel_mul = 0.9
+  end
+
   -- Visual Rotation
-  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1)) % 1
+  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * (d_brake and 1.2 or 1) * turn_mul) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
@@ -254,18 +278,6 @@ function _car_move(self, btns)
     self.x -= round(to_collision_x)
     self.y -= round(to_collision_y)
     collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.angle_fwd)
-  end
-
-  -- Get the wheel modifiers (boost, road, grass, etc)
-  -- TODO
-  for i, offset in pairs(self.wheel_offsets) do
-    local check_x = flr(self.x) + offset.x
-    local check_y = flr(self.y) + offset.y
-    -- Visual only when on the road?
-    if not collides_grass_at(check_x, check_y) and self.dirt_frames[i] > 0 then
-      add_trail_point(trail_m, check_x, check_y, 4)
-      self.dirt_frames[i] -= 1
-    end
   end
 
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
@@ -304,7 +316,7 @@ function _car_move(self, btns)
 
   -- Speed limit
   local angle_vel = atan2(self.v_x, self.v_y)
-  self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd, self.max_speed_rev))
+  self.v_x, self.v_y = angle_vector(v_theta, mid(dist(self.v_x, self.v_y), self.max_speed_fwd * max_vel_mul, self.max_speed_rev))
 
   -- Velocity rotation
   -- TODO: Cleanup ;)
