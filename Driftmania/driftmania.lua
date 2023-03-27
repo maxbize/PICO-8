@@ -265,7 +265,7 @@ function _car_move(self, btns)
   if grass_wheels >= 2 then
     mod_turn = 0.25
     mod_corrective = 0.25
-    mod_max_vel = 0.9
+    --mod_max_vel = 0.9
     mod_accel = 0.5
   end
 
