@@ -434,7 +434,7 @@ function _wheel_particles(self, c)
       particle_m = particle_front_m
     end
     --add_particle(particle_m, wheel_x, wheel_y, 0, c, rnd(0.5)-0.25, rnd(0.5)-0.25, rnd(0.5)+1.25, 60)
-    add_particle(particle_m, wheel_x, wheel_y, 0, c, rnd(0.3)-0.15, rnd(0.3)-0.15, rnd(0.5)+1.25, 60)
+    add_particle(particle_m, wheel_x, wheel_y, 2, c, rnd(0.5)-0.25, 0, rnd(0.5)+0.5, 60)
   end
 end
 
@@ -603,7 +603,7 @@ function frame_to_time_str(frames)
   -- mm:ss.mm. Max time 546.13 sec
   local min = '0' .. tostr(flr(frames/3600))
   local sec = tostr(flr(frames/60%60))
-  local sub_sec = tostr(flr(frames%60))
+  local sub_sec = tostr(flr(frames%60/60*100))
   return min .. ':' .. (#sec == 1 and '0' or '') .. sec .. '.' .. (#sub_sec == 1 and '0' or '') .. sub_sec
 end
 
@@ -643,7 +643,7 @@ function on_checkpoint_crossed(self)
       ghost_playback[self.frame + 1] = -1
       ghost_start_best = ghost_start_last
     end
-    --pawn_ghost() -- TODO: Ghost is not accurate
+    --spawn_ghost() -- TODO: Ghost is not accurate
     _set_ghost_start(player)
     self.frame = 1
   end
@@ -802,18 +802,18 @@ function spawn_particle_manager()
     draw = _particle_manager_draw,
     points = {},
     points_i = 1,
-    max_points = 50,
+    max_points = 75,
   }
 
   for i = 1, particle_m.max_points do
-    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0})
+    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, b=0})
   end
 
   return particle_m
 end
 
 function add_particle(self, x, y, z, c, v_x, v_y, v_z, t)
-  self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t}
+  self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, b=0, r=round(rnd(1.5))}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
@@ -825,10 +825,11 @@ function _particle_manager_update(self)
     p.v_z -= 0.1 -- gravity
     p.z += p.v_z
     if p.z < 0 then
+      p.b += 1 -- bounces
       p.v_z *= -0.8
       p.z = -p.z
       p.c = gradients[p.c]
-      p.v_x *= 2
+      p.v_x *= 0.5
       if p.c == 0 then
         p.t = 0
       end
@@ -841,7 +842,8 @@ function _particle_manager_draw(self)
   for i = 1, self.max_points do
     local p = self.points[i]
     if p.t > 0 then
-      pset(p.x, p.y - p.z, p.c)
+      local r = max(0, p.r - p.b/2)
+      rectfill(p.x, p.y - p.z, p.x + r, p.y - p.z + r, p.c)
     end
   end
 end
