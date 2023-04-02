@@ -55,36 +55,63 @@ function _init()
   spawn_trail_manager()
   particle_back_m = spawn_particle_manager()
   particle_front_m = spawn_particle_manager()
+
 end
 
 function _update60()
+  --if true then return end
   for obj in all(objects) do
     obj.update(obj)
   end
 
   _car_update(player)
+
   _particle_manager_update(particle_front_m)
   _particle_manager_update(particle_back_m)
 
 end
 
+-- CPU save opportunities:
+--   24% without sprite sorting
+--   10% with cls(3) and use sprite 0 in chunks
 function _draw()
-  cls(0)
+  cls(3)
+  -- CPU debugging
+  -- 23% CPU for full screen map, 0% for empty pixels
+  --map(7, 12, player.x - 64, player.y - 64, 16, 16)
+  -- 1-2% CPU
+  --rectfill(player.x - 64, player.y - 64, player.x + 64, player.y + 64, 7)
+  -- 25% CPU
+  --for i = 1, 16 do
+  --  for j = 1, 16 do
+  --    spr(21, player.x, player.y)
+  --  end
+  --end
+  --if true then return end
 
+  -- 30% CPU
   draw_map(map_road_chunks, 21, 3, true, true)
+  -- 9% CPU
   draw_map(map_decl_chunks, 21, 3, true, true)
+  -- 11% CPU
   _trail_manager_draw(trail_m)
+  -- 10% CPU
   draw_map(map_prop_chunks, 21, 3, false, true)
 
+  -- 0% CPU
   for obj in all(objects) do
     obj.draw(obj)
   end
 
+  -- 2% CPU
   _particle_manager_draw(particle_back_m)
 
+  -- 6% CPU
   _car_draw(player)
 
+  -- 2% CPU
   _particle_manager_draw(particle_front_m)
+  -- 10% CPU
   draw_map(map_prop_chunks, 21, 3, true, false)
 
   --_player_debug_draw(player)
@@ -285,6 +312,9 @@ function _car_move(self, btns)
   end
   if boost_wheels >= 1 then
     --first_boost_frame = true
+    if self.drift_boost_frames == 0 then
+      self.flash_frames = 5
+    end
     self.drift_boost_frames = 90
   end
 
@@ -713,6 +743,7 @@ local sprite_sorts = {
   [60] = {y_intercept = 3, slope = 0}, 
   [61] = {y_intercept = 3, slope = -1}, 
 }
+-- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player)
   -- Find the map index of the top-left map segment
   local camera_x = peek2(0x5f28)
@@ -737,6 +768,9 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
       -- top left corner of chunk in world
       local world_x = chunk_x * chunk_size * 8
       local world_y = chunk_y * chunk_size * 8
+
+      -- Draw whole chunk
+      --map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
 
       -- draw map with proper sorting
       for i = 0, chunk_size - 1 do
