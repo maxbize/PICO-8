@@ -38,7 +38,8 @@ local map_decl_data = '262626262626262626262626262626262626262626262626262626262
 local map_prop_data = '26262626262626262626262626262626262626262626262b2c2d2d2e2f2b2c2d2d2d3026262626262626262b3126262626323326262626343026262626262626352626262626363726262626263430262626262626382626393a26363726392e2f26263430262626262638262638382636372638263b2f26263826262626263826263838263637263826263c26263826262626263826263838263d3e263826263f26263826262626263826263840262626263f26414226263826262626263826264043442626414241422626454626262626263826264344434748424142262645462626262626263430262643472d2d48422626454626262626262626263430262626262626262645462626262626262626262634302626262626264546262626262626262626262626342d2d2d2d2d2d46262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626'
 local map_settings = {laps=3}
 local map_checkpoints = {{x=19.5*8, y=35*8, w=2, h=8*8, spawn_x=21*8, spawn_y=39*8, spawn_dir=0.5}, {x=24*8, y=14*8+3, w=8*8, h=2}}
-local gradients = {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
+local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
+local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 8, 10, 7, 11, 12, 14, 15, 7}
 
 --------------------
 -- Built-in Methods
@@ -193,6 +194,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     dirt_frames = {0, 0, 0, 0},
     drift_boost_buildup = 0,
     drift_boost_frames = 0,
+    flash_frames = 0,
   }
 end
 
@@ -294,20 +296,25 @@ function _car_move(self, btns)
   end
 
   -- Drift boost
-  local buildup_threshold = 15
+  local buildup_threshold = 10000
   local boost_duration = 45
+  self.flash_frames -= 1
   if d_brake then
     local speed = dist(self.v_x, self.v_y)
     if abs(vel_dot_fwd) < 0.85 and speed > 1 then
       self.drift_boost_buildup += 1
       if self.drift_boost_buildup >= buildup_threshold then
+        if self.drift_boost_buildup == buildup_threshold then
+          self.flash_frames = 6
+        end
         self.drift_boost_buildup = buildup_threshold + 30 -- hold frames
       end
-      _wheel_particles(self, self.drift_boost_buildup >= buildup_threshold and 12 or 10)
+      _wheel_particles(self, 10)
+      --_wheel_particles(self, self.drift_boost_buildup >= buildup_threshold and 12 or 10)
     else
-      if self.drift_boost_buildup >= buildup_threshold then
-        _wheel_particles(self, 12)
-      end
+      --if self.drift_boost_buildup >= buildup_threshold then
+      --  _wheel_particles(self, 12)
+      --end
       self.drift_boost_buildup -= 1
     end
   else
@@ -448,7 +455,12 @@ function _car_draw(self)
     pal(12, 13)
     pal(7, 6)
     pal(6, 1)
+  elseif self.flash_frames > 0 then
+    for i = 1, 15 do
+      pal(i, 7)
+    end
   end
+
   -- Costs 6% of CPU budget
   for i = 0, 4 do
     pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
