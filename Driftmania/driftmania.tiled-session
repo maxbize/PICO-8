@@ -1,18 +1,25 @@
 {
-    "activeFile": "",
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "driftmaniaLevel1.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
+        ":/automap-tiles.tsx": {
+            "scaleInDock": 8
+        },
         "driftmaniaChunks.tsx": {
             "scaleInDock": 1
         },
         "driftmaniaLevel1.tmx": {
-            "scale": 3,
-            "selectedLayer": 0,
+            "scale": 2,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 391,
-                "y": 435.33333333333337
+                "x": 381.5,
+                "y": 419.5
             }
         },
         "driftmaniaMaps.tmx": {
@@ -23,19 +30,51 @@
                 "y": 240.17790956263897
             }
         },
-        "ruleMap.tmx": {
-            "scale": 8,
+        "driftmaniaMaps2.tmx": {
+            "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 67.375,
-                "y": 156
+                "x": 193.66666666666663,
+                "y": 168.66666666666666
+            }
+        },
+        "driftmaniaTiles.tsx": {
+            "scaleInDock": 8
+        },
+        "propsRules.tmx": {
+            "scale": 2.1857421875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 104.31239388794563,
+                "y": 32.48324546510588
+            }
+        },
+        "ruleMap.tmx": {
+            "scale": 5.5,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 243.8181818181818,
+                "y": 155.8181818181818
             }
         }
     },
+    "map.height": 64,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 8,
+    "map.tileWidth": 8,
+    "map.width": 64,
     "openFiles": [
+        "ruleMap.tmx",
+        "driftmaniaLevel1.tmx",
+        "driftmaniaMaps2.tmx"
     ],
     "project": "driftmania.tiled-project",
+    "property.type": "bool",
     "recentFiles": [
+        "driftmaniaMaps2.tmx",
+        "propsRules.tmx",
+        "ruleMap.tmx",
+        "driftmaniaLevel1.tmx",
         "driftmaniaMaps.tmx"
     ]
 }

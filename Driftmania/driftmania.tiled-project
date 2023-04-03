@@ -1,5 +1,5 @@
 {
-    "automappingRulesFile": "rules.txt",
+    "automappingRulesFile": "ruleMap.tmx",
     "commands": [
     ],
     "compatibilityVersion": 1100,
