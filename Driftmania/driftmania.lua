@@ -224,6 +224,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     drift_boost_buildup = 0,
     drift_boost_frames = 0,
     flash_frames = 0,
+    started_boost_last_frame = false,
   }
 end
 
@@ -317,10 +318,13 @@ function _car_move(self, btns)
   end
   if boost_wheels >= 1 then
     --first_boost_frame = true
-    if self.drift_boost_frames == 0 then
+    if not self.started_boost_last_frame then
+      self.started_boost_last_frame = true
       self.flash_frames = 5
     end
     self.drift_boost_frames = 90
+  else
+    self.started_boost_last_frame = false
   end
 
   -- Visual Rotation
