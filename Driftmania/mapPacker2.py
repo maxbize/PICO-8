@@ -1,8 +1,10 @@
 '''
 Given a Tiled map of individual tiles, generate a map string with tiles arranged into n*n chunks
 
+TODO: So much code cleanup ;)
+
 TODO: Could optimize further by trimming the edges of the map that are all blank
-TODO: Could optimize further by using 7 bits for the index, 1 bit to indicate if the next num is a count or the next index
+TODO: Could optimize further by setting all grass tiles to sprite 0 and using cls(grass_color)
 '''
 
 import math
@@ -42,10 +44,20 @@ def write_map(chunks, n):
 				p8_map[math.floor(i / chunks_per_row) * n + y][(i % chunks_per_row) * n + x] = val
 
 	# Convert map to string
-	p8_map_str = [''.join([f'{val:0{2}x}' for val in row]) for row in p8_map]
+	p8_map_str = [f"{''.join([f'{val:0{2}x}' for val in row])}\n" for row in p8_map]
+
+	# Write the __map__ into the .p8 file itself
+	with open(sys.argv[3], 'r') as f:
+		lines = f.readlines()
+	for i, line in enumerate(lines):
+		if '__map__' in line:
+			lines[i+1:i+1+len(p8_map_str)] = p8_map_str
+			break
+	with open(sys.argv[3], 'w') as f:
+		f.writelines(lines)
 
 	print('\n__map__')
-	print('\n'.join(p8_map_str))
+	print(''.join(p8_map_str))
 	print()
 
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
@@ -99,11 +111,24 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 
 	return map_str_comp
 
-def build_map(data_list, n, pad_x, pad_y):
+# Write the string representation into lua code
+def write_map_str_to_lua(map_str, name):
+	name = name.lower()
+	with open(sys.argv[2], 'r') as f:
+		lines = f.readlines()
+	for i, line in enumerate(lines):
+		if f"local map_{name}_data =" in line:
+			lines[i] = f"local map_{name}_data = '{map_str}'\n"
+			break
+	with open(sys.argv[2], 'w') as f:
+		f.writelines(lines)
+
+def build_map(data_list, layer_names, n, pad_x, pad_y):
 	chunks = {} # string of index,index,.. -> chunk index
 	chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
 
-	for data in data_list:
+	for i, data in enumerate(data_list):
+		name = layer_names[i]
 		map_hex = ""  # The map tile values. 8 bits per tile
 		num_rows = len(data)
 		num_cols = len(data[0])
@@ -123,8 +148,9 @@ def build_map(data_list, n, pad_x, pad_y):
 		# Compress the string. First byte is index, second byte is count
 		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
 
-		print(f'\nmap_data (raw):\n{map_hex}')
-		print(f'\nmap_data (compressed):\n{map_str_comp}')
+		print(f'\n{name} map_data (raw):\n{map_hex}')
+		print(f'\n{name} map_data (compressed):\n{map_str_comp}')
+		write_map_str_to_lua(map_hex, name)
 
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
@@ -144,6 +170,7 @@ def build_map(data_list, n, pad_x, pad_y):
 root = ET.parse(sys.argv[1]).getroot()
 # Data has forward and trailing blank lines
 data_list = [layer.find("data").text[1:-1] for layer in root.findall("layer")]
+layer_names = [layer.get("name") for layer in root.findall("layer")]
 # Data has trailing commas
 # Data is 1-indexed so subtract one. Side effect: 0 is used for "empty" which we want to keep at 0 (rather than -1)
 for i, data in enumerate(data_list):
@@ -164,4 +191,5 @@ for i, data in enumerate(data_list):
 #print('\n'.join(str(r) for r in results))
 
 
-build_map(data_list, 3, 0, 0)
+build_map(data_list, layer_names, 3, 0, 0)
+

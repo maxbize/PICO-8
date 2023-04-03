@@ -18,8 +18,8 @@
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 381.5,
-                "y": 419.5
+                "x": 381,
+                "y": 419
             }
         },
         "driftmaniaMaps.tmx": {
@@ -34,8 +34,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 193.66666666666663,
-                "y": 168.66666666666666
+                "x": 193.3333333333333,
+                "y": 168.33333333333331
             }
         },
         "driftmaniaTiles.tsx": {

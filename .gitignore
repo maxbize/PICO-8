@@ -60,3 +60,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.tiled-session
