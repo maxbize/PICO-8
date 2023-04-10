@@ -696,11 +696,13 @@ function on_checkpoint_crossed(self, cp_index)
       end
     end,
     draw = function(self)
-      print(frame_to_time_str(self.time), player.x - 14, player.y - 32, 7)
+      local camera_x = peek2(0x5f28)
+      local camera_y = peek2(0x5f2a)
+      print(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
       if self.best_time ~= 0 then
         print((self.best_time > self.time and '-' or '+') 
-          .. frame_to_time_str(abs(self.best_time - self.time)), player.x - 18, player.y - 26,
-          self.best_time > self.time and 11 or 8)
+          .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
+          self.best_time >= self.time and 11 or 8)
       end
     end,
   })
