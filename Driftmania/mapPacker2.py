@@ -56,9 +56,9 @@ def write_map(chunks, n):
 	with open(sys.argv[3], 'w') as f:
 		f.writelines(lines)
 
-	print('\n__map__')
-	print(''.join(p8_map_str))
-	print()
+	#print('\n__map__')
+	#print(''.join(p8_map_str))
+	#print()
 
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
 # Note: chr/ord stores 7 bits per character (valid range 16-255), hex stores 4 bits per character
@@ -114,21 +114,26 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 # Write the string representation into lua code
 def write_map_str_to_lua(map_str, name):
 	name = name.lower()
+	prefix = f"local map_{name}_data ="
+	full = f"{prefix} '{map_str}'"
+	replace_lua_str(prefix, full)
+
+def replace_lua_str(prefix, full):
 	with open(sys.argv[2], 'r') as f:
 		lines = f.readlines()
 	for i, line in enumerate(lines):
-		if f"local map_{name}_data =" in line:
-			lines[i] = f"local map_{name}_data = '{map_str}'\n"
+		if prefix in line:
+			lines[i] = f"{full}\n"
 			break
 	with open(sys.argv[2], 'w') as f:
 		f.writelines(lines)
 
-def build_map(data_list, layer_names, n, pad_x, pad_y):
+def build_map(data_map, n, pad_x, pad_y):
 	chunks = {} # string of index,index,.. -> chunk index
 	chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
 
-	for i, data in enumerate(data_list):
-		name = layer_names[i]
+	for name in data_map:
+		data = data_map[name]
 		map_hex = ""  # The map tile values. 8 bits per tile
 		num_rows = len(data)
 		num_cols = len(data[0])
@@ -148,10 +153,9 @@ def build_map(data_list, layer_names, n, pad_x, pad_y):
 		# Compress the string. First byte is index, second byte is count
 		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
 
-		print(f'\n{name} map_data (raw):\n{map_hex}')
-		print(f'\n{name} map_data (compressed):\n{map_str_comp}')
+		#print(f'\n{name} map_data (raw):\n{map_hex}')
+		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
 		write_map_str_to_lua(map_hex, name)
-
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
 	write_map(chunks, n)
@@ -165,6 +169,98 @@ def build_map(data_list, layer_names, n, pad_x, pad_y):
 
 	return len(map_hex), len(map_str_comp), num_chunks
 
+# Find all sprites in data that are in the sprites list
+def find_all_sprites(data, sprites):
+	all_sprites = []
+	num_rows = len(data)
+	num_cols = len(data[0])
+	for y in range(num_rows):
+		for x in range(num_cols):
+			if data[y][x] in sprites:
+				all_sprites.append((x, y))
+	return all_sprites
+
+# Find any neighboring sprite from the list (8-directional)
+def find_neighbor_sprite(data, sprites, x, y):
+	for i in range(-1, 2):
+		for j in range(-1, 2):
+			if i == 0 and j == 0:
+				continue
+			if data[y + j][x + i] in sprites:
+				return x + i, y + j
+
+# Starting from x, y, walk by +/- delta_x/y until you hit a sprite in sprites
+# Includes borders in the response (DON'T HAVE CHECKPOINT ON THE OTHER SIDE OF A SINGLE WALL!)
+def walk_line(data, sprites, x, y, delta_x, delta_y):
+	line = []
+
+	# Find a border
+	while data[y][x] not in sprites:
+		x -= delta_x
+		y -= delta_y
+
+	# Add the border
+	line.append((x, y))
+	x += delta_x
+	y += delta_y
+
+	# Walk back to the other side
+	while data[y][x] not in sprites:
+		line.append((x, y))
+		x += delta_x
+		y += delta_y
+
+	# Add the border and return
+	line.append((x, y))
+	return line
+
+# DFS search on each checkpoint tile to build a list of checkpoints
+# Note: assumes all checkpoints are homogenous straight lines!
+green_checkpoint_sprites = [10, 11, 27, 28]
+brown_checkpoint_sprites = [12, 13, 14, 15]
+wall_sprites = [43, 44, 45, 59, 60, 61, 62]
+def build_checkpoints(data_map):
+	# Setup
+	props_data = data_map['Props']
+	decal_data = data_map['Decals']
+	num_rows = len(props_data)
+	num_cols = len(props_data[0])
+	checkpoints = []
+
+	# Search for the green checkpoint. ASSUMING THERE IS ONLY ONE GREEN CHECKPOINT
+	first_x, first_y = find_all_sprites(decal_data, green_checkpoint_sprites)[0]
+	next_x, next_y = find_neighbor_sprite(decal_data, green_checkpoint_sprites, first_x, first_y)
+	delta_x = next_x - first_x
+	delta_y = next_y - first_y
+	line = walk_line(props_data, wall_sprites, first_x, first_y, delta_x, delta_y)
+	checkpoints.append(line)
+
+	# Find all brown checkpoints
+	checkpoint_xys = find_all_sprites(decal_data, brown_checkpoint_sprites)
+	for checkpoint_xy in checkpoint_xys:
+		if any(checkpoint_xy in line for line in checkpoints):
+			continue # Already visited
+		first_x, first_y = checkpoint_xy
+		if props_data[first_y][first_x] in wall_sprites:
+			continue # Line walking messes up when starting on a wall
+		next_x, next_y = find_neighbor_sprite(decal_data, brown_checkpoint_sprites, first_x, first_y)
+		delta_x = next_x - first_x
+		delta_y = next_y - first_y
+		line = walk_line(props_data, wall_sprites, first_x, first_y, delta_x, delta_y)
+		checkpoints.append(line)
+
+	# Write the lua code
+	s = 'local map_checkpoints = {'
+	for line in checkpoints:
+		p1 = line[0]
+		p2 = line[1]
+		delta_x = p2[0] - p1[0]
+		delta_y = p2[1] - p1[1]
+		s += f'{{x={p1[0]*8+4},y={p1[1]*8+4},dx={delta_x},dy={delta_y},l={(len(line)-1)*8}}},'
+	s = s[:-1] + '}'
+	#print(s)
+	replace_lua_str('local map_checkpoints =', s)
+
 
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
@@ -177,6 +273,7 @@ for i, data in enumerate(data_list):
 	data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
 	data_list[i] = data
 # Data is now indexed by [row][col] aka [y][x]
+data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
 
 # Iterate all possibilities to find the best result
 #results = []
@@ -191,5 +288,5 @@ for i, data in enumerate(data_list):
 #print('\n'.join(str(r) for r in results))
 
 
-build_map(data_list, layer_names, 3, 0, 0)
-
+build_map(data_map, 3, 0, 0)
+build_checkpoints(data_map)
