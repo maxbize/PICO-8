@@ -54,8 +54,8 @@ function _init()
   spawn_level_manager()
   spawn_player()
   spawn_trail_manager()
-  particle_back_m = spawn_particle_manager()
-  particle_front_m = spawn_particle_manager()
+  particle_back_m = spawn_particle_manager_vol()
+  particle_front_m = spawn_particle_manager_vol()
 
 end
 
@@ -67,8 +67,8 @@ function _update60()
 
   _car_update(player)
 
-  _particle_manager_update(particle_front_m)
-  _particle_manager_update(particle_back_m)
+  _particle_manager_vol_update(particle_front_m)
+  _particle_manager_vol_update(particle_back_m)
 
 end
 
@@ -104,19 +104,18 @@ function _draw()
     obj.draw(obj)
   end
 
-  -- 2% CPU
-  _particle_manager_draw(particle_back_m)
+  -- ?% CPU
+  _particle_manager_vol_draw(particle_back_m)
 
   -- 6% CPU
   _car_draw(player)
 
-  -- 2% CPU
-  _particle_manager_draw(particle_front_m)
+  -- ?% CPU
+  _particle_manager_vol_draw(particle_front_m)
   -- 10% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, true, false)
 
   --_player_debug_draw(player)
-
 end
 
 
@@ -265,6 +264,9 @@ function _ghost_update(self)
 end
 
 function _car_move(self, btns)
+  if rnd(1) < 10.1 then
+    _wheel_particles(self, 10)
+  end
   -- Input
   local move_side = 0
   local move_fwd = 0
@@ -482,8 +484,15 @@ function _wheel_particles(self, c)
       particle_m = particle_front_m
     end
     --add_particle(particle_m, wheel_x, wheel_y, 0, c, rnd(0.5)-0.25, rnd(0.5)-0.25, rnd(0.5)+1.25, 60)
-    add_particle(particle_m, wheel_x, wheel_y, 2, c, rnd(0.5)-0.25, 0, rnd(0.5)+0.5, 60)
+    --add_particle(particle_m, wheel_x, wheel_y, 2, c, rnd(0.5)-0.25, 0, rnd(0.5)+0.5, 60)
+    
   end
+  local cone_angle = 0.1
+  local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 1)
+  local wheel_x = flr(self.x) + offset_x * 8
+  local wheel_y = flr(self.y) + offset_y * 8
+  add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 60, 4)
+
 end
 
 function _car_draw(self)
@@ -950,4 +959,68 @@ function _particle_manager_draw(self)
   end
 end
 
+
+-- Volumetric particle manager
+function spawn_particle_manager_vol()
+  local particle_m = {
+    update = _particle_manager_vol_update,
+    draw = _particle_manager_vol_draw,
+    points = {},
+    points_i = 1,
+    max_points = 75,
+  }
+
+  for i = 1, particle_m.max_points do
+    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, t_start=0, r=0, d=1})
+  end
+
+  return particle_m
+end
+
+function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
+  self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.9}
+  self.points_i = (self.points_i % self.max_points) + 1
+end
+
+function _particle_manager_vol_update(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    p.x += p.v_x
+    p.y += p.v_y
+    p.z += p.v_z
+    p.v_x *= p.d
+    p.v_y *= p.d
+    p.v_z *= p.d
+    p.t -= 1
+    if (p.t * 3) % p.t_start == 0 then
+      p.c = gradients[p.c]
+      p.r -= 1
+      p.v_z += 0.5
+    end
+    if p.t < 5 and p.r > 0 then
+      p.r -= 0.5
+    end
+  end
+end
+
+-- Good circfill radii: 2, 4, 7
+function _particle_manager_vol_draw(self)
+  local camera_x = peek2(0x5f28)
+  local camera_y = peek2(0x5f2a)
+
+  for i = 1, self.max_points do
+    local p = self.points[(self.points_i - i) % self.max_points + 1]
+    if p.t > 0 then
+      local c = p.t == p.t_start - 1 and 7 or p.c
+      local u = flr(abs(p.z)/2) -- underground correction
+      clip(0, 0, 128, p.y - camera_y) -- clip bottom
+      circfill(p.x, p.y - p.z, p.r, c)
+      clip(0, p.y - camera_y, 128, 128) -- clip top
+      if p.z <= p.r then
+        ovalfill(p.x - p.r + u, p.y - p.r/2, p.x + p.r - u, p.y + p.r/2 - u, c)
+      end
+    end
+  end
+  clip()
+end
 
