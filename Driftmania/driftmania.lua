@@ -498,6 +498,9 @@ end
 function _car_draw(self)
   palt(0, false)
   palt(15, true)
+
+  pal(11, self.drift_boost_frames > 10 and 8 or 2)
+
   local scale = 1
   if self.is_ghost then
     pal(8, 2)
@@ -510,6 +513,7 @@ function _car_draw(self)
       pal(i, 7)
     end
   end
+
 
   -- Costs 6% of CPU budget
   for i = 0, 4 do
