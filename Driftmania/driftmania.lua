@@ -110,10 +110,11 @@ function _draw()
   -- 6% CPU
   _car_draw(player)
 
-  -- ?% CPU
-  _particle_manager_vol_draw(particle_front_m)
   -- 10% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, true, false)
+
+  -- ?% CPU
+  _particle_manager_vol_draw(particle_front_m)
 
   --_player_debug_draw(player)
 end
@@ -265,7 +266,7 @@ end
 
 function _car_move(self, btns)
   if rnd(1) < 10.1 then
-    _wheel_particles(self, 10)
+    --_wheel_particles(self, 10)
   end
   -- Input
   local move_side = 0
@@ -491,8 +492,7 @@ function _wheel_particles(self, c)
   local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 1)
   local wheel_x = flr(self.x) + offset_x * 8
   local wheel_y = flr(self.y) + offset_y * 8
-  add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 60, 4)
-
+  add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
 end
 
 function _car_draw(self)
@@ -978,7 +978,8 @@ function spawn_particle_manager_vol()
 end
 
 function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
-  self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.9}
+  --self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
+  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
@@ -1010,15 +1011,31 @@ function _particle_manager_vol_draw(self)
 
   for i = 1, self.max_points do
     local p = self.points[(self.points_i - i) % self.max_points + 1]
+    if p.t > 0 and p.t ~= p.t_start - 1 then
+      --local x = mid(camera_x + p.r, p.x, camera_x +128-p.r)
+      --local y = mid(camera_y + p.r, p.y-p.z, camera_y +128-p.r)
+      --circfill(x, y, p.r + 1, gradients[gradients[p.c]])
+      --circfill(p.x, p.y-p.z, p.r + 1, gradients[gradients[p.c]])
+      circfill(p.x+player.x, p.y-p.z+player.y, p.r + 1, gradients[gradients[p.c]])
+    end
+  end
+
+
+  for i = 1, self.max_points do
+    local p = self.points[(self.points_i - i) % self.max_points + 1]
     if p.t > 0 then
       local c = p.t == p.t_start - 1 and 7 or p.c
-      local u = flr(abs(p.z)/2) -- underground correction
-      clip(0, 0, 128, p.y - camera_y) -- clip bottom
-      circfill(p.x, p.y - p.z, p.r, c)
-      clip(0, p.y - camera_y, 128, 128) -- clip top
-      if p.z <= p.r then
-        ovalfill(p.x - p.r + u, p.y - p.r/2, p.x + p.r - u, p.y + p.r/2 - u, c)
-      end
+      --local x = mid(camera_x + p.r, p.x, camera_x +128-p.r)
+      --local y = mid(camera_y + p.r, p.y-p.z, camera_y +128-p.r)
+      --local u = flr(abs(p.z)/2) -- underground correction
+      --clip(0, 0, 128, p.y - camera_y) -- clip bottom
+      --circfill(x, y, p.r, c)
+      --circfill(p.x, p.y-p.z, p.r, c)
+      circfill(p.x+player.x, p.y-p.z+player.y, p.r, c)
+      --clip(0, p.y - camera_y, 128, 128) -- clip top
+      --if p.z <= p.r then
+      --  ovalfill(p.x - p.r + u, p.y - p.r/2, p.x + p.r - u, p.y + p.r/2 - u, c)
+      --end
     end
   end
   clip()
