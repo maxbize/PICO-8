@@ -15,11 +15,11 @@
             "scaleInDock": 1
         },
         "driftmaniaLevel1.tmx": {
-            "scale": 2,
-            "selectedLayer": 2,
+            "scale": 8,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 381,
-                "y": 419
+                "x": 332.125,
+                "y": 401.625
             }
         },
         "driftmaniaMaps.tmx": {
@@ -31,11 +31,11 @@
             }
         },
         "driftmaniaMaps2.tmx": {
-            "scale": 3,
-            "selectedLayer": 0,
+            "scale": 16,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 193.3333333333333,
-                "y": 168.33333333333331
+                "x": 200.9375,
+                "y": 115.6875
             }
         },
         "driftmaniaTiles.tsx": {
@@ -71,10 +71,10 @@
     "project": "driftmania.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "driftmaniaMaps2.tmx",
-        "propsRules.tmx",
         "ruleMap.tmx",
+        "driftmaniaMaps2.tmx",
         "driftmaniaLevel1.tmx",
+        "propsRules.tmx",
         "driftmaniaMaps.tmx"
     ]
 }

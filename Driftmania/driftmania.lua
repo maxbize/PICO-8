@@ -34,19 +34,22 @@ end
 -- Data
 --------------------
 local map_road_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001020203000000000000000000000000000000000000000000000000000004050505030000000000000000000000000000000000000000000000000004050505050300000000000000000000000000000000000000000000000006050505050503000000000000000000000000000000000000000000000000060505050505030000000000000000000000000000000000000000000000000605050505050300000000000000000000000000000000000000000000000006050505050502020202020202020700000000000000000000000000000000060505050508080808080809050a00000000000000000000000000000000000605050b0000000000000c0d0a000000000000000000000000000000000000040a0000000000000000040a000000000000000000000000000000000000040a0000000000000000040a0000000000000000000000000000000000000e0f0000000000000000040a00000000000000000000000000000000000000000000000000000000040a00000000000000000000000000000000000000000000000000000000040a00000000000000000000000000000000000010070000000000000000040a000000000000000000000000000000000000040a0000000000000000040a0000000000000000000000000000000000000411120000000000001314111200000000000000000000000000000000000405150202020202021605051502020202070000000000000000000000000e080808080808080809050517080809050a0000000000000000000000000000000000000000000c0d181900000c0d0a00000000000000000000000000000000000000000000040a00000000040a00000000000000000000000000000000000000000000040a00000000040a00000000000000000000000000000000000000000000041112000013140a00000000000000000000000000000000000000000000040515020216050a000000000000000000000000000000000000000000000e0808080808080f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-local map_decals_data = '1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1b1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1c1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1d1e1a1a1a1a1a1a1a1a1a1f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a20211a22231a1a1a1a1a1a1a241a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a252326271a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a28292a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2b1a1a2c2d1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2e2f301a311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a32233334351a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a363738391a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a3a3b3c231a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a363d3e391a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2e3f1a3a4041421a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a43401a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a441a1a1a1a1a1a1a441a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a451a1a1a1a1a1a1a451a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a461a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a471a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a'
-local map_props_data = '1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4849494a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4b4c1a1a4d4e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a50511a4d4e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a4d52511a4d4e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a53511a4d52511a4d4e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a54511a4d52511a4d4e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a54511a4d52511a4d554949494949494949561a1a1a1a1a1a1a1a1a1a1a1a1a54511a4d52511a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a54511a4d52511a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a54511a4d57494949494949561a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a581a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a594949494949495a1a1a594949494949561a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a59494949494949494949561a1a5b4949561a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a4f1a1a4f1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a5949495a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a4f1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a5949494949494949495a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a'
+local map_decals_data = '1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1b1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1c1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1d1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1e1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1f201a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a21221a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a23241a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a25261a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a271a1a1a1a1a1a1a271a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a281a1a1a1a1a1a1a281a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a291a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a'
+local map_props_data = '1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2b2c2c2d1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a2e2f1a1a30311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a33341a30311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a3035341a30311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a36341a3035341a30311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a37341a3035341a30311a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a37341a3035341a30382c2c2c2c2c2c2c2c391a1a1a1a1a1a1a1a1a1a1a1a1a37341a3035341a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a37341a3035341a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a37341a303a2c2c2c2c2c2c391a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a3b1a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a1a1a1a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a3c2c2c2c2c2c2c3d1a1a3c2c2c2c2c2c391a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a3c2c2c2c2c2c2c2c2c2c391a1a3e2c2c391a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a321a1a321a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a3c2c2c3d1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a321a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a3c2c2c2c2c2c2c2c2c3d1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a'
 local map_settings = {laps=3, size=30, spawn_x=27*8, spawn_y=20*8, spawn_dir=0.375}
 --local map_settings = {laps=3, size=21, spawn_x=22*8, spawn_y=39*8, spawn_dir=0.5}
 local map_checkpoints = {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}
 local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 8, 10, 7, 11, 12, 14, 15, 7}
+local outline_cache = {}
 
 --------------------
 -- Built-in Methods
 --------------------
 
 function _init()
+  init_outline_cache()
+
   map_road_chunks, map_road_tiles = load_map(map_road_data, map_settings.size, 3)
   map_decl_chunks, map_decl_tiles = load_map(map_decals_data, map_settings.size, 3)
   map_prop_chunks, map_prop_tiles = load_map(map_props_data, map_settings.size, 3)
@@ -67,8 +70,9 @@ function _update60()
 
   _car_update(player)
 
+  -- 1% CPU
   _particle_manager_vol_update(particle_front_m)
-  _particle_manager_vol_update(particle_back_m)
+  --_particle_manager_vol_update(particle_back_m)
 
 end
 
@@ -96,6 +100,9 @@ function _draw()
   draw_map(map_decl_chunks, map_settings.size, 3, true, true)
   -- 11% CPU
   _trail_manager_draw(trail_m)
+
+  _particle_manager_vol_draw_bg(particle_front_m)
+
   -- 10% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, false, true)
 
@@ -105,7 +112,7 @@ function _draw()
   end
 
   -- ?% CPU
-  _particle_manager_vol_draw(particle_back_m)
+  --_particle_manager_vol_draw(particle_back_m)
 
   -- 6% CPU
   _car_draw(player)
@@ -113,8 +120,8 @@ function _draw()
   -- 10% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, true, false)
 
-  -- ?% CPU
-  _particle_manager_vol_draw(particle_front_m)
+  -- 3% CPU
+  _particle_manager_vol_draw_fg(particle_front_m)
 
   --_player_debug_draw(player)
 end
@@ -159,12 +166,14 @@ end
 
 -- Courtesy TheRoboZ
 function pd_rotate(x,y,rot,mx,my,w,flip,scale)
+  --rot = 1/32
   scale=scale or 1
   w*=scale*4
 
   local cs, ss = cos(rot)*.125/scale,sin(rot)*.125/scale
   local sx, sy = mx+cs*-w, my+ss*-w
   local hx = flip and -w or w
+
 
   local halfw = -w
   for py=y-w, y+w do
@@ -224,6 +233,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     drift_boost_frames = 0,
     flash_frames = 0,
     started_boost_last_frame = false,
+    water_wheels = 0,
   }
 end
 
@@ -490,12 +500,13 @@ function _wheel_particles(self, c)
   end
   local cone_angle = 0.1
   local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 1)
-  local wheel_x = flr(self.x) + offset_x * 8
-  local wheel_y = flr(self.y) + offset_y * 8
+  local wheel_x = flr(self.x) + offset_x * 6
+  local wheel_y = flr(self.y) + offset_y * 6
   add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
 end
 
 function _car_draw(self)
+  --self.angle_fwd = 8/32 -- 0,8,16,24 = correct, 1-7 = 0,1, 9-15 = 1,0, 17-23 = 0,-1, 25-31 = -1,0
   palt(0, false)
   palt(15, true)
 
@@ -514,12 +525,27 @@ function _car_draw(self)
     end
   end
 
+  draw_water_outline(round_nth(self.angle_fwd, 32))
 
   -- Costs 6% of CPU budget
-  for i = 0, 4 do
-    pd_rotate(self.x,self.y-i*scale,round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
+  for i = self.water_wheels < 2 and 0 or 1, 4 do
+    pd_rotate(self.x,self.y-i*scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
+    --break
   end
   pal()
+
+  local w = 11
+  local ii = 11
+  for i = -1, 1, 2 do
+    for j = -1, 1, 2 do
+      local wheel_x = round(cos(self.angle_fwd + 0.083 * i) * 5 * j)
+      local wheel_y = round(sin(self.angle_fwd + 0.083 * i) * 5 * j)
+      --pset(player.x+wheel_x, round(player.y-0.5+wheel_y), ii)
+      ii += 1
+    end
+  end
+
+  --line(player.x, player.y, player.x, player.y, 15)
 
   --print(self.x, self.x, self.y - 20)
   --print(self.y, self.x + 20, self.y - 20)
@@ -563,6 +589,7 @@ end
 
 -- Called whenever the player occupies a new position. Can be called multiple times per frame
 function _on_player_moved(self, x, y, angle)
+  self.water_wheels = 0
   for i, offset in pairs(self.wheel_offsets) do
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
@@ -570,9 +597,16 @@ function _on_player_moved(self, x, y, angle)
     if checkpoint ~= nil then
       on_checkpoint_crossed(level_m, checkpoint)
     end
-    if i % 2 == 0 and collides_grass_at(check_x, check_y) then -- front wheels
-      self.dirt_frames[i] = 10
-      add_trail_point(trail_m, check_x, check_y, 4)
+    if i % 2 == 0 then -- front wheels
+      local collides_water = collides_water_at(check_x, check_y)
+      if collides_water then
+        self.water_wheels += 1
+      end
+      local collides_grass = collides_grass_at(check_x, check_y)
+      if collides_grass and not collides_water then
+        self.dirt_frames[i] = 10
+        add_trail_point(trail_m, check_x, check_y, 4)
+      end
     end
     if i % 2 == 1 and self.drifting then -- back wheels
       add_trail_point(trail_m, check_x, check_y, 0)
@@ -621,6 +655,11 @@ end
 local grass_sprites = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
 function collides_grass_at(x, y)
   return collides_part_at(x, y, map_road_tiles, grass_sprites, 3)
+end
+
+local water_sprites = {[64]=true, [65]=true, [66]=true, [67]=true, [68]=true, [69]=true, [70]=true, [81]=true, [82]=true, [83]=true, [84]=true, [85]=true, [86]=true,}
+function collides_water_at(x, y)
+  return collides_part_at(x, y, map_decl_tiles, water_sprites, 12) or collides_part_at(x, y, map_decl_tiles, water_sprites, 7)
 end
 
 local boost_sprites = {[21]=true, [22]=true, [23]=true, [24]=true, [25]=true,}
@@ -971,7 +1010,7 @@ function spawn_particle_manager_vol()
     draw = _particle_manager_vol_draw,
     points = {},
     points_i = 1,
-    max_points = 75,
+    max_points = 30,
   }
 
   for i = 1, particle_m.max_points do
@@ -1008,11 +1047,21 @@ function _particle_manager_vol_update(self)
   end
 end
 
--- Good circfill radii: 2, 4, 7
-function _particle_manager_vol_draw(self)
-  local camera_x = peek2(0x5f28)
-  local camera_y = peek2(0x5f2a)
+function _particle_manager_vol_draw_bg(self)
+  -- Shadow pass
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    if p.t > 0 then
+      circfill(p.x+player.x, p.y+player.y, p.r + 1, 1)
+    end
+  end  
+end
 
+function _particle_manager_vol_draw_fg(self)
+  --local camera_x = peek2(0x5f28)
+  --local camera_y = peek2(0x5f2a)
+
+  -- Outline pass
   for i = 1, self.max_points do
     local p = self.points[(self.points_i - i) % self.max_points + 1]
     if p.t > 0 and p.t ~= p.t_start - 1 then
@@ -1024,7 +1073,7 @@ function _particle_manager_vol_draw(self)
     end
   end
 
-
+  -- Front pass
   for i = 1, self.max_points do
     local p = self.points[(self.points_i - i) % self.max_points + 1]
     if p.t > 0 then
@@ -1043,5 +1092,33 @@ function _particle_manager_vol_draw(self)
     end
   end
   clip()
+end
+
+function init_outline_cache()
+  camera(-64,-64)
+  for i = 0, 32 do
+    cls()
+    local rot = i/32
+    outline_cache[rot] = {}
+    pd_rotate(0,0,i/32,123,30.5,2,true,1)
+    for x = -15, 15 do
+      for y = -15, 15 do
+        local c = pget(x, y)
+        if c == 7 then
+          add(outline_cache[rot], {x=x, y=y})
+        end
+      end
+    end
+  end
+end
+
+function draw_water_outline(rot)
+  for offset in all(outline_cache[rot]) do
+    local x = player.x+offset.x
+    local y = player.y+offset.y
+    if collides_water_at(x, y) then
+      pset(x, y, 7)
+    end
+  end
 end
 
