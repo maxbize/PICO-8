@@ -166,14 +166,12 @@ end
 
 -- Courtesy TheRoboZ
 function pd_rotate(x,y,rot,mx,my,w,flip,scale)
-  --rot = 1/32
   scale=scale or 1
   w*=scale*4
 
   local cs, ss = cos(rot)*.125/scale,sin(rot)*.125/scale
   local sx, sy = mx+cs*-w, my+ss*-w
   local hx = flip and -w or w
-
 
   local halfw = -w
   for py=y-w, y+w do
@@ -659,7 +657,7 @@ end
 
 local water_sprites = {[64]=true, [65]=true, [66]=true, [67]=true, [68]=true, [69]=true, [70]=true, [81]=true, [82]=true, [83]=true, [84]=true, [85]=true, [86]=true,}
 function collides_water_at(x, y)
-  return collides_part_at(x, y, map_decl_tiles, water_sprites, 12) or collides_part_at(x, y, map_decl_tiles, water_sprites, 7)
+  return collides_part_at(x, y, map_decl_tiles, water_sprites, 12, 7)
 end
 
 local boost_sprites = {[21]=true, [22]=true, [23]=true, [24]=true, [25]=true,}
@@ -667,7 +665,8 @@ function collides_boost_at(x, y)
   return collides_part_at(x, y, map_decl_tiles, boost_sprites, 10)
 end
 
-function collides_part_at(x, y, tile_map, col_map, col_color)
+function collides_part_at(x, y, tile_map, col_map, c1, c2)
+  c2 = c2 or -1
   local sprite_index = tile_map[flr(x/8)][flr(y/8)]
   if sprite_index == nil then
     return false
@@ -676,7 +675,7 @@ function collides_part_at(x, y, tile_map, col_map, col_color)
     local sx = (sprite_index % 16) * 8 + x % 8
     local sy = flr(sprite_index / 16) * 8 + y % 8
     local col = sget(sx, sy)
-    return col == col_color
+    return col == c1 or col == c2
   end
   return false
 end
@@ -877,32 +876,34 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
       local world_x = chunk_x * chunk_size * 8
       local world_y = chunk_y * chunk_size * 8
 
-      -- Draw whole chunk
-      --map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
-
-      -- draw map with proper sorting
-      for i = 0, chunk_size - 1 do
-        local strip_world_y = world_y + i * 8 -- map strip
-        local above_player = strip_world_y < player.y
-        local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size * 8 and player.x + 5 > world_x - 2
-        if (above_player and draw_above_player) or (not above_player and draw_below_player) or contains_player then
-          if not contains_player then
-            map(tile_x, tile_y + i, world_x, strip_world_y, chunk_size, 1)
-          else
-            for j = 0, chunk_size - 1 do
-              local sprite_index = mget(tile_x + j, tile_y + i)
-              local draw = true
-              local sprite_x = world_x + j * 8
-              local sprite_y = world_y + i * 8
-              if sprite_sorts[sprite_index] ~= nil then
-                -- Project a line and see if the car is above or below it
-                local sprite_y_intercept = sprite_y + sprite_sorts[sprite_index].y_intercept
-                local car_y_intercept = player.y + (sprite_x - player.x) * sprite_sorts[sprite_index].slope
-                above_player = sprite_y_intercept < car_y_intercept
-                draw = (above_player and draw_above_player) or (not above_player and draw_below_player)
-              end
-              if draw then
-                spr(sprite_index, sprite_x, sprite_y)
+      if draw_above_player and draw_below_player then
+        -- draw whole chunk
+        map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
+      else
+        -- draw map with proper sorting
+        for i = 0, chunk_size - 1 do
+          local strip_world_y = world_y + i * 8 -- map strip
+          local above_player = strip_world_y < player.y
+          local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size * 8 and player.x + 5 > world_x - 2
+          if (above_player and draw_above_player) or (not above_player and draw_below_player) or contains_player then
+            if not contains_player then
+              map(tile_x, tile_y + i, world_x, strip_world_y, chunk_size, 1)
+            else
+              for j = 0, chunk_size - 1 do
+                local sprite_index = mget(tile_x + j, tile_y + i)
+                local draw = true
+                local sprite_x = world_x + j * 8
+                local sprite_y = world_y + i * 8
+                if sprite_sorts[sprite_index] ~= nil then
+                  -- Project a line and see if the car is above or below it
+                  local sprite_y_intercept = sprite_y + sprite_sorts[sprite_index].y_intercept
+                  local car_y_intercept = player.y + (sprite_x - player.x) * sprite_sorts[sprite_index].slope
+                  above_player = sprite_y_intercept < car_y_intercept
+                  draw = (above_player and draw_above_player) or (not above_player and draw_below_player)
+                end
+                if draw then
+                  spr(sprite_index, sprite_x, sprite_y)
+                end
               end
             end
           end
