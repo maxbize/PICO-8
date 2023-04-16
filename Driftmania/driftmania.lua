@@ -42,13 +42,15 @@ local map_checkpoints = {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l
 local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 8, 10, 7, 11, 12, 14, 15, 7}
 local outline_cache = {}
+local bbox_cache = {}
 
 --------------------
 -- Built-in Methods
 --------------------
 
 function _init()
-  init_outline_cache()
+  init_outline_cache(outline_cache, 30.5)
+  init_outline_cache(bbox_cache, 28.5)
 
   map_road_chunks, map_road_tiles = load_map(map_road_data, map_settings.size, 3)
   map_decl_chunks, map_decl_tiles = load_map(map_decals_data, map_settings.size, 3)
@@ -613,7 +615,7 @@ function _on_player_moved(self, x, y, angle)
 end
 
 function _player_collides_at(self, x, y, angle)
-  for offset in all(self.wheel_offsets) do
+  for offset in all(bbox_cache[round_nth(angle,32)]) do
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     if (collides_wall_at(check_x, check_y)) then
@@ -1095,18 +1097,18 @@ function _particle_manager_vol_draw_fg(self)
   clip()
 end
 
-function init_outline_cache()
+function init_outline_cache(t, y)
   camera(-64,-64)
   for i = 0, 32 do
     cls()
     local rot = i/32
-    outline_cache[rot] = {}
-    pd_rotate(0,0,i/32,123,30.5,2,true,1)
+    t[rot] = {}
+    pd_rotate(0,0,i/32,123,y,2,true,1)
     for x = -15, 15 do
       for y = -15, 15 do
         local c = pget(x, y)
         if c == 7 then
-          add(outline_cache[rot], {x=x, y=y})
+          add(t[rot], {x=x, y=y})
         end
       end
     end
