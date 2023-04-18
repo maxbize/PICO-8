@@ -10,6 +10,7 @@ local level_m = nil
 local trail_m = nil
 local particle_front_m = nil
 local particle_back_m = nil
+local particle_water_m = nil
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -61,7 +62,7 @@ function _init()
   spawn_trail_manager()
   particle_back_m = spawn_particle_manager_vol()
   particle_front_m = spawn_particle_manager_vol()
-
+  particle_water_m = spawn_particle_manager_water()
 end
 
 function _update60()
@@ -75,6 +76,7 @@ function _update60()
   -- 1% CPU
   _particle_manager_vol_update(particle_front_m)
   --_particle_manager_vol_update(particle_back_m)
+  _particle_manager_water_update(particle_water_m)
 
 end
 
@@ -115,6 +117,8 @@ function _draw()
 
   -- ?% CPU
   --_particle_manager_vol_draw(particle_back_m)
+
+  _particle_manager_water_draw(particle_water_m)
 
   -- 6% CPU
   _car_draw(player)
@@ -162,6 +166,12 @@ function round_nth(x, n)
   return x - lower < (0.5 / n) and lower or lower + 1 / n
 end
 
+-- Random between -num, +num
+function rnd2(n)
+  n = abs(n)
+  return rnd(2*n) - n
+end
+
 function round(n)
   return n%1 < 0.5 and flr(n) or -flr(-n)
 end
@@ -192,9 +202,6 @@ function spawn_player()
 
   player = create_car(x, y, 0, 0, 0, 0, dir, false)
   _set_ghost_start(player)
-
-  -- Not adding to objects to have better control over draw order
-  --add(objects, player)
 end
 
 function spawn_ghost()
@@ -601,6 +608,9 @@ function _on_player_moved(self, x, y, angle)
       local collides_water = collides_water_at(check_x, check_y)
       if collides_water then
         self.water_wheels += 1
+        local side = i == 4 and 1 or -1
+        add_particle_water(particle_water_m, check_x, check_y, 7, rnd2(self.v_y*0.05), rnd2(-self.v_x*0.05), rnd(20)+15, true)
+        add_particle_water(particle_water_m, check_x, check_y, 7, self.v_y*0.175*side, -self.v_x*0.175*side, rnd(20)+20)
       end
       local collides_grass = collides_grass_at(check_x, check_y)
       if collides_grass and not collides_water then
@@ -649,31 +659,36 @@ end
 -- Checks if the given position on the map overlaps a wall
 local wall_collision_sprites = {[43]=true, [44]=true, [45]=true, [59]=true, [60]=true, [61]=true, [62]=true}
 function collides_wall_at(x, y)
-  return collides_part_at(x, y, map_prop_tiles, wall_collision_sprites, 6)
+  return collides_part_at(x, y, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
 
-local grass_sprites = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
+local grass_sprites_full = {[26]=true,}
+local grass_sprites_part = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
 function collides_grass_at(x, y)
-  return collides_part_at(x, y, map_road_tiles, grass_sprites, 3)
+  return collides_part_at(x, y, map_road_tiles, grass_sprites_full, grass_sprites_part, 3)
 end
 
-local water_sprites = {[64]=true, [65]=true, [66]=true, [67]=true, [68]=true, [69]=true, [70]=true, [81]=true, [82]=true, [83]=true, [84]=true, [85]=true, [86]=true,}
+local water_sprites_full = {[64]=true, [69]=true, [70]=true, [85]=true, [86]=true,}
+local water_sprites_part = {[65]=true, [66]=true, [67]=true, [68]=true, [81]=true, [82]=true, [83]=true, [84]=true,}
 function collides_water_at(x, y)
-  return collides_part_at(x, y, map_decl_tiles, water_sprites, 12, 7)
+  return collides_part_at(x, y, map_decl_tiles, water_sprites_full, water_sprites_part, 12, 7)
 end
 
-local boost_sprites = {[21]=true, [22]=true, [23]=true, [24]=true, [25]=true,}
+local boost_sprites_full = {[21]=true,}
+local boost_sprites_part = {[22]=true, [23]=true, [24]=true, [25]=true,}
 function collides_boost_at(x, y)
-  return collides_part_at(x, y, map_decl_tiles, boost_sprites, 10)
+  return collides_part_at(x, y, map_decl_tiles, boost_sprites_full, boost_sprites_part, 10)
 end
 
-function collides_part_at(x, y, tile_map, col_map, c1, c2)
+function collides_part_at(x, y, tile_map, full_col_sprites, part_col_sprites, c1, c2)
   c2 = c2 or -1
   local sprite_index = tile_map[flr(x/8)][flr(y/8)]
   if sprite_index == nil then
     return false
   end
-  if col_map[sprite_index] then
+  if full_col_sprites[sprite_index] then
+    return true
+  elseif part_col_sprites[sprite_index] then
     local sx = (sprite_index % 16) * 8 + x % 8
     local sy = flr(sprite_index / 16) * 8 + y % 8
     local col = sget(sx, sy)
@@ -1032,20 +1047,22 @@ end
 function _particle_manager_vol_update(self)
   for i = 1, self.max_points do
     local p = self.points[i]
-    p.x += p.v_x
-    p.y += p.v_y
-    p.z += p.v_z
-    p.v_x *= p.d
-    p.v_y *= p.d
-    p.v_z *= p.d
-    p.t -= 1
-    if (p.t * 3) % p.t_start == 0 then
-      p.c = gradients[p.c]
-      p.r -= 1
-      p.v_z += 0.5
-    end
-    if p.t < 5 and p.r > 0 then
-      p.r -= 0.5
+      if p.t > 0 then
+      p.x += p.v_x
+      p.y += p.v_y
+      p.z += p.v_z
+      p.v_x *= p.d
+      p.v_y *= p.d
+      p.v_z *= p.d
+      p.t -= 1
+      if (p.t * 3) % p.t_start == 0 then
+        p.c = gradients[p.c]
+        p.r -= 1
+        p.v_z += 0.5
+      end
+      if p.t < 5 and p.r > 0 then
+        p.r -= 0.5
+      end
     end
   end
 end
@@ -1096,6 +1113,72 @@ function _particle_manager_vol_draw_fg(self)
   end
   clip()
 end
+
+
+-- Water trail/wake
+function spawn_particle_manager_water()
+  local particle_m = {
+    update = _particle_manager_water_update,
+    draw = _particle_manager_water_draw,
+    points = {},
+    points_i = 1,
+    max_points = 500,
+  }
+
+  for i = 1, particle_m.max_points do
+    add(particle_m.points, {x=0, y=0, c=0, v_x=0, v_y=0, t=0})
+  end
+
+  return particle_m
+end
+
+function add_particle_water(self, x, y, c, v_x, v_y, t, double)
+  --if rnd(1) > 0.5 then return end
+  self.points[self.points_i] = {x=x, y=y, c=c, v_x=v_x, v_y=v_y, t=round(t),}
+  self.points_i = (self.points_i % self.max_points) + 1
+  if double then
+    local v_x_greater = abs(v_x) > abs(v_y)
+    self.points[self.points_i] = {x=x+(v_x_greater and 1 or 0), y=y+(v_x_greater and 0 or 1), c=c, v_x=v_x, v_y=v_y, t=round(t+rnd2(t*.2)),}
+    self.points_i = (self.points_i % self.max_points) + 1
+  end
+end
+
+function _particle_manager_water_update(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    if p.t > 0 then
+      local x_before = flr(p.x)
+      p.x += p.v_x
+      if flr(p.x) ~= x_before and not collides_water_at(p.x, p.y) then
+        p.v_x *= -1
+        p.x += p.v_x
+      end
+      local y_before = flr(p.y)
+      p.y += p.v_y
+      if flr(p.y) ~= y_before and not collides_water_at(p.x, p.y) then
+        p.v_y *= -1
+        p.y += p.v_y
+      end
+      p.t -= 1
+
+      if p.t == 2 then
+        --p.c = 13
+      elseif p.t == 8 then 
+        p.c = 6
+      end
+    end
+  end
+end
+
+function _particle_manager_water_draw(self)
+  for i = 1, self.max_points do
+    local p = self.points[i]
+    if p.t > 0 then
+      pset(p.x, p.y, p.c)
+    end
+  end
+end
+
 
 function init_outline_cache(t, y)
   camera(-64,-64)
