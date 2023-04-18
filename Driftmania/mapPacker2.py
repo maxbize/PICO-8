@@ -271,6 +271,7 @@ layer_names = [layer.get("name") for layer in root.findall("layer")]
 # Data is 1-indexed so subtract one. Side effect: 0 is used for "empty" which we want to keep at 0 (rather than -1)
 for i, data in enumerate(data_list):
 	data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
+	data = [[cell if cell != 26 else 0 for cell in row] for row in data] # Set full grass sprite to 0 since it'll be drawn in cls(3)
 	data_list[i] = data
 # Data is now indexed by [row][col] aka [y][x]
 data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
