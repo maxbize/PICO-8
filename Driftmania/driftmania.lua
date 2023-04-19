@@ -132,6 +132,7 @@ function _draw()
   _particle_manager_vol_draw_fg(particle_front_m)
 
   --_player_debug_draw(player)
+  print(stat(0), player.x, player.y - 20, 0)
 end
 
 
@@ -876,6 +877,7 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
   local camera_y = peek2(0x5f2a)
   local chunks_per_row = flr(128/chunk_size)
   local draw_distance = -flr(-16/chunk_size) -- -flr(-x) == ceil(x)
+  local chunk_size_x8 = chunk_size * 8
 
   for i = 0, draw_distance do
     for j = 0, draw_distance do
@@ -892,14 +894,14 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
       local tile_y = flr(chunk_index / chunks_per_row) * chunk_size
 
       -- top left corner of chunk in world
-      local world_x = chunk_x * chunk_size * 8
-      local world_y = chunk_y * chunk_size * 8
+      local world_x = chunk_x * chunk_size_x8
+      local world_y = chunk_y * chunk_size_x8
 
       if draw_above_player and draw_below_player then
         -- draw whole chunk
         -- TODO: Create table of chunk index -> rectfill color for solid chunks
-        if tile_x == 15 and tile_y == 0 then
-          rectfill(world_x, world_y, world_x + chunk_size * 8, world_y + chunk_size * 8, 5)
+        if chunk_index == 5 then
+          rectfill(world_x, world_y, world_x + chunk_size_x8, world_y + chunk_size_x8, 5)
         else
           map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
         end
@@ -908,7 +910,7 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
         for i = 0, chunk_size - 1 do
           local strip_world_y = world_y + i * 8 -- map strip
           local above_player = strip_world_y < player.y
-          local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size * 8 and player.x + 5 > world_x - 2
+          local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size_x8 and player.x + 5 > world_x - 2
           if (above_player and draw_above_player) or (not above_player and draw_below_player) or contains_player then
             if not contains_player then
               map(tile_x, tile_y + i, world_x, strip_world_y, chunk_size, 1)
@@ -951,11 +953,13 @@ function spawn_trail_manager()
   }
 
   for i = 1, trail_m.max_points do
-    add(trail_m.points, {x=0, y=0, c=0})
+    --poke2(0x8000 + i*6, 0, 0, 0)
+    add(trail_m.points, {x=0,y=0,c=0})
   end
 end
 
 function add_trail_point(self, x, y, c)
+  --poke2(0x8000 + self.points_i*6, x, y, c)
   self.points[self.points_i] = {x=x, y=y, c=c}
   self.points_i = (self.points_i % self.max_points) + 1
 end
@@ -964,6 +968,9 @@ function _trail_manager_update(self)
 end
 
 function _trail_manager_draw(self)
+  --for i = 0x8000, 0x8000+self.max_points*6, 6 do
+  --  pset(%i, %(i+2), %(i+4))
+  --end
   for p in all(self.points) do
     pset(p.x, p.y, p.c)
   end
