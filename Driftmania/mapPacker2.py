@@ -132,6 +132,12 @@ def build_map(data_map, n, pad_x, pad_y):
 	chunks = {} # string of index,index,.. -> chunk index
 	chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
 
+	# Seed the first chunks with solid colors
+	for idx in [0, 1, 21, 26, 64]:
+		chunk = ''.join([f'{idx:003}' for _ in range(n*n)])
+		chunks[chunk] = len(chunks)
+		chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
+
 	for name in data_map:
 		data = data_map[name]
 		map_hex = ""  # The map tile values. 8 bits per tile
@@ -151,7 +157,7 @@ def build_map(data_map, n, pad_x, pad_y):
 		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 		# Compress the string. First byte is index, second byte is count
-		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
+		map_str_comp = compress_map_str(map_hex, num_chunks, 1)
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
 		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
