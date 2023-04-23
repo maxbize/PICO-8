@@ -11,6 +11,8 @@ local trail_m = nil
 local particle_front_m = nil
 local particle_back_m = nil
 local particle_water_m = nil
+local customization_m = nil
+local game_state = 1 -- 0=race, 1=customization
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -41,7 +43,7 @@ local map_settings = {laps=3, size=30, spawn_x=27*8, spawn_y=20*8, spawn_dir=0.3
 --local map_settings = {laps=3, size=21, spawn_x=22*8, spawn_y=39*8, spawn_dir=0.5}
 local map_checkpoints = {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}
 local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
-local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 8, 10, 7, 11, 12, 14, 15, 7}
+local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 7, 10, 7, 7, 7, 14, 15, 7}
 local outline_cache = {}
 local bbox_cache = {}
 
@@ -60,19 +62,21 @@ function _init()
   spawn_level_manager()
   spawn_player()
   spawn_trail_manager()
+  spawn_customization_manager()
   particle_back_m = spawn_particle_manager_vol()
   particle_front_m = spawn_particle_manager_vol()
   particle_water_m = spawn_particle_manager_water()
 end
 
 function _update60()
-  --if true then return end
   for obj in all(objects) do
     obj.update(obj)
   end
 
-  -- 3% CPU
-  _car_update(player)
+  if game_state == 0 then
+    -- 3% CPU
+    _car_update(player)
+  end
 
   -- 0% CPU (idle)
   _particle_manager_vol_update(particle_front_m)
@@ -123,8 +127,10 @@ function _draw()
   -- ?% CPU
   --_particle_manager_vol_draw(particle_back_m)
 
-  -- 7% CPU
-  _car_draw(player)
+  if game_state == 0 then
+    -- 7% CPU
+    _car_draw(player)
+  end
 
   -- 12% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, true, false)
@@ -246,6 +252,7 @@ function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
     flash_frames = 0,
     started_boost_last_frame = false,
     water_wheels = 0,
+    scale = 1,
   }
 end
 
@@ -536,9 +543,6 @@ function _car_draw(self)
   palt(0, false)
   palt(15, true)
 
-  pal(11, self.drift_boost_frames > 10 and 8 or 2)
-
-  local scale = 1
   if self.is_ghost then
     pal(8, 2)
     pal(10, 4)
@@ -551,11 +555,23 @@ function _car_draw(self)
     end
   end
 
+  for d in all(customization_m.data) do
+    local c = d.options[d.chosen_i]
+    pal(d.original, c)
+    if d.original == 8 then -- body - set gradient color
+      local gradient_c = gradients[c]
+      pal(2, gradient_c)
+      pal(11, self.drift_boost_frames > 10 and c or gradient_c)
+    elseif d.original == 4 then -- windows - set highlight color
+      pal(12, gradients_rev[c])
+    end
+  end
+
   draw_water_outline(round_nth(self.angle_fwd, 32))
 
   -- Costs 6% of CPU budget
   for i = self.water_wheels < 2 and 0 or 1, 4 do
-    pd_rotate(self.x,self.y-i*scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,scale)
+    pd_rotate(self.x,self.y-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,self.scale)
     --break
   end
   pal()
@@ -891,6 +907,10 @@ local sprite_sorts = {
 local solid_chunks = {5, 10, 3, 12}
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player)
+  if game_state ~= 0 then
+    return
+  end
+
   -- Find the map index of the top-left map segment
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
@@ -1233,4 +1253,94 @@ function draw_water_outline(rot)
     end
   end
 end
+
+--------------------
+-- UI
+--------------------
+
+function spawn_customization_manager()
+  customization_m = {
+    update = _customization_manager_update,
+    draw = _customization_manager_draw,
+    car = {
+      x = 92,
+      y = 66,
+      drift_boost_frames = 0,
+      flash_frames = 0,
+      angle_fwd = 0,
+      water_wheels = 0,
+      scale = 2
+    },
+    index = 1,
+    data = {
+      {text='bODY',original=8,chosen_i=3,options=split("0,7,8,9,10,11,12,14,15")},
+      {text='sTRIPE',original=10,chosen_i=11,options=split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
+      {text='wINDOWS',original=4,chosen_i=2,options=split("0,1,3,4,5,6,7,13")},
+      {text='wHEELS',original=0,chosen_i=1,options=split("0,7,8,9,10,11,12,14,15")},
+      {text='uNDERGLOW',original=14,chosen_i=1,options=split("1,7,8,9,10,11,12,14,15")},
+      {text='hEADLIGHTS',original=7,chosen_i=1,options=split("7,8,9,10,11,12,14,15")},
+      {text='bUMPER',original=6,chosen_i=6,options=split("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
+    },
+    frames = 0,
+  }
+
+  add(objects, customization_m)
+end
+
+function _customization_manager_draw(self)
+  if game_state == 1 then
+    local border = 10
+    cls(1)
+    rect(0, border+1, 127, 127 - border, 12)
+    print('gARAGE', 55, 18, 0)
+    print('gARAGE', 54, 18, 7)
+    rectfill(0, 0, 128, border, 0)
+    rectfill(0, 128-border, 128, 128, 0)
+    rectfill(60, 32, 121, 96, 5)
+    rect(60, 32, 123, 96, 6)
+    rect(61, 33, 122, 95, 6)
+    _car_draw(self.car)
+
+    local dx = self.frames > 0 and 1 or 0
+
+    for i = 1, count(self.data) do
+      local option = self.data[i]
+      print(option.text, 16 + (self.index == i and dx or 0), 22 + i * 10, 0)
+      print(option.text, 15 + (self.index == i and dx or 0), 22 + i * 10, self.index == i and 7 or 6)
+    end
+
+    spr(16, 5 + dx, 20 + self.index * 10)
+  end
+end
+
+function _customization_manager_update(self)
+  if game_state == 1 then
+
+    camera()
+    self.car.angle_fwd += 0.003
+    if self.frames > 0 then
+      self.frames -= 1
+    end
+
+    -- up/down
+    if btnp(3) then
+      self.index = (self.index % count(self.data)) + 1
+    elseif btnp(2) then
+      self.index = self.index == 1 and count(self.data) or self.index - 1
+    end
+
+    -- left/right
+    if btnp(1) then
+      local opt = self.data[self.index]
+      opt.chosen_i = (opt.chosen_i % count(opt.options)) + 1
+      self.frames = 5
+    elseif btnp(0) then
+      local opt = self.data[self.index]
+      opt.chosen_i = opt.chosen_i == 1 and count(opt.options) or opt.chosen_i - 1
+      self.frames = 5
+    end
+
+  end
+end
+
 
