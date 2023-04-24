@@ -140,7 +140,7 @@ function _draw()
 
   --_player_debug_draw(player)
   --print(stat(0), player.x, player.y - 20, 0)
-  print(dist(player.v_x, player.v_y), player.x, player.y - 20, 0)
+  --print(dist(player.v_x, player.v_y), player.x, player.y - 20, 0)
 end
 
 
@@ -543,6 +543,20 @@ function _car_draw(self)
   palt(0, false)
   palt(15, true)
 
+  for d in all(customization_m.data) do
+    if d.text ~= 'tYPE' then
+      local c = d.options[d.chosen_i]
+      pal(d.original, c)
+      if d.original == 8 then -- body - set gradient color
+        local gradient_c = gradients[c]
+        pal(2, gradient_c)
+        pal(11, self.drift_boost_frames > 10 and c or gradient_c)
+      elseif d.original == 4 then -- windows - set highlight color
+        pal(12, gradients_rev[c])
+      end
+    end
+  end
+
   if self.is_ghost then
     pal(8, 2)
     pal(10, 4)
@@ -552,18 +566,6 @@ function _car_draw(self)
   elseif self.flash_frames > 0 then
     for i = 0, 15 do
       pal(i, 7)
-    end
-  end
-
-  for d in all(customization_m.data) do
-    local c = d.options[d.chosen_i]
-    pal(d.original, c)
-    if d.original == 8 then -- body - set gradient color
-      local gradient_c = gradients[c]
-      pal(2, gradient_c)
-      pal(11, self.drift_boost_frames > 10 and c or gradient_c)
-    elseif d.original == 4 then -- windows - set highlight color
-      pal(12, gradients_rev[c])
     end
   end
 
@@ -1259,12 +1261,13 @@ end
 --------------------
 
 function spawn_customization_manager()
+  local opt = split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")
   customization_m = {
     update = _customization_manager_update,
     draw = _customization_manager_draw,
     car = {
       x = 92,
-      y = 66,
+      y = 68,
       drift_boost_frames = 0,
       flash_frames = 0,
       angle_fwd = 0,
@@ -1273,13 +1276,21 @@ function spawn_customization_manager()
     },
     index = 1,
     data = {
-      {text='bODY',original=8,chosen_i=3,options=split("0,7,8,9,10,11,12,14,15")},
-      {text='sTRIPE',original=10,chosen_i=11,options=split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
-      {text='wINDOWS',original=4,chosen_i=2,options=split("0,1,3,4,5,6,7,13")},
-      {text='wHEELS',original=0,chosen_i=1,options=split("0,7,8,9,10,11,12,14,15")},
-      {text='uNDERGLOW',original=14,chosen_i=1,options=split("1,7,8,9,10,11,12,14,15")},
-      {text='hEADLIGHTS',original=7,chosen_i=1,options=split("7,8,9,10,11,12,14,15")},
-      {text='bUMPER',original=6,chosen_i=6,options=split("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
+      --{text='bODY',original=8,chosen_i=3,options=split("0,7,8,9,10,11,12,14,15")},
+      --{text='sTRIPE',original=10,chosen_i=11,options=split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
+      --{text='wINDOWS',original=4,chosen_i=2,options=split("0,1,3,4,5,6,7,13")},
+      --{text='wHEELS',original=0,chosen_i=1,options=split("0,7,8,9,10,11,12,14,15")},
+      --{text='uNDERGLOW',original=14,chosen_i=1,options=split("1,7,8,9,10,11,12,14,15")},
+      --{text='hEADLIGHTS',original=7,chosen_i=1,options=split("7,8,9,10,11,12,14,15")},
+      --{text='bUMPER',original=6,chosen_i=6,options=split("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
+      {text='tYPE',original=0,chosen_i=1,options={0,1,2,3}},
+      {text='bODY',original=8,chosen_i=9,options=opt},
+      {text='sTRIPE',original=10,chosen_i=11,options=opt},
+      {text='wINDOWS',original=4,chosen_i=2,options=opt},
+      {text='wHEELS',original=0,chosen_i=1,options=opt},
+      {text='uNDERGLOW',original=14,chosen_i=2,options=opt},
+      {text='hEADLIGHTS',original=7,chosen_i=8,options=opt},
+      {text='bUMPER',original=6,chosen_i=7,options=opt},
     },
     frames = 0,
   }
@@ -1291,7 +1302,7 @@ function _customization_manager_draw(self)
   if game_state == 1 then
     local border = 10
     cls(1)
-    rect(0, border+1, 127, 127 - border, 12)
+    rect(-1, border+1, 128, 127 - border, 12)
     print('gARAGE', 55, 18, 0)
     print('gARAGE', 54, 18, 7)
     rectfill(0, 0, 128, border, 0)
@@ -1318,6 +1329,7 @@ function _customization_manager_update(self)
 
     camera()
     self.car.angle_fwd += 0.003
+    --self.car.angle_fwd = 0.25
     if self.frames > 0 then
       self.frames -= 1
     end
@@ -1338,6 +1350,18 @@ function _customization_manager_update(self)
       local opt = self.data[self.index]
       opt.chosen_i = opt.chosen_i == 1 and count(opt.options) or opt.chosen_i - 1
       self.frames = 5
+    end
+
+    -- confirm
+    if btnp(4) or btnp(5) then
+      game_state = 0
+    end
+
+    -- sync car to map
+    for i = 0, 4 do
+      local type = self.data[1].options[self.data[1].chosen_i]
+      mset(126, 30 - i * 2, 70 + i * 2 + 16 * type)
+      mset(127, 30 - i * 2, 71 + i * 2 + 16 * type)
     end
 
   end
