@@ -52,6 +52,8 @@ local bbox_cache = {}
 --------------------
 
 function _init()
+  cartdata('mbize_driftmania_v1')
+
   init_outline_cache(outline_cache, 30.5)
   init_outline_cache(bbox_cache, 28.5)
 
@@ -547,7 +549,7 @@ function _car_draw(self)
 
   for d in all(customization_m.data) do
     if d.text ~= 'tYPE' then
-      local c = d.options[d.chosen_i]
+      local c = d.chosen
       pal(d.original, c)
       if d.original == 8 then -- body - set gradient color
         local gradient_c = gradients[c]
@@ -1276,24 +1278,24 @@ function spawn_customization_manager()
     },
     index = 1,
     data = {
-      --{text='bODY',original=8,chosen_i=3,options=split("0,7,8,9,10,11,12,14,15")},
-      --{text='sTRIPE',original=10,chosen_i=11,options=split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
-      --{text='wINDOWS',original=4,chosen_i=2,options=split("0,1,3,4,5,6,7,13")},
-      --{text='wHEELS',original=0,chosen_i=1,options=split("0,7,8,9,10,11,12,14,15")},
-      --{text='uNDERGLOW',original=14,chosen_i=1,options=split("1,7,8,9,10,11,12,14,15")},
-      --{text='hEADLIGHTS',original=7,chosen_i=1,options=split("7,8,9,10,11,12,14,15")},
-      --{text='bUMPER',original=6,chosen_i=6,options=split("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")},
-      {text='tYPE',original=0,chosen_i=1,options={0,1,2,3}},
-      {text='bODY',original=8,chosen_i=9,options=opt},
-      {text='sTRIPE',original=10,chosen_i=11,options=opt},
-      {text='wINDOWS',original=4,chosen_i=2,options=opt},
-      {text='wHEELS',original=0,chosen_i=1,options=opt},
-      {text='uNDERGLOW',original=14,chosen_i=2,options=opt},
-      {text='hEADLIGHTS',original=7,chosen_i=8,options=opt},
-      {text='bUMPER',original=6,chosen_i=7,options=opt},
+      {text='tYPE',original=0,chosen=0},
+      {text='bODY',original=8,chosen=8},
+      {text='sTRIPE',original=10,chosen=10},
+      {text='wINDOWS',original=4,chosen=1},
+      {text='wHEELS',original=0,chosen=0},
+      {text='uNDERGLOW',original=14,chosen=1},
+      {text='hEADLIGHTS',original=7,chosen=7},
+      {text='bUMPER',original=6,chosen=6},
     },
     frames = 0,
   }
+
+  for i = 1, count(customization_m.data) do
+    d = customization_m.data[i]
+    if dget(0) ~= 0 then
+      d.chosen = dget(i)
+    end
+  end
 
   add(objects, customization_m)
 end
@@ -1344,11 +1346,11 @@ function _customization_manager_update(self)
     -- left/right
     if btnp(1) then
       local opt = self.data[self.index]
-      opt.chosen_i = (opt.chosen_i % count(opt.options)) + 1
+      opt.chosen = (opt.chosen + 1) % (opt.text == 'tYPE' and 4 or 16)
       self.frames = 5
     elseif btnp(0) then
       local opt = self.data[self.index]
-      opt.chosen_i = opt.chosen_i == 1 and count(opt.options) or opt.chosen_i - 1
+      opt.chosen = (opt.chosen - 1) % (opt.text == 'tYPE' and 4 or 16)
       self.frames = 5
     end
 
@@ -1359,9 +1361,15 @@ function _customization_manager_update(self)
 
     -- sync car to map
     for i = 0, 4 do
-      local type = self.data[1].options[self.data[1].chosen_i]
+      local type = self.data[1].chosen
       mset(126, 30 - i * 2, 70 + i * 2 + 16 * type)
       mset(127, 30 - i * 2, 71 + i * 2 + 16 * type)
+    end
+
+    -- save settings
+    dset(0, 1)
+    for i = 1, count(customization_m.data) do
+      dset(i, customization_m.data[i].chosen)
     end
 
   end
