@@ -756,7 +756,7 @@ function spawn_level_manager()
     next_checkpoint = 2,
     checkpoint_frames = {}, -- Order: 2, 3, 4, ... 1
     best_checkpoint_frames = {},
-    frame = 0,
+    frame = 1,
     cp_cache = {}, -- table[x][y] -> cp index
     cp_crossed = {}, -- table[cp_index] -> true/false
   }
@@ -765,7 +765,7 @@ function spawn_level_manager()
 end
 
 function _level_manager_update(self)
-  if (self.frame < 0x7fff) then
+  if (self.frame < 0x7fff) and game_state == 0 then
     self.frame += 1
   end
 end
