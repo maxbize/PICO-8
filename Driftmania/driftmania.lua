@@ -543,6 +543,8 @@ function _car_draw(self)
   palt(0, false)
   palt(15, true)
 
+  draw_water_outline(round_nth(self.angle_fwd, 32))
+
   for d in all(customization_m.data) do
     if d.text ~= 'tYPE' then
       local c = d.options[d.chosen_i]
@@ -568,8 +570,6 @@ function _car_draw(self)
       pal(i, 7)
     end
   end
-
-  draw_water_outline(round_nth(self.angle_fwd, 32))
 
   -- Costs 6% of CPU budget
   for i = self.water_wheels < 2 and 0 or 1, 4 do
@@ -1329,7 +1329,7 @@ function _customization_manager_update(self)
 
     camera()
     self.car.angle_fwd += 0.003
-    --self.car.angle_fwd = 0.25
+    --self.car.angle_fwd = 0.5
     if self.frames > 0 then
       self.frames -= 1
     end
