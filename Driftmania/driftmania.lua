@@ -37,8 +37,8 @@ end
 -- Data
 --------------------
 local map_road_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005060607000000000000000000000000000000000000000000000000000008010101070000000000000000000000000000000000000000000000000008010101010700000000000000000000000000000000000000000000000009010101010107000000000000000000000000000000000000000000000000090101010101070000000000000000000000000000000000000000000000000901010101010700000000000000000000000000000000000000000000000009010101010106060606060606060a0000000000000000000000000000000009010101010b0b0b0b0b0b0c010d00000000000000000000000000000000000901010e0000000000000f100d000000000000000000000000000000000000080d0000000000000000080d000000000000000000000000000000000000080d0000000000000000080d00000000000000000000000000000000000011120000000000000000080d00000000000000000000000000000000000000000000000000000000080d00000000000000000000000000000000000000000000000000000000080d000000000000000000000000000000000000130a0000000000000000080d00000000000000000000000000000000000011120000000000000000080d00000000000000000000000000000000000000000000000000000014151617000000000000000000000000000000000000000013060606060618010119060606060a000000000000000000000000000000110b0b0b0b0b0c01011a0b0b0c010d0000000000000000000000000000000000000000000f101b1c00000f100d00000000000000000000000000000000000000000000080d00000000080d00000000000000000000000000000000000000000000080d00000000080d00000000000000000000000000000000000000000000081617000014150d00000000000000000000000000000000000000000000080119060618010d00000000000000000000000000000000000000000000110b0b0b0b0b0b120000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-local map_decals_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000001f00000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002122000000000000000000000000000000000000000000000000000000002324000000000000000000000000000000000000000000000000000000000000000000000000000025260000000000000000000000000000000000000000000000000000000027280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000029000000000000000000000000000000000000000000000000002a000000000000002a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b0000000000000000000000000000000000000000000000000000000000002c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-local map_props_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002d2e2e2f00000000000000000000000000000000000000000000000000303100003233000000000000000000000000000000000000000000000000340035360032330000000000000000000000000000000000000000000000340032373600323300000000000000000000000000000000000000000000383600323736003233000000000000000000000000000000000000000000003936003237360032330000000000000000000000000000000000000000000039360032373600323a2e2e2e2e2e2e2e2e3b000000000000000000000000003936003237360000000000000000000034000000000000000000000000000039360032373600000000000000000034000000000000000000000000000000393600323c2e2e2e2e2e2e3b000034000000000000000000000000000000003d00003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003400000000000034000034000000000000000000000000000000003400003e2e2e2e2e2e2e3f00003e2e2e2e2e2e3b000000000000000000003400000000000000000000000000000000000034000000000000000000003400000000000000000000000000000000000034000000000000000000003e2e2e2e2e2e2e2e2e2e3b0000402e2e3b00003400000000000000000000000000000000000000003400003400003400003400000000000000000000000000000000000000003400003400003400003400000000000000000000000000000000000000003400003e2e2e3f00003400000000000000000000000000000000000000003400000000000000003400000000000000000000000000000000000000003400000000000000003400000000000000000000000000000000000000003e2e2e2e2e2e2e2e2e3f00000000000000000000000000000000000000000000000000000000000000'
+local map_decals_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000001f000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000021220000000000000000000000000000000000000000000000000000000023240000000000000000252600000000000000000000000000000000000027280000000000000000000000000000000000000000000000000000000000000000000000000000292a000000000000000000000000000000000000000000000000000000002b2c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002d000000000000000000000000000000000000000000000000002e000000000000002e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002526000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002f000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+local map_props_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000031323233000000000000000000000000000000000000000000000000003435000036370000000000000000000000000000000000000000000000003800393a00363700000000000000000000000000000000000000000000003800363b3a003637000000000000000000000000000000000000000000003c3a00363b3a003637000000000000000000000000000000000000000000003d3a00363b3a003637000000000000000000000000000000000000000000003d3a00363b3a00363e32323232323232323f000000000000000000000000003d3a00363b3a000000000000000000003800000000000000000000000000003d3a00363b3a000000000000000000380000000000000000000000000000003d3a0036403232323232323f00003800000000000000000000000000000000410000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000380000000000003800003800000000000000000000000000000000380000423232323232324300004232323232323f00000000000000000000380000000000000000000000000000000000003800000000000000000000380000000000000000000000000000000000003800000000000000000000423232323232323232323f00004432323f00003800000000000000000000000000000000000000003800003800003800003800000000000000000000000000000000000000003800003800003800003800000000000000000000000000000000000000003800004232324300003800000000000000000000000000000000000000003800000000000000003800000000000000000000000000000000000000003800000000000000003800000000000000000000000000000000000000004232323232323232324300000000000000000000000000000000000000000000000000000000000000'
 local map_settings = {laps=3, size=30, spawn_x=27*8, spawn_y=20*8, spawn_dir=0.375}
 --local map_settings = {laps=3, size=21, spawn_x=22*8, spawn_y=39*8, spawn_dir=0.5}
 local map_checkpoints = {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}
@@ -46,6 +46,7 @@ local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 7, 10, 7, 7, 7, 14, 15, 7}
 local outline_cache = {}
 local bbox_cache = {}
+local wall_height = 3
 
 --------------------
 -- Built-in Methods
@@ -117,11 +118,13 @@ function _draw()
   -- 9% CPU
   _trail_manager_draw(trail_m)
 
+  draw_car_shadow(player)
+
   -- 0% CPU (idle)
   _particle_manager_vol_draw_bg(particle_front_m)
 
   -- 11% CPU
-  draw_map(map_prop_chunks, map_settings.size, 3, false, true)
+  draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true)
 
   -- 0% CPU
   for obj in all(objects) do
@@ -137,13 +140,15 @@ function _draw()
   end
 
   -- 12% CPU
-  draw_map(map_prop_chunks, map_settings.size, 3, true, false)
+  if player.z <= wall_height then
+    draw_map(map_prop_chunks, map_settings.size, 3, true, false)
+  end
 
   -- 1% CPU (idle)
   _particle_manager_vol_draw_fg(particle_front_m)
 
   if game_state == 0 then
-    draw_minimap1()
+    --draw_minimap1()
     --draw_minimap2()
   end
 
@@ -220,7 +225,7 @@ function spawn_player()
   local y = map_settings.spawn_y
   local dir = map_settings.spawn_dir
 
-  player = create_car(x, y, 0, 0, 0, 0, dir, false)
+  player = create_car(x, y, 0, 0, 0, 0, 0, 0, 0, dir, false)
   _set_ghost_start(player)
 end
 
@@ -233,17 +238,20 @@ function spawn_ghost()
   add(objects, ghost)
 end
 
-function create_car(x, y, x_remainder, y_remainder, v_x, v_y, dir, is_ghost)
+function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_z, dir, is_ghost)
   return {
     update = _car_update,
     draw = _car_draw,
     x = x,
     y = y,
+    z = z,
     x_remainder = x_remainder,
     y_remainder = y_remainder,
+    z_remainder = z_remainder,
     angle_fwd = dir,
     v_x = v_x,
     v_y = v_y,
+    v_z = v_z,
     turn_rate_fwd = 0.008,
     turn_rate_vel = 0.005,
     accel = 0.075,
@@ -269,11 +277,14 @@ function _set_ghost_start(self)
   ghost_start_last = {
     x = self.x,
     y = self.y,
+    z = self.z,
     x_remainder = self.x_remainder,
     y_remainder = self.y_remainder,
+    z_remainder = self.z_remainder,
     dir = self.angle_fwd,
     v_x = self.v_x,
     v_y = self.v_y,
+    v_z = self.v_z,
   }
 end
 
@@ -325,12 +336,14 @@ function _car_move(self, btns)
   local grass_wheels = 0
   local boost_wheels = 0
   local water_wheels = self.water_wheels
+  local jump_wheels = 0
   for i, offset in pairs(self.wheel_offsets) do
     local check_x = flr(self.x) + offset.x
     local check_y = flr(self.y) + offset.y
     -- Visual only when on the road?
-    local collides_grass = collides_grass_at(check_x, check_y)
-    local collides_water = collides_water_at(check_x, check_y)
+    local collides_grass = collides_grass_at(check_x, check_y, self.z)
+    local collides_water = collides_water_at(check_x, check_y, self.z)
+    local collides_jump = collides_jump_at(check_x, check_y, self.z)
     if collides_grass then
       grass_wheels += 1
     end
@@ -342,8 +355,12 @@ function _car_move(self, btns)
       add_trail_point(trail_m, check_x, check_y, 4)
       self.dirt_frames[i] -= 1
     end
-    if collides_boost_at(check_x, check_y) then
+    if collides_boost_at(check_x, check_y, self.z) then
       boost_wheels += 1
+    end
+    if collides_jump then
+      self.v_z = 2
+      self.z = 1
     end
   end
 
@@ -446,12 +463,12 @@ function _car_move(self, btns)
   end
 
   -- If we can't turn because of colliding nudge the car a little
-  local collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.angle_fwd)
+  local collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.z, self.angle_fwd)
   while collides do
     local to_collision_x, to_collision_y = normalized(collides_x - self.x, collides_y - self.y)
     self.x -= round(to_collision_x)
     self.y -= round(to_collision_y)
-    collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.angle_fwd)
+    collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.z, self.angle_fwd)
   end
 
   -- Acceleration, friction, breaking. Note: mid is to stop over-correction
@@ -514,14 +531,23 @@ function _car_move(self, btns)
   end
   self.v_x, self.v_y = angle_vector(angle_vel, dist(self.v_x, self.v_y))
 
+  -- Gravity
+  if self.z > 0 then
+    self.v_z -= 0.1
+  end
+
   -- Apply Movement
-  self.x, _, self.x_remainder, x_blocked = _player_move(self, self.v_x, self.x_remainder, 1, 0)
-  _, self.y, self.y_remainder, y_blocked = _player_move(self, self.v_y, self.y_remainder, 0, 1)
+  self.x, _, _, self.x_remainder, x_blocked = _player_move(self, self.v_x, self.x_remainder, 1, 0, 0)
+  _, self.y, _, self.y_remainder, y_blocked = _player_move(self, self.v_y, self.y_remainder, 0, 1, 0)
+  _, _, self.z, self.z_remainder, z_blocked = _player_move(self, self.v_z, self.z_remainder, 0, 0, 1)
   if x_blocked then
     self.v_x *= 0.25
   end
   if y_blocked then
     self.v_y *= 0.25
+  end
+  if z_blocked then
+    self.v_z = 0
   end
 end
 
@@ -551,7 +577,11 @@ function _car_draw(self)
   --self.angle_fwd = 8/32 -- 0,8,16,24 = correct, 1-7 = 0,1, 9-15 = 1,0, 17-23 = 0,-1, 25-31 = -1,0
   palt(0, false)
   palt(15, true)
+  
+  -- Water outline
   draw_water_outline(round_nth(self.angle_fwd, 32))
+  
+  -- Apply customized palette
   for d in all(customization_m.data) do
     if d.text ~= 'tYPE' then
       local c = d.chosen
@@ -566,6 +596,7 @@ function _car_draw(self)
     end
   end
 
+  -- Ghost palette + flash frames
   if self.is_ghost then
     pal(8, 2)
     pal(10, 4)
@@ -579,8 +610,9 @@ function _car_draw(self)
   end
 
   -- Costs 6% of CPU budget
+  --self.scale = 1 + self.z / 40
   for i = self.water_wheels < 2 and 0 or 1, 4 do
-    pd_rotate(self.x,self.y-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,self.scale)
+    pd_rotate(self.x,self.y-self.z-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd, 32),127,30.5 - i*2,2,true,self.scale)
     --break
   end
   pal()
@@ -612,43 +644,60 @@ function _car_draw(self)
   --end
 end
 
+function draw_car_shadow(self)
+  -- Shadow / Underglow. TODO: better way to restore customized palette
+  palt(15, true)
+  palt(0, false)
+  prev_low = peek2(0x5f00)
+  prev_high = peek(0x5f0e)
+  pal(14, 1)
+  pal(0, 1)
+  pd_rotate(self.x,self.y,round_nth(self.angle_fwd, 32),127,30.5,2,true,self.scale)
+  poke2(0x5f00, prev_low)
+  poke(0x5f0e, prev_high)
+  palt()
+end
+
+
 -- Modified from https://maddymakesgames.com/articles/celeste_and_towerfall_physics/index.html
 -- Returns final x, y pos and whether the move was blocked
-function _player_move(self, amount, remainder, x_mask, y_mask)
+function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
   local x = self.x
   local y = self.y
+  local z = self.z
   remainder += amount;
   local move = round(remainder);
   if move ~= 0 then
     remainder -= move;
     local sign = sgn(move);
     while move ~= 0 do
-      if _player_collides_at(self, x + sign * x_mask, y + sign * y_mask, self.angle_fwd) then
-        return x, y, remainder, true
+      if _player_collides_at(self, x + sign * x_mask, y + sign * y_mask, z + sign * z_mask, self.angle_fwd) then
+        return x, y, z, remainder, true
       else
         x += sign * x_mask
         y += sign * y_mask
+        z += sign * z_mask
         move -= sign
         if not self.is_ghost then
-          _on_player_moved(self, x, y, self.angle_fwd)
+          _on_player_moved(self, x, y, z, self.angle_fwd)
         end
       end
     end
   end
-  return x, y, remainder, false
+  return x, y, z, remainder, false
 end
 
 -- Called whenever the player occupies a new position. Can be called multiple times per frame
-function _on_player_moved(self, x, y, angle)
+function _on_player_moved(self, x, y, z, angle)
   self.water_wheels = 0
   for i, offset in pairs(self.wheel_offsets) do
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
-    local checkpoint = collides_checkpoint_at(check_x, check_y)
+    local checkpoint = collides_checkpoint_at(check_x, check_y, z)
     if checkpoint ~= nil then
       on_checkpoint_crossed(level_m, checkpoint)
     end
-    local collides_water = collides_water_at(check_x, check_y)
+    local collides_water = collides_water_at(check_x, check_y, z)
     if i % 2 == 0 then -- front wheels
       if collides_water then
         self.water_wheels += 1
@@ -658,7 +707,7 @@ function _on_player_moved(self, x, y, angle)
         end
         add_particle_water(particle_water_m, check_x, check_y, 7, self.v_y*0.175*side, -self.v_x*0.175*side, rnd(20)+20)
       end
-      local collides_grass = collides_grass_at(check_x, check_y)
+      local collides_grass = collides_grass_at(check_x, check_y, z)
       if collides_grass and not collides_water then
         self.dirt_frames[i] = 10
         add_trail_point(trail_m, check_x, check_y, 4)
@@ -670,11 +719,18 @@ function _on_player_moved(self, x, y, angle)
   end
 end
 
-function _player_collides_at(self, x, y, angle)
+function trigger_jump(self)
+
+end
+
+function _player_collides_at(self, x, y, z, angle)
+  if z < 0 then
+    return true
+  end
   for offset in all(bbox_cache[round_nth(angle,32)]) do
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
-    if (collides_wall_at(check_x, check_y)) then
+    if collides_wall_at(check_x, check_y, z) then
       return true, check_x, check_y
     end
   end
@@ -689,7 +745,7 @@ function _player_debug_draw(self)
   for i, offset in pairs(self.wheel_offsets) do
     local x = flr(self.x) + offset.x
     local y = flr(self.y) + offset.y
-    pset(x, y, collides_wall_at(x, y) and 8 or 11)
+    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
     --checkpoint_check(x, y)
   end
 
@@ -697,36 +753,46 @@ function _player_debug_draw(self)
 --  for i = -1, 1, 2 do
 --    local x = flr(self.x) + cos(self.angle_fwd + 0.25 * i) * 2
 --    local y = flr(self.y) + sin(self.angle_fwd + 0.25 * i) * 2
---    pset(x, y, collides_wall_at(x, y) and 8 or 11)
+--    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
 --  end
 
 end
 
 -- Checks if the given position on the map overlaps a wall
 local wall_collision_sprites = {[43]=true, [44]=true, [45]=true, [59]=true, [60]=true, [61]=true, [62]=true}
-function collides_wall_at(x, y)
-  return collides_part_at(x, y, map_prop_tiles, {}, wall_collision_sprites, 6)
+function collides_wall_at(x, y, z)
+  return collides_part_at(x, y, z, wall_height, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
 
 local grass_sprites_full = {[0]=true, [26]=true,}
 local grass_sprites_part = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
-function collides_grass_at(x, y)
-  return collides_part_at(x, y, map_road_tiles, grass_sprites_full, grass_sprites_part, 3)
+function collides_grass_at(x, y, z)
+  return collides_part_at(x, y, z, 0, map_road_tiles, grass_sprites_full, grass_sprites_part, 3)
 end
 
 local water_sprites_full = {[64]=true, [69]=true, [70]=true, [85]=true, [86]=true,}
 local water_sprites_part = {[65]=true, [66]=true, [67]=true, [68]=true, [81]=true, [82]=true, [83]=true, [84]=true,}
-function collides_water_at(x, y)
-  return collides_part_at(x, y, map_decal_tiles, water_sprites_full, water_sprites_part, 12, 7)
+function collides_water_at(x, y, z)
+  return collides_part_at(x, y, z, 0, map_decal_tiles, water_sprites_full, water_sprites_part, 12, 7)
 end
 
 local boost_sprites_full = {[21]=true,}
 local boost_sprites_part = {[22]=true, [23]=true, [24]=true, [25]=true,}
-function collides_boost_at(x, y)
-  return collides_part_at(x, y, map_decal_tiles, boost_sprites_full, boost_sprites_part, 10)
+function collides_boost_at(x, y, z)
+  return collides_part_at(x, y, z, 0, map_decal_tiles, boost_sprites_full, boost_sprites_part, 10)
 end
 
-function collides_part_at(x, y, tile_map, full_col_sprites, part_col_sprites, c1, c2)
+local jump_sprites_full = {[37]=true,}
+local jump_sprites_part = {[38]=true, [39]=true, [40]=true, [41]=true,}
+function collides_jump_at(x, y, z)
+  return collides_part_at(x, y, z, 0, map_decal_tiles, jump_sprites_full, jump_sprites_part, 15)
+end
+
+function collides_part_at(x, y, z, h, tile_map, full_col_sprites, part_col_sprites, c1, c2)
+  if z > h then
+    return false
+  end
+
   c2 = c2 or -1
   local sprite_index = tile_map[flr(x/8)][flr(y/8)]
   if sprite_index == nil then
@@ -1133,7 +1199,7 @@ end
 
 function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
   --self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
-  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
+  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z+player.z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
@@ -1291,7 +1357,7 @@ function draw_water_outline(rot)
   for offset in all(outline_cache[rot]) do
     local x = player.x+offset.x
     local y = player.y+offset.y
-    if collides_water_at(x, y) then
+    if collides_water_at(x, y, player.z) then
       pset(x, y, 7)
     end
   end
@@ -1309,6 +1375,7 @@ function spawn_customization_manager()
     car = {
       x = 92,
       y = 68,
+      z = 0,
       drift_boost_frames = 0,
       flash_frames = 0,
       angle_fwd = 0,
