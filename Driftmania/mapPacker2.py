@@ -2,12 +2,10 @@
 Given a Tiled map of individual tiles, generate a map string with tiles arranged into n*n chunks
 
 TODO: So much code cleanup ;)
-
-TODO: Could optimize further by trimming the edges of the map that are all blank
-TODO: Could optimize further by setting all grass tiles to sprite 0 and using cls(grass_color)
 '''
 
 import math
+import re
 import sys
 import xml.etree.ElementTree as ET
 
@@ -267,6 +265,55 @@ def build_checkpoints(data_map):
 	#print(s)
 	replace_lua_str('local map_checkpoints =', s)
 
+# Builds a map[chunk x][chunk y] => jump index
+jump_sprites = [37, 38, 39, 40, 41]
+def build_jumps(decal_data, n):
+	jump_map = {}
+	jump_id = 1
+
+	# Build up jump map
+	for pos in find_all_sprites(decal_data, jump_sprites):
+		chunk_x = math.floor(pos[0] / n)
+		chunk_y = math.floor(pos[1] / n)
+
+		if chunk_x not in jump_map or chunk_y not in jump_map[chunk_x]:
+			jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n)
+			jump_id += 1
+
+	# Format Lua string
+	# Lua: {[10]={[14]=1},[11]={[14]=1},[20]={[23]=2,[15]=3},[21]={[23]=2,[15]=3}}
+	# Py : {11: {14: 1}, 10: {14: 1}, 21: {15: 2, 23: 3}, 20: {15: 2, 23: 3}}
+	s = str(jump_map)
+	s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
+	s = re.sub(' ', '', s)
+	replace_lua_str('local map_jumps = ', 'local map_jumps = ' + s)
+
+# Finds all connected neighboring chunks to assign the same jump_id
+def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
+	s = len(decal_data)
+	for sprite_x in range(chunk_x * n, chunk_x * n + 3):
+		for sprite_y in range(chunk_y * n, chunk_y * n + 3):
+			for neighbor_x in range(sprite_x - 1, sprite_x + 2):
+				for neighbor_y in range(sprite_y - 1, sprite_y + 2):
+					if sprite_x < 0 or sprite_y < 0 or neighbor_x < 0 or neighbor_y < 0:
+						continue
+					if sprite_x >= s or sprite_y >= s or neighbor_x >= s or neighbor_y >= s:
+						continue
+					neighbor_chunk_x = math.floor(neighbor_x / n)
+					neighbor_chunk_y = math.floor(neighbor_y / n)
+					if chunk_x == neighbor_chunk_x and chunk_y == neighbor_chunk_y:
+						continue
+					this_spr = decal_data[sprite_y][sprite_x]
+					neighbor_spr = decal_data[neighbor_y][neighbor_x]
+					if this_spr not in jump_sprites or neighbor_spr not in jump_sprites:
+						continue
+
+					# Found a connected neighbor. Assign the same jump_id
+					if neighbor_chunk_x not in jump_map:
+						jump_map[neighbor_chunk_x] = {}
+					if neighbor_chunk_y not in jump_map[neighbor_chunk_x]:
+						jump_map[neighbor_chunk_x][neighbor_chunk_y] = jump_id
+						jump_dfs(jump_map, decal_data, neighbor_chunk_x, neighbor_chunk_y, jump_id, n)
 
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
@@ -297,3 +344,4 @@ data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
 
 build_map(data_map, 3, 0, 0)
 build_checkpoints(data_map)
+build_jumps(data_map['Decals'], 3)

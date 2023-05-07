@@ -42,8 +42,8 @@ local map_props_data = '00000000000000000000000000000000000000000000000000000000
 local map_settings = {laps=3, size=30, spawn_x=27*8, spawn_y=20*8, spawn_dir=0.375}
 --local map_settings = {laps=3, size=21, spawn_x=22*8, spawn_y=39*8, spawn_dir=0.5}
 local map_checkpoints = {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}
-local map_jumps = {[10]={[14]=1},[11]={[14]=1},[20]={[23]=2,[15]=3},[21]={[23]=2,[15]=3}}
-local map_jump_frames = {0,0,0}
+local map_jumps = {[11]={[14]=1},[10]={[14]=1},[21]={[15]=2,[23]=3},[20]={[15]=2,[23]=3}}
+local map_jump_frames = {0,0,0,0,0,0,0,0,0,0}
 local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
 local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 7, 10, 7, 7, 7, 14, 15, 7}
 local outline_cache = {}
