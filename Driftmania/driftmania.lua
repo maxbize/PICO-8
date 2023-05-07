@@ -652,7 +652,11 @@ function draw_car_shadow(self)
   prev_high = peek(0x5f0e)
   pal(14, 1)
   pal(0, 1)
-  pd_rotate(self.x,self.y,round_nth(self.angle_fwd, 32),127,30.5,2,true,self.scale)
+  local height = 0
+  if collides_jump_at(self.x, self.y, 0) then
+    height = flr(map_jump_frames[map_jumps[flr(self.x/24)][flr(self.y/24)]] / 8)
+  end
+  pd_rotate(self.x,self.y-height,round_nth(self.angle_fwd, 32),127,30.5,2,true,self.scale)
   poke2(0x5f00, prev_low)
   poke(0x5f0e, prev_high)
   palt()
