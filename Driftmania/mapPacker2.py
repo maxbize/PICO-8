@@ -291,6 +291,11 @@ def build_jumps(decal_data, n):
 # Finds all connected neighboring chunks to assign the same jump_id
 def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
 	s = len(decal_data)
+
+	if chunk_x not in jump_map:
+		jump_map[chunk_x] = {}
+	jump_map[chunk_x][chunk_y] = jump_id
+
 	for sprite_x in range(chunk_x * n, chunk_x * n + 3):
 		for sprite_y in range(chunk_y * n, chunk_y * n + 3):
 			for neighbor_x in range(sprite_x - 1, sprite_x + 2):
@@ -312,7 +317,6 @@ def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
 					if neighbor_chunk_x not in jump_map:
 						jump_map[neighbor_chunk_x] = {}
 					if neighbor_chunk_y not in jump_map[neighbor_chunk_x]:
-						jump_map[neighbor_chunk_x][neighbor_chunk_y] = jump_id
 						jump_dfs(jump_map, decal_data, neighbor_chunk_x, neighbor_chunk_y, jump_id, n)
 
 # Grab the raw data
