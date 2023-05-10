@@ -319,6 +319,58 @@ def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
 					if neighbor_chunk_y not in jump_map[neighbor_chunk_x]:
 						jump_dfs(jump_map, decal_data, neighbor_chunk_x, neighbor_chunk_y, jump_id, n)
 
+in_bound_sprites = [10,11,12,13,14,15,27,28,37,38,39,40,41] # Checkpoints and jumps
+def build_bounds(data_map, n):
+	decal_data = data_map['Decals']
+	props_data = data_map['Props']
+	num_chunks = math.floor(len(decal_data) / n)
+
+	# Seed map with 0 (out of bounds)
+	bounds_map = {y: {x: 0 for x in range(num_chunks)} for y in range(num_chunks)}
+
+	# Find all in-bound sprites and fan out
+	for pos in find_all_sprites(decal_data, in_bound_sprites):
+		bounds_dfs(bounds_map, props_data, pos[0], pos[1], n)
+	
+	# Build string in the same style as layer maps
+	s = ''
+	for row in bounds_map:
+		for col in bounds_map[row]:
+			s += f'{bounds_map[row][col]:0{2}x}' # 0{2} == pad to two digits
+
+	replace_lua_str('local map_bounds_data = ', f"local map_bounds_data = '{s}'")
+
+def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
+	chunk_x = math.floor(start_x / n)
+	chunk_y = math.floor(start_y / n)
+	if bounds_map[chunk_y][chunk_x] == 1:
+		return # Already visited
+
+	visited = set()
+	q = [(start_x, start_y)]
+
+	while len(q) > 0:
+		x, y = q[0]
+		q = q[1:]
+		if (x, y) in visited:
+			continue
+		visited.add((x, y))
+
+		chunk_x = math.floor(x / n)
+		chunk_y = math.floor(y / n)
+		bounds_map[chunk_y][chunk_x] = 1
+
+		for i in range(-1,2):
+			for j in range(-1, 2):
+				neighbor_x = x + i
+				neighbor_y = y + j
+				if props_data[neighbor_y][neighbor_x] in wall_sprites:
+					# Record as in bounds but don't continue DFS beyond wall
+					bounds_map[math.floor(neighbor_y/n)][math.floor(neighbor_x/n)] = 1
+				else:
+					q.append((neighbor_x, neighbor_y))
+
+
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
 # Data has forward and trailing blank lines
@@ -346,6 +398,8 @@ data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
 #print('\n'.join(str(r) for r in results))
 
 
-build_map(data_map, 3, 0, 0)
+chunk_size = 3
+build_map(data_map, chunk_size, 0, 0)
 build_checkpoints(data_map)
-build_jumps(data_map['Decals'], 3)
+build_jumps(data_map['Decals'], chunk_size)
+build_bounds(data_map, chunk_size)
