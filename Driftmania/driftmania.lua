@@ -450,7 +450,7 @@ function _car_move(self, btns)
     mod_accel = 0.5
     mod_brake = 0.5
     mod_turn = 0.1
-    mod_turn_rate = 1
+    mod_turn_rate = 0.75
     mod_corrective = 2
   end
 
@@ -460,11 +460,15 @@ function _car_move(self, btns)
     mod_brake = 0
     mod_corrective = 0
     mod_turn = 0
-    d_brake = false
   end
 
+  -- No d-brake when not grounded
+  if self.z > 0 then
+    d_brake = false
+  end  
+
   -- Visual Rotation
-  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.5 * abs(vel_dot_fwd) or 1)) % 1
+  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.25 or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
