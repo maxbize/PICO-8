@@ -272,8 +272,7 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     drifting = false,
     wheel_offsets = {{x=0, y=0}, {x=0, y=0}, {x=0, y=0}, {x=0, y=0}},
     dirt_frames = {0, 0, 0, 0},
-    drift_boost_buildup = 0,
-    drift_boost_frames = 0,
+    boost_frames = 0,
     flash_frames = 0,
     started_boost_last_frame = false,
     water_wheels = 0,
@@ -329,7 +328,7 @@ function _car_update(self)
       self.x_remainder = 0
       self.y_remainder = 0
       self.dirt_frames = {0, 0, 0, 0}
-      self.drift_boost_frames = 0
+      self.boost_frames = 0
     end
   end
 
@@ -443,7 +442,7 @@ function _car_move(self, btns)
       self.flash_frames = 5
       sfx(13)
     end
-    self.drift_boost_frames = 90
+    self.boost_frames = 90
   else
     self.started_boost_last_frame = false
   end
@@ -456,7 +455,7 @@ function _car_move(self, btns)
   end
 
   -- Note: allowing air control close to ground feels better
-  if self.z > 6 and self.drift_boost_frames == 0 then
+  if self.z > 6 and self.boost_frames == 0 then
     mod_accel = 0
     mod_brake = 0
     mod_corrective = 0
@@ -471,43 +470,17 @@ function _car_move(self, btns)
     self.angle_fwd = round_nth(self.angle_fwd, 32)
   end
 
-  -- Drift boost
-  local buildup_threshold = 10000
+  -- Boost
   local boost_duration = 45
   self.flash_frames = max(self.flash_frames - 1, 0)
-  if d_brake then
-    local speed = dist(self.v_x, self.v_y)
-    if abs(vel_dot_fwd) < 0.85 and speed > 1 then
-      self.drift_boost_buildup += 1
-      if self.drift_boost_buildup >= buildup_threshold then
-        if self.drift_boost_buildup == buildup_threshold then
-          self.flash_frames = 6
-        end
-        self.drift_boost_buildup = buildup_threshold + 30 -- hold frames
-      end
-      --_wheel_particles(self, 10)
-      --_wheel_particles(self, self.drift_boost_buildup >= buildup_threshold and 12 or 10)
-    else
-      --if self.drift_boost_buildup >= buildup_threshold then
-      --  _wheel_particles(self, 12)
-      --end
-      self.drift_boost_buildup -= 1
-    end
-  else
-    if self.drift_boost_buildup >= buildup_threshold then
-      self.drift_boost_frames = boost_duration
-      first_boost_frame = true
-    end
-    self.drift_boost_buildup = 0
-  end
-  if self.drift_boost_frames > 0 then
-    if rnd(boost_duration) < self.drift_boost_frames then
+  if self.boost_frames > 0 then
+    if rnd(boost_duration) < self.boost_frames then
       _wheel_particles(self, 10)
     end
-    self.drift_boost_frames -= 1
-    mod_max_vel *= 1 + (0.5 * self.drift_boost_frames / boost_duration)
+    self.boost_frames -= 1
+    mod_max_vel *= 1 + (0.5 * self.boost_frames / boost_duration)
     if grass_wheels < 2 then
-      --mod_turn *= 1 + min(2.5, (2.5 * self.drift_boost_frames / boost_duration))
+      --mod_turn *= 1 + min(2.5, (2.5 * self.boost_frames / boost_duration))
     end
     if first_boost_frame then
       for i = 1, 10 do
@@ -539,7 +512,7 @@ function _car_move(self, btns)
   end
 
   -- Acceleration, friction, breaking. Note: mid is to stop over-correction
-  if self.drift_boost_frames > 0 then
+  if self.boost_frames > 0 then
     -- Force move forward when boosting
     self.v_x += fwd_x * self.accel * mod_accel
     self.v_y += fwd_y * self.accel * mod_accel
@@ -659,7 +632,7 @@ function _car_draw(self)
       if d.original == 8 then -- body - set gradient color
         local gradient_c = gradients[c]
         pal(2, gradient_c)
-        pal(11, self.drift_boost_frames > 10 and c or gradient_c)
+        pal(11, self.boost_frames > 10 and c or gradient_c)
       elseif d.original == 4 then -- windows - set highlight color
         pal(12, gradients_rev[c])
       end
@@ -1493,7 +1466,7 @@ function spawn_customization_manager()
       x = 92,
       y = 68,
       z = 0,
-      drift_boost_frames = 0,
+      boost_frames = 0,
       flash_frames = 0,
       angle_fwd = 0,
       water_wheels = 0,
