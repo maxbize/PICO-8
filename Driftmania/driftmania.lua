@@ -333,6 +333,16 @@ function _car_update(self)
     end
   end
 
+  -- Sound effects
+  local speed = dist(self.v_x, self.v_y)
+  if self.z > 6 then
+    sfx(8, 0, 24, 0)
+  elseif speed > 0 then
+    sfx(8, 0, speed * 8, 0)
+  else
+    sfx(8, -2)
+  end
+
   -- Record ghost
   if level_m.frame == 0 then
     throw()
@@ -431,6 +441,7 @@ function _car_move(self, btns)
     if not self.started_boost_last_frame then
       self.started_boost_last_frame = true
       self.flash_frames = 5
+      sfx(13)
     end
     self.drift_boost_frames = 90
   else
@@ -604,6 +615,9 @@ function _car_move(self, btns)
   end
   if z_blocked then
     self.v_z = 0
+    if self.z == 0 then
+      sfx(9)
+    end
   end
 end
 
@@ -790,6 +804,7 @@ function check_jump(self, x, y, z)
     map_jump_frames[map_jumps[flr(x/24)][flr(y/24)]] = 30
     self.v_z = 2
     self.z = 1
+    sfx(11)
   end
 end
 
@@ -801,6 +816,7 @@ function _player_collides_at(self, x, y, z, angle)
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     if collides_wall_at(check_x, check_y, z) then
+      sfx(10)
       return true, check_x, check_y
     end
   end
@@ -983,6 +999,9 @@ function on_checkpoint_crossed(self, cp_index)
     for i = 1, count(self.cp_crossed) do
       self.cp_crossed[i] = false
     end
+    sfx(15)
+  else
+    sfx(14)
   end
 
   -- Advance checkpoint marker
