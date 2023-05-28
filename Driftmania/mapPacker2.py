@@ -222,7 +222,7 @@ def walk_line(data, sprites, x, y, delta_x, delta_y):
 # Note: assumes all checkpoints are homogenous straight lines!
 green_checkpoint_sprites = [10, 11, 27, 28]
 brown_checkpoint_sprites = [12, 13, 14, 15]
-wall_sprites = [43, 44, 45, 59, 60, 61, 62]
+wall_sprites = [43, 44, 45, 46, 47, 59, 60, 61, 62]
 def build_checkpoints(data_map):
 	# Setup
 	props_data = data_map['Props']
@@ -364,6 +364,8 @@ def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 			for j in range(-1, 2):
 				neighbor_x = x + i
 				neighbor_y = y + j
+				if neighbor_x < 0 or neighbor_x >= len(props_data[0]) or neighbor_y < 0 or neighbor_y >= len(props_data):
+					continue
 				if props_data[neighbor_y][neighbor_x] in wall_sprites:
 					# Record as in bounds but don't continue DFS beyond wall
 					bounds_map[math.floor(neighbor_y/n)][math.floor(neighbor_x/n)] = 1
