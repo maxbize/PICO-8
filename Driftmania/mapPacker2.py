@@ -372,6 +372,18 @@ def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 				else:
 					q.append((neighbor_x, neighbor_y))
 
+# Ex: local map_settings = {laps=3, size=30, spawn_x=23*8, spawn_y=32*8, spawn_dir=0.375}
+# Note: 256 is because the first 256 indices are taken by the other tileset
+spawn_sprites = [i + 256 for i in range(9)]
+def build_settings(data_map, n):
+	markers_data = data_map.get('Markers')
+	laps = 3 # TODO: Will this ever be different?
+	size = math.floor(len(markers_data) / n)
+	spawn_x, spawn_y = find_all_sprites(markers_data, spawn_sprites)[0]
+	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
+	settings = f'laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}'
+
+	replace_lua_str('local map_settings = ', f"local map_settings = {{{settings}}}")
 
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
@@ -405,3 +417,4 @@ build_map(data_map, chunk_size, 0, 0)
 build_checkpoints(data_map)
 build_jumps(data_map['Decals'], chunk_size)
 build_bounds(data_map, chunk_size)
+build_settings(data_map, chunk_size)
