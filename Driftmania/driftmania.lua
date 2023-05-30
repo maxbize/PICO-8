@@ -1649,11 +1649,11 @@ function draw_minimap1()
 end
 
 -- todo: minimap should be cached in sprite sheet
-local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
+local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[37]=15,[38]=15,[39]=15,[40]=15,[41]=15,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
 function draw_minimap2()
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
-  local offset = 0--128 - map_settings.size
+  local offset = -15--128 - map_settings.size
   --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
   for tile_x = 0, count(map_road_tiles) - 1 do
     for tile_y = 0, count(map_road_tiles[0]) - 1 do
