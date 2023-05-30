@@ -224,6 +224,14 @@ function pd_rotate(x,y,rot,mx,my,w,flip,scale)
   end
 end
 
+function draw_shadowed(c1, c2, f)
+  f(-1, 0, c2)
+  f( 1, 0, c2)
+  f( 0,-1, c2)
+  f( 0, 1, c2)
+  f( 0, 0, c1)
+end
+
 --------------------
 -- Car class (player + ghost)
 --------------------
@@ -302,7 +310,7 @@ end
 
 function _car_update(self)
   if self.respawn_frames == 0 then
-    _car_move(self, btn())
+    _car_move(self, level_m.playing and btn() or 0)
     camera(self.x - 64, self.y - 64)
   else
     _car_move(self, 0)
@@ -892,18 +900,25 @@ function spawn_level_manager()
     checkpoint_frames = {}, -- Order: 2, 3, 4, ... 1
     best_checkpoint_frames = {},
     frame = 1,
+    anim_frame = 0,
     cp_cache = {}, -- table[x][y] -> cp index
     cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
     cp_crossed = {}, -- table[cp_index] -> true/false
+    playing = false,
   }
   cache_checkpoints(level_m, map_checkpoints)
   add(objects, level_m)
 end
 
 function _level_manager_update(self)
-  if (self.frame < 0x7fff) and game_state == 0 then
+  if (self.frame < 0x7fff) and self.playing then
     self.frame += 1
   end
+
+  if game_state == 0 then
+    self.anim_frame += 1
+  end
+
 
   for k, v in pairs(map_jump_frames) do
     if v > 0 then
@@ -914,6 +929,37 @@ function _level_manager_update(self)
 end
 
 function _level_manager_draw(self)
+  -- intro sequence
+  if self.anim_frame <= 180 then
+    local w = 46
+    local h = 18
+    local x = player.x - w/2
+    local y = player.y - 40 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
+    local b = 4
+    local r = 5
+    --rectfill(x+1, y, x+w-1, y+h, 0)
+    --rectfill(x, y+1, x+w, y+h-1, 0)
+    local cr = 8
+    local c = self.anim_frame > 30*4 and 11 or self.anim_frame > 30*3 and 9 or self.anim_frame > 30*2 and 8 or 1
+    draw_shadowed(0, c, function(dx, dy, c)
+      rectfill(dx + x + cr,     dy + y, dx+x+w-cr, dy+y+h, c)
+      circfill(dx + x + cr,     dy + y + cr, cr, c)
+      circfill(dx + x + cr,     dy + y + h - cr, cr, c)
+      circfill(dx + x - cr + w, dy + y + cr, cr, c)
+      circfill(dx + x - cr + w, dy + y + h - cr, cr, c)
+    end)
+
+    circfill(x + b + r,     y + h/2, r, self.anim_frame > 30*2 and c or 1)
+    circfill(x + 2*b + 3*r, y + h/2, r, self.anim_frame > 30*3 and c or 1)
+    circfill(x + 3*b + 5*r, y + h/2, r, self.anim_frame > 30*4 and c or 1)
+
+    circ(x + b + r,     y + h/2, r, 6)
+    circ(x + 2*b + 3*r, y + h/2, r, 6)
+    circ(x + 3*b + 5*r, y + h/2, r, 6)
+
+    self.playing = self.anim_frame >= 30*4
+  end
+
 end
 
 function frame_to_time_str(frames)
