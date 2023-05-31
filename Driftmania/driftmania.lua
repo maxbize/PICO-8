@@ -131,11 +131,6 @@ function _draw()
   -- 11% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true, false)
 
-  -- 0% CPU
-  for obj in all(objects) do
-    obj.draw(obj)
-  end
-
   -- ?% CPU
   --_particle_manager_vol_draw(particle_back_m)
 
@@ -157,6 +152,11 @@ function _draw()
   if game_state == 0 then
     --draw_minimap1()
     --draw_minimap2()
+  end
+
+  -- 0% CPU
+  for obj in all(objects) do
+    obj.draw(obj)
   end
 
   --_player_debug_draw(player)
@@ -267,7 +267,7 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     v_x = v_x,
     v_y = v_y,
     v_z = v_z,
-    turn_rate_fwd = 0.008,
+    turn_rate_fwd = 0.0065,
     turn_rate_vel = 0.005,
     accel = 0.075,
     brake = 0.05,
@@ -475,6 +475,7 @@ function _car_move(self, btns)
   end  
 
   -- Visual Rotation
+  --self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.5 * abs(vel_dot_fwd) or 1)) % 1
   self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.25 or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
@@ -897,6 +898,7 @@ function spawn_level_manager()
     index = index,
     settings = map_settings,
     next_checkpoint = 2,
+    lap = 1,
     checkpoint_frames = {}, -- Order: 2, 3, 4, ... 1
     best_checkpoint_frames = {},
     frame = 1,
@@ -929,18 +931,22 @@ function _level_manager_update(self)
 end
 
 function _level_manager_draw(self)
+  local camera_x = peek2(0x5f28)
+  local camera_y = peek2(0x5f2a)
+
   -- intro sequence
   if self.anim_frame <= 180 then
     local w = 46
     local h = 18
-    local x = player.x - w/2
-    local y = player.y - 40 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
+    local x = camera_x + 64 - w/2
+    local y = camera_y + 24 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
     local b = 4
     local r = 5
     --rectfill(x+1, y, x+w-1, y+h, 0)
     --rectfill(x, y+1, x+w, y+h-1, 0)
     local cr = 8
-    local c = self.anim_frame > 30*4 and 11 or self.anim_frame > 30*3 and 9 or self.anim_frame > 30*2 and 8 or 1
+    local l = 45
+    local c = self.anim_frame > l*3 and 11 or self.anim_frame > l*2 and 9 or self.anim_frame > l*1 and 8 or 1
     draw_shadowed(0, c, function(dx, dy, c)
       rectfill(dx + x + cr,     dy + y, dx+x+w-cr, dy+y+h, c)
       circfill(dx + x + cr,     dy + y + cr, cr, c)
@@ -949,16 +955,21 @@ function _level_manager_draw(self)
       circfill(dx + x - cr + w, dy + y + h - cr, cr, c)
     end)
 
-    circfill(x + b + r,     y + h/2, r, self.anim_frame > 30*2 and c or 1)
-    circfill(x + 2*b + 3*r, y + h/2, r, self.anim_frame > 30*3 and c or 1)
-    circfill(x + 3*b + 5*r, y + h/2, r, self.anim_frame > 30*4 and c or 1)
+    circfill(x + b + r,     y + h/2, r, self.anim_frame > l*1 and c or 1)
+    circfill(x + 2*b + 3*r, y + h/2, r, self.anim_frame > l*2 and c or 1)
+    circfill(x + 3*b + 5*r, y + h/2, r, self.anim_frame > l*3 and c or 1)
 
     circ(x + b + r,     y + h/2, r, 6)
     circ(x + 2*b + 3*r, y + h/2, r, 6)
     circ(x + 3*b + 5*r, y + h/2, r, 6)
 
-    self.playing = self.anim_frame >= 30*4
+    self.playing = self.anim_frame >= l*3
   end
+
+  -- Lap counter
+
+  print('lap ' .. self.lap .. '/' .. map_settings.laps, camera_x + 99, camera_y + 120, 0)
+  print('lap ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 120, 7)
 
 end
 
@@ -1022,6 +1033,12 @@ function on_checkpoint_crossed(self, cp_index)
     self.frame = 1
     for i = 1, count(self.cp_crossed) do
       self.cp_crossed[i] = false
+    end
+    -- Completed the track
+    if self.lap == map_settings.laps then
+      self.playing = false
+    else
+      self.lap += 1
     end
     sfx(15)
   else
