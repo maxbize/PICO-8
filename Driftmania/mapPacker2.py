@@ -109,19 +109,13 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 
 	return map_str_comp
 
-# Write the string representation into lua code
-def write_map_str_to_lua(map_str, name):
-	name = name.lower()
-	prefix = f"local map_{name}_data ="
-	full = f"{prefix} '{map_str}'"
-	replace_lua_str(prefix, full)
-
-def replace_lua_str(prefix, full):
+def replace_lua_str(data_type, s):
+	marker = f'{sys.argv[1]} {data_type}'
 	with open(sys.argv[2], 'r') as f:
 		lines = f.readlines()
 	for i, line in enumerate(lines):
-		if prefix in line:
-			lines[i] = f"{full}\n"
+		if marker in line:
+			lines[i] = f"  {s}, -- {marker}\n"
 			break
 	with open(sys.argv[2], 'w') as f:
 		f.writelines(lines)
@@ -159,7 +153,7 @@ def build_map(data_map, n, pad_x, pad_y):
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
 		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
-		write_map_str_to_lua(map_hex, name)
+		replace_lua_str(name.lower(), f"'{map_hex}'")
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
 	write_map(chunks, n)
@@ -254,7 +248,7 @@ def build_checkpoints(data_map):
 		checkpoints.append(line)
 
 	# Write the lua code
-	s = 'local map_checkpoints = {'
+	s = '{'
 	for line in checkpoints:
 		p1 = line[0]
 		p2 = line[1]
@@ -263,7 +257,7 @@ def build_checkpoints(data_map):
 		s += f'{{x={p1[0]*8+4},y={p1[1]*8+4},dx={delta_x},dy={delta_y},l={(len(line)-1)*8}}},'
 	s = s[:-1] + '}'
 	#print(s)
-	replace_lua_str('local map_checkpoints =', s)
+	replace_lua_str('checkpoints', s)
 
 # Builds a map[chunk x][chunk y] => jump index
 jump_sprites = [37, 38, 39, 40, 41]
@@ -286,7 +280,7 @@ def build_jumps(decal_data, n):
 	s = str(jump_map)
 	s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
 	s = re.sub(' ', '', s)
-	replace_lua_str('local map_jumps = ', 'local map_jumps = ' + s)
+	replace_lua_str('jumps', s)
 
 # Finds all connected neighboring chunks to assign the same jump_id
 def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
@@ -338,7 +332,7 @@ def build_bounds(data_map, n):
 		for col in bounds_map[row]:
 			s += f'{bounds_map[row][col]:0{2}x}' # 0{2} == pad to two digits
 
-	replace_lua_str('local map_bounds_data = ', f"local map_bounds_data = '{s}'")
+	replace_lua_str('bounds', f"'{s}'")
 
 def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 	chunk_x = math.floor(start_x / n)
@@ -381,9 +375,9 @@ def build_settings(data_map, n):
 	size = math.floor(len(markers_data) / n)
 	spawn_x, spawn_y = find_all_sprites(markers_data, spawn_sprites)[0]
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
-	settings = f'laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}'
+	settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
 
-	replace_lua_str('local map_settings = ', f"local map_settings = {{{settings}}}")
+	replace_lua_str('settings', settings)
 
 # Grab the raw data
 root = ET.parse(sys.argv[1]).getroot()
