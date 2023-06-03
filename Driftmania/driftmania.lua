@@ -11,8 +11,8 @@ local trail_m = nil
 local particle_front_m = nil
 local particle_back_m = nil
 local particle_water_m = nil
-local customization_m = nil
-local game_state = 1 -- 0=race, 1=customization
+local menu_m = nil
+local game_state = 1 -- 0=race, 1=menus
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -59,21 +59,20 @@ local chunk_size = 3
 function _init()
   cartdata('mbize_driftmania_v1')
 
+  -- Disable btnp repeat
+  poke(0x5f5c, 255)
+
   init_outline_cache(outline_cache, 30.5)
   init_outline_cache(bbox_cache, 28.5)
 
-  map_road_chunks, map_road_tiles = load_map(map_road_data, map_settings.size, 3)
-  map_decal_chunks, map_decal_tiles = load_map(map_decals_data, map_settings.size, 3)
-  map_prop_chunks, map_prop_tiles = load_map(map_props_data, map_settings.size, 3)
-  map_bounds_chunks = load_map(map_bounds_data, map_settings.size, 3)
+  load_level(1)
 
-  spawn_level_manager()
-  spawn_player()
-  spawn_trail_manager()
   spawn_customization_manager()
   particle_back_m = spawn_particle_manager_vol()
   particle_front_m = spawn_particle_manager_vol()
   particle_water_m = spawn_particle_manager_water()
+
+  game_state = 1
 end
 
 function _update60()
@@ -84,15 +83,16 @@ function _update60()
   if game_state == 0 then
     -- 3% CPU
     _car_update(player)
+
+    _level_manager_update(level_m)
+
+    -- 0% CPU (idle)
+    _particle_manager_vol_update(particle_front_m)
+    --_particle_manager_vol_update(particle_back_m)
+    
+    -- 2% CPU (idle)
+    _particle_manager_water_update(particle_water_m)
   end
-
-  -- 0% CPU (idle)
-  _particle_manager_vol_update(particle_front_m)
-  --_particle_manager_vol_update(particle_back_m)
-  
-  -- 2% CPU (idle)
-  _particle_manager_water_update(particle_water_m)
-
 end
 
 function _draw()
@@ -158,6 +158,8 @@ function _draw()
   for obj in all(objects) do
     obj.draw(obj)
   end
+
+  _level_manager_draw(level_m)
 
   --_player_debug_draw(player)
   --print(stat(0), player.x, player.y - 20, 0)
@@ -896,6 +898,19 @@ end
 --------------------
 -- Level Management
 --------------------
+function load_level(index)
+  map_road_chunks, map_road_tiles = load_map(map_road_data, map_settings.size, 3)
+  map_decal_chunks, map_decal_tiles = load_map(map_decals_data, map_settings.size, 3)
+  map_prop_chunks, map_prop_tiles = load_map(map_props_data, map_settings.size, 3)
+  map_bounds_chunks = load_map(map_bounds_data, map_settings.size, 3)
+
+  spawn_level_manager()
+  spawn_player()
+  spawn_trail_manager()
+
+  game_state = 0
+end
+
 function spawn_level_manager()
   level_m = {
     update = _level_manager_update,
@@ -916,20 +931,18 @@ function spawn_level_manager()
   cache_checkpoints(level_m, map_checkpoints)
 
   local buttons = {
-    new_button(0, 0, 'rETRY', function() end),
-    new_button(0, 10, 'qUIT', function() end),
+    new_button(0, 0, 'rETRY', 'xo', function() load_level(1) end),
+    new_button(0, 10, 'qUIT', 'xo', function() game_state = 1 end),
   }
   level_m.menu = new_menu(50, -10, buttons)
-
-  add(objects, level_m)
 end
 
 function _level_manager_update(self)
-  if (self.frame < 0x6fff) and self.state == 2 then
+  if (self.frame < 0x7fff) and self.state == 2 then
     self.frame += 1
   end
 
-  if game_state == 0 and self.anim_frame < 0x7fff then
+  if game_state == 0 and self.anim_frame < 0x6fff then
     self.anim_frame += 1
   end
 
@@ -946,6 +959,10 @@ function _level_manager_update(self)
 end
 
 function _level_manager_draw(self)
+  if game_state ~= 0 then
+    return
+  end
+
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
 
@@ -1563,9 +1580,9 @@ end
 --------------------
 
 -- type = "lr", "xo"
-function new_button(x, y, txt, update)
+function new_button(x, y, txt, type, update)
   local obj = {x=x, y=y, txt=txt, type=type}
-  obj.update = function(index) return update(obj, index) end
+  obj.update = function(index, input) update(obj, index, input) end
   return obj
 end
 
@@ -1588,7 +1605,15 @@ function _menu_update(self)
   end
 
   -- update active button
-  if self.buttons[self.index].update(self.index) then
+  local button = self.buttons[self.index]
+  local input = 0
+  if button.type == 'lr' then
+    input = (btnp(1) and 1 or 0) - (btnp(0) and 1 or 0)
+  else
+    input = (btnp(4) and 1 or 0) - (btnp(5) and 1 or 0)
+  end
+  if input ~= 0 then
+    button.update(self.index, input)
     self.frames = 5
   end
 end
@@ -1601,8 +1626,7 @@ function _menu_draw(self)
   spr(16, self.x + self.buttons[self.index].x - (self.frames == 0 and 9 or 8), self.y + self.buttons[self.index].y - 2)
 end
 
-function btn_customization(self, index)
-  local input = (btnp(1) and 1 or 0) - (btnp(0) and 1 or 0)
+function btn_customization(self, index, input)
   if input ~= 0 then
     local opt = customization_m.data[index]
     opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or 16)
@@ -1625,7 +1649,6 @@ function spawn_customization_manager()
       water_wheels = 0,
       scale = 2
     },
-    index = 1,
     data = {
       {text='tYPE',original=0,chosen=0},
       {text='bODY',original=8,chosen=8},
@@ -1636,7 +1659,6 @@ function spawn_customization_manager()
       {text='hEADLIGHTS',original=7,chosen=7},
       {text='bUMPER',original=6,chosen=6},
     },
-    frames = 0,
   }
 
   local buttons = {}
@@ -1645,103 +1667,96 @@ function spawn_customization_manager()
     if dget(0) ~= 0 then
       d.chosen = dget(i)
     end
-    add(buttons, new_button(0, i * 10, d.text, btn_customization))
+    add(buttons, new_button(0, i * 10, d.text, 'lr', btn_customization))
   end
-  add(buttons, new_button(38, 92, 'cONTINUE', function() 
-      if btnp(4) then
-        game_state = 0
-        return true
-      end
-    end
-    ))
+  add(buttons, new_button(38, 92, 'cONTINUE', 'xo', function() load_level(1) end))
   customization_m.menu = new_menu(15, 15, buttons)
 
   add(objects, customization_m)
 end
 
 function _customization_manager_draw(self)
-  if game_state == 1 then
-    local border = 11
-    cls(0)
-    rectfill(0, border, 128, 128 - border, 1)
-    rect(-1, border, 128, 128 - border, 12)
-    print_shadowed('gARAGE', 54, 18, 7)
-    rectfill(60, 32, 123, 96, 6)
-    rectfill(62, 34, 121, 94, 5)
-
---    local ow = 22
---    local oh = 18
---    clip(0, 68, 128, 64)
---    oval(92-ow, 68-oh+3, 92+ow, 68+oh+3, 13)
---    oval(92-ow, 68-oh+2, 92+ow, 68+oh+2, 13)
---    oval(92-ow, 68-oh+1, 92+ow, 68+oh+1, 13)
---    clip()
---    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 6)
---    local xc = sin(self.car.angle_fwd) * ow
---    local yc = cos(self.car.angle_fwd) * oh
---    local bc = 8
---    clip(92 + xc - bc, 68 - yc - bc, bc*2, bc*2)
---    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
---    clip(92 - xc - bc, 68 + yc - bc, bc*2, bc*2)
---    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
---    clip()
-
-    _car_draw(self.car)
-    self.menu.draw()
+  if game_state ~= 1 then
+    return
   end
+
+  local border = 11
+  cls(0)
+  rectfill(0, border, 128, 128 - border, 1)
+  rect(-1, border, 128, 128 - border, 12)
+  print_shadowed('gARAGE', 54, 18, 7)
+  rectfill(60, 32, 123, 96, 6)
+  rectfill(62, 34, 121, 94, 5)
+
+--  local ow = 22
+--  local oh = 18
+--  clip(0, 68, 128, 64)
+--  oval(92-ow, 68-oh+3, 92+ow, 68+oh+3, 13)
+--  oval(92-ow, 68-oh+2, 92+ow, 68+oh+2, 13)
+--  oval(92-ow, 68-oh+1, 92+ow, 68+oh+1, 13)
+--  clip()
+--  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 6)
+--  local xc = sin(self.car.angle_fwd) * ow
+--  local yc = cos(self.car.angle_fwd) * oh
+--  local bc = 8
+--  clip(92 + xc - bc, 68 - yc - bc, bc*2, bc*2)
+--  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
+--  clip(92 - xc - bc, 68 + yc - bc, bc*2, bc*2)
+--  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
+--  clip()
+
+  _car_draw(self.car)
+  self.menu.draw()
 end
 
 function _customization_manager_update(self)
-  if game_state == 1 then
+  if game_state ~= 1 then
+    return
+  end
 
-    camera()
-    self.car.angle_fwd += 0.003
-    --self.car.angle_fwd = 0.5
-    if self.frames > 0 then
-      self.frames -= 1
-    end
+  camera()
+  self.car.angle_fwd += 0.003
+  --self.car.angle_fwd = 0.5
 
-    self.menu.update()
+  self.menu.update()
 
-    -- sync car to map
-    for i = 0, 4 do
-      local type = self.data[1].chosen
-      mset(126, 30 - i * 2, 70 + i * 2 + 16 * type)
-      mset(127, 30 - i * 2, 71 + i * 2 + 16 * type)
-    end
+  -- sync car to map
+  for i = 0, 4 do
+    local type = self.data[1].chosen
+    mset(126, 30 - i * 2, 70 + i * 2 + 16 * type)
+    mset(127, 30 - i * 2, 71 + i * 2 + 16 * type)
+  end
 
-    -- save settings
-    dset(0, 1)
-    for i = 1, count(customization_m.data) do
-      dset(i, customization_m.data[i].chosen)
-    end
-
+  -- save settings
+  dset(0, 1)
+  for i = 1, count(customization_m.data) do
+    dset(i, customization_m.data[i].chosen)
   end
 end
 
 -- todo: these maps should be auto-generated by mapPacker
 -- todo: minimap should be cached in sprite sheet
-local road_chunk_map = {6,10,3,12,13,6,13,6,13,6,6,6,6,13,13,6,6,6,6,13,6,6,13,6,6,6,6,13}
-local decal_chunk_map = {6,10,3,12,13,6,13,6,13,6,6,6,6,13,13,6,6,6,6,13,6,6,13,6,6,6,6,13,0,11,9,3,12,12,12,12,10,10,10,10,10,10,9,9}
-function draw_minimap1()
-  local camera_x = peek2(0x5f28)
-  local camera_y = peek2(0x5f2a)
-  local offset = 0--128 - map_settings.size
-  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
-  for i = 0, map_settings.size - 1 do
-    for j = 0, map_settings.size - 1 do
-      local road_chunk_idx = map_road_chunks[i][j]
-      if road_chunk_idx > 0 and road_chunk_map[road_chunk_idx] == 6 then
-        pset(offset + camera_x + i, offset + camera_y + j, road_chunk_map[road_chunk_idx])
-      end
-      local decal_chunk_index = map_decal_chunks[i][j]
-      if decal_chunk_index > 0 and road_chunk_map[road_chunk_idx] ~= 13 then
-        pset(offset + camera_x + i, offset + camera_y + j, decal_chunk_map[decal_chunk_index])
-      end
-    end
-  end
-  pset(flr(offset + camera_x + player.x/24), flr(offset + camera_y + player.y/24), 7)
-end
+--local road_chunk_map = {6,10,3,12,13,6,13,6,13,6,6,6,6,13,13,6,6,6,6,13,6,6,13,6,6,6,6,13}
+--local decal_chunk_map = {6,10,3,12,13,6,13,6,13,6,6,6,6,13,13,6,6,6,6,13,6,6,13,6,6,6,6,13,0,11,9,3,12,12,12,12,10,10,10,10,10,10,9,9}
+--function draw_minimap1()
+--  local camera_x = peek2(0x5f28)
+--  local camera_y = peek2(0x5f2a)
+--  local offset = 0--128 - map_settings.size
+--  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
+--  for i = 0, map_settings.size - 1 do
+--    for j = 0, map_settings.size - 1 do
+--      local road_chunk_idx = map_road_chunks[i][j]
+--      if road_chunk_idx > 0 and road_chunk_map[road_chunk_idx] == 6 then
+--        pset(offset + camera_x + i, offset + camera_y + j, road_chunk_map[road_chunk_idx])
+--      end
+--      local decal_chunk_index = map_decal_chunks[i][j]
+--      if decal_chunk_index > 0 and road_chunk_map[road_chunk_idx] ~= 13 then
+--        pset(offset + camera_x + i, offset + camera_y + j, decal_chunk_map[decal_chunk_index])
+--      end
+--    end
+--  end
+--  pset(flr(offset + camera_x + player.x/24), flr(offset + camera_y + player.y/24), 7)
+--end
 
 -- todo: minimap should be cached in sprite sheet
 local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[37]=15,[38]=15,[39]=15,[40]=15,[41]=15,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
