@@ -41,7 +41,7 @@ local map_road_data = '000000000000000000000000000000000000000000000000000000000
 local map_decals_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001b0000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d1e0000001f00000000000000000000000000000000000000000000000020210000220000000000000000000000000000000000000000000000000000230000000000000000000000000000000000000000000000000000000000240000000000000000000000000000000000000000000025260000000000000000000000000000000000000000000000000000000027280000000000000000000000000000000000000000000000000000000000230000000000000000000000000000000000000000000000000000000000240000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000290000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 local map_props_data = '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a2b2b2b2b2b2b2b2b2b2c000000000000000000000000000000000000002d0000000000000000002d000000000000000000000000000000000000002d0000000000000000002d000000000000000000000000000000000000002d00002e2b2b2b2c00002f2b2b2b2b2b2b2c0000000000000000000000002d0000000000002d00002d0000000000002d0000000000000000000000002d0000000000002d00002d0000000000002d000000000000000000000000302b2b2b2b2b2b3100002f2b2b2b3200002d00000000000000000000000000002a2b2b2b2b3100002f2b2b2b3300002d00000000000000000000000000002d000000002d00002d0000000000002d00000000000000000000000000002d000000002d00002d0000000000002d00000000000000000000000000002d0000342b3100002f2b2b2b2b2b2b3500000000000000000000000000002d0000362b3300002d0000000000000000000000000000000000000000002d000000000000002d0000000000000000000000000000000000000000002d000000000000002d000000000000000000000000000000000000000000302b2b2b2b2b2b2b3500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 local map_bounds_data = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010100000000000000000000000000000000000000010101010101010101010100000000000000000000000000000000000000010101010101010101010100000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000000000010101010101010101010101010101010101000000000000000000000000010101010101010101010101010101010101000000000000000000000000010101010101010101010101010101010101000000000000000000000000000001010101010101010101010101010101000000000000000000000000000001010101010101010101010101010101000000000000000000000000000001010101010101010101010101010101000000000000000000000000000001010101010101010101010101010101000000000000000000000000000001010101010101010100000000000000000000000000000000000000000001010101010101010100000000000000000000000000000000000000000001010101010101010100000000000000000000000000000000000000000001010101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-local map_settings = {laps=3,size=30,spawn_x=192,spawn_y=264,spawn_dir=0.125}
+local map_settings = {laps=1,size=30,spawn_x=192,spawn_y=264,spawn_dir=0.125}
 local map_checkpoints = {{x=164,y=212,dx=1,dy=1,l=64},{x=556,y=284,dx=-1,dy=1,l=64},{x=276,y=468,dx=-1,dy=1,l=64}}
 local map_jumps = {[17]={[12]=1,[13]=1},[18]={[15]=2},[12]={[16]=3,[17]=3,[19]=4}}
 local map_jump_frames = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
@@ -232,6 +232,11 @@ function draw_shadowed(c1, c2, f)
   f( 0, 0, c1)
 end
 
+function print_shadowed(s, x, y, c)
+  print(s, x+1, y, 0)
+  print(s, x, y, c)
+end
+
 --------------------
 -- Car class (player + ghost)
 --------------------
@@ -310,7 +315,7 @@ end
 
 function _car_update(self)
   if self.respawn_frames == 0 then
-    _car_move(self, level_m.playing and btn() or 0)
+    _car_move(self, level_m.state == 2 and btn() or 0)
     camera(self.x - 64, self.y - 64)
   else
     _car_move(self, 0)
@@ -906,26 +911,36 @@ function spawn_level_manager()
     cp_cache = {}, -- table[x][y] -> cp index
     cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
     cp_crossed = {}, -- table[cp_index] -> true/false
-    playing = false,
+    state = 1, -- 1=intro, 2=playing, 3=ending
   }
   cache_checkpoints(level_m, map_checkpoints)
+
+  local buttons = {
+    new_button(0, 0, 'rETRY', function() end),
+    new_button(0, 10, 'qUIT', function() end),
+  }
+  level_m.menu = new_menu(50, -10, buttons)
+
   add(objects, level_m)
 end
 
 function _level_manager_update(self)
-  if (self.frame < 0x7fff) and self.playing then
+  if (self.frame < 0x6fff) and self.state == 2 then
     self.frame += 1
   end
 
-  if game_state == 0 then
+  if game_state == 0 and self.anim_frame < 0x7fff then
     self.anim_frame += 1
   end
-
 
   for k, v in pairs(map_jump_frames) do
     if v > 0 then
       map_jump_frames[k] -= 1
     end
+  end
+
+  if self.state == 3 then
+    self.menu.update()
   end
 
 end
@@ -935,7 +950,7 @@ function _level_manager_draw(self)
   local camera_y = peek2(0x5f2a)
 
   -- intro sequence
-  if self.anim_frame <= 180 then
+  if self.anim_frame <= 180 and self.state <= 2 then
     local w = 46
     local h = 18
     local x = camera_x + 64 - w/2
@@ -963,13 +978,32 @@ function _level_manager_draw(self)
     circ(x + 2*b + 3*r, y + h/2, r, 6)
     circ(x + 3*b + 5*r, y + h/2, r, 6)
 
-    self.playing = self.anim_frame >= l*3
+    if self.anim_frame >= l*3 then
+      self.state = 2
+    end
+  end
+
+  -- End sequence
+  if self.state == 3 then
+    local w = 64
+    local h = 64
+    local x = camera_x + 64 - w/2
+    local y = camera_y + 64 - h/2 - max(0, (15 - self.anim_frame)*4) -- max(0, (self.anim_frame - 150)*4)
+
+    rectfill(x-1, y-1, x + w+1, y + h+1, 12)
+    rectfill(x, y, x + w, y + h, 1)
+
+    print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
+    print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x+13, y+13, 7)
+    print_shadowed('bEST\n' .. frame_to_time_str(self.frame), x+13, y+28, 7)
+
+    self.menu.x = x + 22
+    self.menu.y = y + h - 20
+    self.menu.draw()
   end
 
   -- Lap counter
-
-  print('lap ' .. self.lap .. '/' .. map_settings.laps, camera_x + 99, camera_y + 120, 0)
-  print('lap ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 120, 7)
+  print_shadowed('lAP ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 120, 7)
 
 end
 
@@ -1030,19 +1064,20 @@ function on_checkpoint_crossed(self, cp_index)
     end
     --spawn_ghost() -- TODO: Ghost is not accurate
     _set_ghost_start(player)
-    self.frame = 1
+    --self.frame = 1
+    self.anim_frame = 1
     for i = 1, count(self.cp_crossed) do
       self.cp_crossed[i] = false
     end
     -- Completed the track
     if self.lap == map_settings.laps then
-      self.playing = false
+      self.state = 3
     else
       self.lap += 1
     end
     sfx(15)
   else
-    sfx(14)
+    sfx(14) 
   end
 
   -- Advance checkpoint marker
@@ -1527,6 +1562,54 @@ end
 -- UI
 --------------------
 
+-- type = "lr", "xo"
+function new_button(x, y, txt, update)
+  local obj = {x=x, y=y, txt=txt, type=type}
+  obj.update = function(index) return update(obj, index) end
+  return obj
+end
+
+-- A menu is just a list of buttons + navigation
+function new_menu(x, y, buttons)
+  local obj = {x=x, y=y, buttons=buttons, index=1, frames=0}
+  obj.update = function() return _menu_update(obj) end
+  obj.draw = function() return _menu_draw(obj) end
+  return obj
+end
+
+function _menu_update(self)
+  self.frames = max(0, self.frames - 1)
+
+  -- up/down
+  if btnp(3) then
+    self.index = (self.index % count(self.buttons)) + 1
+  elseif btnp(2) then
+    self.index = self.index == 1 and count(self.buttons) or self.index - 1
+  end
+
+  -- update active button
+  if self.buttons[self.index].update(self.index) then
+    self.frames = 5
+  end
+end
+
+function _menu_draw(self)
+  for i = 1, count(self.buttons) do
+    local b = self.buttons[i]
+    print_shadowed(b.txt, self.x + b.x + (i == self.index and 1 or 0), self.y + b.y, i == self.index and 7 or 6)
+  end
+  spr(16, self.x + self.buttons[self.index].x - (self.frames == 0 and 9 or 8), self.y + self.buttons[self.index].y - 2)
+end
+
+function btn_customization(self, index)
+  local input = (btnp(1) and 1 or 0) - (btnp(0) and 1 or 0)
+  if input ~= 0 then
+    local opt = customization_m.data[index]
+    opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or 16)
+    return true
+  end
+end
+
 function spawn_customization_manager()
   local opt = split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")
   customization_m = {
@@ -1556,39 +1639,55 @@ function spawn_customization_manager()
     frames = 0,
   }
 
+  local buttons = {}
   for i = 1, count(customization_m.data) do
     d = customization_m.data[i]
     if dget(0) ~= 0 then
       d.chosen = dget(i)
     end
+    add(buttons, new_button(0, i * 10, d.text, btn_customization))
   end
+  add(buttons, new_button(38, 92, 'cONTINUE', function() 
+      if btnp(4) then
+        game_state = 0
+        return true
+      end
+    end
+    ))
+  customization_m.menu = new_menu(15, 15, buttons)
 
   add(objects, customization_m)
 end
 
 function _customization_manager_draw(self)
   if game_state == 1 then
-    local border = 10
-    cls(1)
-    rect(-1, border+1, 128, 127 - border, 12)
-    print('gARAGE', 55, 18, 0)
-    print('gARAGE', 54, 18, 7)
-    rectfill(0, 0, 128, border, 0)
-    rectfill(0, 128-border, 128, 128, 0)
-    rectfill(60, 32, 121, 96, 5)
-    rect(60, 32, 123, 96, 6)
-    rect(61, 33, 122, 95, 6)
+    local border = 11
+    cls(0)
+    rectfill(0, border, 128, 128 - border, 1)
+    rect(-1, border, 128, 128 - border, 12)
+    print_shadowed('gARAGE', 54, 18, 7)
+    rectfill(60, 32, 123, 96, 6)
+    rectfill(62, 34, 121, 94, 5)
+
+--    local ow = 22
+--    local oh = 18
+--    clip(0, 68, 128, 64)
+--    oval(92-ow, 68-oh+3, 92+ow, 68+oh+3, 13)
+--    oval(92-ow, 68-oh+2, 92+ow, 68+oh+2, 13)
+--    oval(92-ow, 68-oh+1, 92+ow, 68+oh+1, 13)
+--    clip()
+--    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 6)
+--    local xc = sin(self.car.angle_fwd) * ow
+--    local yc = cos(self.car.angle_fwd) * oh
+--    local bc = 8
+--    clip(92 + xc - bc, 68 - yc - bc, bc*2, bc*2)
+--    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
+--    clip(92 - xc - bc, 68 + yc - bc, bc*2, bc*2)
+--    oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
+--    clip()
+
     _car_draw(self.car)
-
-    local dx = self.frames > 0 and 1 or 0
-
-    for i = 1, count(self.data) do
-      local option = self.data[i]
-      print(option.text, 16 + (self.index == i and dx or 0), 22 + i * 10, 0)
-      print(option.text, 15 + (self.index == i and dx or 0), 22 + i * 10, self.index == i and 7 or 6)
-    end
-
-    spr(16, 5 + dx, 20 + self.index * 10)
+    self.menu.draw()
   end
 end
 
@@ -1602,28 +1701,7 @@ function _customization_manager_update(self)
       self.frames -= 1
     end
 
-    -- up/down
-    if btnp(3) then
-      self.index = (self.index % count(self.data)) + 1
-    elseif btnp(2) then
-      self.index = self.index == 1 and count(self.data) or self.index - 1
-    end
-
-    -- left/right
-    if btnp(1) then
-      local opt = self.data[self.index]
-      opt.chosen = (opt.chosen + 1) % (opt.text == 'tYPE' and 4 or 16)
-      self.frames = 5
-    elseif btnp(0) then
-      local opt = self.data[self.index]
-      opt.chosen = (opt.chosen - 1) % (opt.text == 'tYPE' and 4 or 16)
-      self.frames = 5
-    end
-
-    -- confirm
-    if btnp(4) or btnp(5) then
-      game_state = 0
-    end
+    self.menu.update()
 
     -- sync car to map
     for i = 0, 4 do
