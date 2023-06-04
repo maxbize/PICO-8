@@ -13,7 +13,7 @@ local particle_back_m = nil
 local particle_water_m = nil
 local menu_m = nil
 local game_state = 1 -- 0=race, 1=customization, 2=level select
-local level_index = 2
+local level_index = 3
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -45,33 +45,40 @@ end
 local map_road_data = {
   "\0^7¹⁶²8¹\0¥⁸¹¹³8¹\0」⁸¹¹⁴8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵⁶⁸⁷¹\0▮9¹¹⁴\n⁶ᵇ¹¹¹ᶜ¹\0■9¹¹²:¹\0⁶ᶠ¹▮¹ᶜ¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0、⁸¹ᶜ¹\0、⁸¹ᶜ¹\0□⁵¹⁷¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0•⁘¹‖¹」¹¥¹\0⁘⁵¹⁶⁵◀¹¹²■¹⁶⁴⁷¹\0ᶠ□¹\n⁵ᵇ¹¹²\t¹\n²ᵇ¹¹¹ᶜ¹\0‖ᶠ¹▮¹▶¹「¹\0²ᶠ¹▮¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹」¹¥¹\0²⁘¹‖¹ᶜ¹\0◀⁸¹¹¹■¹⁶²◀¹¹¹ᶜ¹\0◀□¹\n⁶⁙¹\0>", -- driftmaniaLevel1.tmx road
   "\0◝\0◀⁵¹⁶⁷⁷¹\0‖⁸¹¹¹\t¹\n³ᵇ¹¹¹ᶜ¹\0‖⁸¹\r¹ᵉ¹\0³ᶠ¹▮¹ᶜ¹\0‖⁸¹¹¹■¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶⁴⁷¹\0ᵉ□¹\n⁴⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n²ᵇ¹¹¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴ᶠ¹▮¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴⁘¹‖¹ᶜ¹\0▮⁵¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶²◀¹¹¹ᶜ¹\0▮⁸¹¹¹\t¹⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n⁴⁙¹\0▮⁸¹▶¹「¹\0²⁸¹ᶜ¹\0▶⁸¹」¹¥¹\0¹⁘¹‖¹ᶜ¹\0▶⁸¹¹¹■¹⁶¹◀¹¹¹ᶜ¹\0▶□¹\n⁵⁙¹\0◜", -- driftmaniaLevel2.tmx road
+  "\0,⁘¹b¹⁶²c¹¥¹⁘¹b¹⁶²d¹e¹\0\tf¹¹¹\t¹ᵇ¹¹¹g¹h¹¹¹\t¹\n¹¹¹i¹e¹\0⁸⁸¹▶¹「¹ᶠ¹▮¹¹²▶¹「¹\0¹9¹¹¹i¹e¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0³9¹¹¹j¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0⁴⁸¹ᶜ¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0⁴⁸¹ᶜ¹\0⁷⁸¹ᶜ¹\0²k¹¹²l¹\0³7¹¹¹m¹\0⁷⁸¹ᶜ¹\0²ᶠ¹n¹o¹「¹\0²7¹¹¹p¹q¹\0⁷r¹¹¹8¹\0⁶7¹¹¹p¹q¹\0⁸s¹t¹¹¹8¹\0⁴7¹¹¹p¹q¹\0\ns¹t¹¹¹⁶⁴¹¹p¹q¹\0ᶜs¹u¹\n⁴v¹q¹\0う", -- driftmaniaMaps2.tmx road
 }
 local map_decals_data = {
   "\0か;¹\0、<¹\0、\"¹\0、=¹\0▥#²\0、>¹?¹\0⁸@¹A¹\0□B¹C¹\0⁸D¹E¹\0□F¹G¹\0&H¹I¹\0、J¹K¹\0:L¹\0」M¹\0⁷M¹\0」N¹O¹\0、P¹Q¹\0^R¹\0゛S¹\0>", -- driftmaniaLevel1.tmx decals
   "\0◝\0◀•¹\0゛、¹\0D。¹゛¹\0³゜¹\0「 ¹!¹\0²\"¹\0¥#¹\0。$¹\0◀%¹&¹\0、'¹(¹\0。#¹\0。$¹\0•\"¹\0、)¹\0◝\0⁵", -- driftmaniaLevel2.tmx decals
+  "\0\\w¹x¹\0Xy¹\0⁙y¹\0⁙y¹\0⁙y¹\0ᶠz¹\0³y¹\0▮z¹\0く", -- driftmaniaMaps2.tmx decals
 }
 local map_props_data = {
   "\0@T¹+²U¹\0」V¹W¹\0²X¹Y¹\0「-¹\0¹Z¹[¹\0¹X¹Y¹\0▶-¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀]¹[¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀^¹[¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀^¹[¹\0¹X¹\\¹[¹\0¹X¹_¹+⁸,¹\0\r^¹[¹\0¹X¹\\¹[¹\0\n-¹\0ᵉ^¹[¹\0¹X¹\\¹[¹\0\t-¹\0ᶠ^¹[¹\0¹X¹`¹+⁶,¹\0²-¹\0▮a¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²0¹+⁶5¹\0²0¹+⁵,¹\0\n-¹\0□-¹\0\n-¹\0□-¹\0\n0¹+\t,¹\0²*¹+²,¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²0¹+²5¹\0²-¹\0⁘-¹\0⁸-¹\0⁘-¹\0⁸-¹\0⁘0¹+⁸5¹\0゜", -- driftmaniaLevel1.tmx props
   "\0ロ*¹+\t,¹\0⁙-¹\0\t-¹\0⁙-¹\0\t-¹\0⁙-¹\0².¹+³,¹\0²/¹+⁶,¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ0¹+⁶1¹\0²/¹+³2¹\0²-¹\0ᵉ*¹+⁴1¹\0²/¹+³3¹\0²-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0²4¹+¹1¹\0²/¹+⁶5¹\0ᵉ-¹\0²6¹+¹3¹\0²-¹\0‖-¹\0⁷-¹\0‖-¹\0⁷-¹\0‖0¹+⁷5¹\0ト", -- driftmaniaLevel2.tmx props
+  "\0▶Z¹{¹+²|¹[¹Z¹{¹+³,¹\0⁸Z¹}¹\0⁴~¹○¹\0⁴0¹,¹\0⁷█¹\0⁵▒¹🐱¹\0⁵0¹,¹\0⁶-¹\0²4¹2¹\0¹▒¹🐱¹\0¹4¹|¹[¹\0²0¹,¹\0⁵-¹\0²-²\0¹▒¹🐱¹\0¹-¹\0¹^¹[¹\0²-¹\0⁵-¹\0²-²\0¹▒¹🐱¹\0¹-¹\0²a¹\0²-¹\0⁵-¹\0²-²\0¹⬇️¹░¹\0¹-¹\0²✽¹\0²-¹\0⁵-¹\0²-¹●¹\0⁴✽¹\0¹♥¹W¹\0²-¹\0⁵-¹\0²●¹X¹Y¹\0²♥¹W¹♥¹W¹\0²*¹5¹\0⁵-¹\0²X¹Y¹X¹_¹☉¹W¹♥¹W¹\0²*¹5¹\0⁶0¹,¹\0²X¹_¹+²☉¹W¹\0²*¹5¹\0⁸0¹,¹\0⁸*¹5¹\0\n0¹,¹\0⁶*¹5¹\0ᶜ0¹+⁶5¹\0♥", -- driftmaniaMaps2.tmx props
 }
 local map_bounds_data = {
   "\0@¹⁴\0」¹⁶\0「¹⁷\0▶¹⁸\0◀¹\t\0◀¹\t\0◀¹□\0\r¹■\0ᵉ¹▮\0ᶠ¹ᶠ\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁘\0\n¹⁘\0\n¹⁘\0\n¹⁘\0⁘¹⁴\0²¹⁴\0⁘¹⁴\0²¹⁴\0⁘¹\n\0⁘¹\n\0⁘¹\n\0⁘¹\n\0゜", -- driftmaniaLevel1.tmx bounds
   "\0ロ¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0ト", -- driftmaniaLevel2.tmx bounds
+  "\0▶¹ᶜ\0⁸¹ᵉ\0⁷¹ᶠ\0⁶¹▮\0⁵¹\n\0¹¹⁵\0⁵¹\n\0²¹⁴\0⁵¹\n\0²¹⁴\0⁵¹\n\0¹¹⁵\0⁵¹▮\0⁵¹ᶠ\0⁶¹ᵉ\0⁸¹ᶜ\0\n¹\n\0ᶜ¹⁸\0♥", -- driftmaniaMaps2.tmx bounds
 }
 local map_settings_data = {
   {laps=3,size=30,spawn_x=216,spawn_y=160,spawn_dir=0.375}, -- driftmaniaLevel1.tmx settings
   {laps=3,size=30,spawn_x=192,spawn_y=264,spawn_dir=0.125}, -- driftmaniaLevel2.tmx settings
+  {laps=3,size=21,spawn_x=168,spawn_y=312,spawn_dir=0.5}, -- driftmaniaMaps2.tmx settings
 }
 local map_checkpoints_data = {
   {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}, -- driftmaniaLevel1.tmx checkpoints
   {{x=164,y=212,dx=1,dy=1,l=64},{x=556,y=284,dx=-1,dy=1,l=64},{x=276,y=468,dx=-1,dy=1,l=64}}, -- driftmaniaLevel2.tmx checkpoints
+  {{x=156,y=276,dx=0,dy=1,l=72},{x=196,y=116,dx=1,dy=0,l=56}}, -- driftmaniaMaps2.tmx checkpoints
 }
 local map_jumps_data = {
   {[10]={[14]=1},[11]={[14]=1},[20]={[15]=2,[22]=3,[23]=3},[21]={[15]=2,[22]=3,[23]=3}}, -- driftmaniaLevel1.tmx jumps
   {[17]={[12]=1,[13]=1},[18]={[15]=2},[12]={[16]=3,[17]=3,[19]=4}}, -- driftmaniaLevel2.tmx jumps
+  {}, -- driftmaniaMaps2.tmx jumps
 }
-local gradients =     {0, 1, 1, 2, 1, 13, 6, 2, 4, 9, 3, 1, 5, 13, 14}
-local gradients_rev = {12, 8, 11, 9, 13, 14, 7, 7, 10, 7, 7, 7, 14, 15, 7}
+local gradients =     split('0,1,1,2,1,13,6,2,4,9,3,1,5,13,14')
+local gradients_rev = split('12,8,11,9,13,14,7,7,10,7,7,7,14,15,7')
 local outline_cache = {}
 local bbox_cache = {}
 local wall_height = 3
@@ -279,6 +286,14 @@ function decomp_str(s)
   return arr
 end
 
+function hash_set(csv)
+  local arr = {}
+  for num in all(split(csv)) do
+    arr[num] = true
+  end
+  return arr
+end
+
 --------------------
 -- Car class (player + ghost)
 --------------------
@@ -325,7 +340,7 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     is_ghost = is_ghost,
     drifting = false,
     wheel_offsets = {{x=0, y=0}, {x=0, y=0}, {x=0, y=0}, {x=0, y=0}},
-    dirt_frames = {0, 0, 0, 0},
+    dirt_frames = split('0,0,0,0'),
     boost_frames = 0,
     flash_frames = 0,
     started_boost_last_frame = false,
@@ -381,7 +396,7 @@ function _car_update(self)
       self.v_y = 0
       self.x_remainder = 0
       self.y_remainder = 0
-      self.dirt_frames = {0, 0, 0, 0}
+      self.dirt_frames = split('0,0,0,0')
       self.boost_frames = 0
     end
   end
@@ -721,16 +736,16 @@ function _car_draw(self)
   end
   pal()
 
-  local w = 11
-  local ii = 11
-  for i = -1, 1, 2 do
-    for j = -1, 1, 2 do
-      local wheel_x = round(cos(self.angle_fwd + 0.083 * i) * 5 * j)
-      local wheel_y = round(sin(self.angle_fwd + 0.083 * i) * 5 * j)
-      --pset(player.x+wheel_x, round(player.y-0.5+wheel_y), ii)
-      ii += 1
-    end
-  end
+  --local w = 11
+  --local ii = 11
+  --for i = -1, 1, 2 do
+  --  for j = -1, 1, 2 do
+  --    local wheel_x = round(cos(self.angle_fwd + 0.083 * i) * 5 * j)
+  --    local wheel_y = round(sin(self.angle_fwd + 0.083 * i) * 5 * j)
+  --    pset(player.x+wheel_x, round(player.y-0.5+wheel_y), ii)
+  --    ii += 1
+  --  end
+  --end
 
   --line(player.x, player.y, player.x, player.y, 15)
 
@@ -857,53 +872,53 @@ function _player_collides_at(self, x, y, z, angle)
   return false
 end
 
-function _player_debug_draw(self)
-  -- Collision point visualization
-  pset(self.x, self.y, 3)
-
-  -- Front/back collision points
-  for i, offset in pairs(self.wheel_offsets) do
-    local x = flr(self.x) + offset.x
-    local y = flr(self.y) + offset.y
-    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
-    --checkpoint_check(x, y)
-  end
-
+--function _player_debug_draw(self)
+--  -- Collision point visualization
+--  pset(self.x, self.y, 3)
+--
+--  -- Front/back collision points
+--  for i, offset in pairs(self.wheel_offsets) do
+--    local x = flr(self.x) + offset.x
+--    local y = flr(self.y) + offset.y
+--    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
+--    --checkpoint_check(x, y)
+--  end
+--
 --  -- Side collision points
 --  for i = -1, 1, 2 do
 --    local x = flr(self.x) + cos(self.angle_fwd + 0.25 * i) * 2
 --    local y = flr(self.y) + sin(self.angle_fwd + 0.25 * i) * 2
 --    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
 --  end
-
-end
+--
+--end
 
 -- Checks if the given position on the map overlaps a wall
-local wall_collision_sprites = {[43]=true, [44]=true, [45]=true, [46]=true, [47]=true, [59]=true, [60]=true, [61]=true, [62]=true}
+local wall_collision_sprites = hash_set('43,44,45,46,47,59,60,61,62')
 function collides_wall_at(x, y, z)
   return collides_part_at(x, y, z, wall_height, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
 
-local grass_sprites_full = {[0]=true, [26]=true,}
-local grass_sprites_part = {[6]=true, [7]=true, [8]=true, [9]=true, [26]=true,}
+local grass_sprites_full = hash_set('0,26')
+local grass_sprites_part = hash_set('6,7,8,9,26')
 function collides_grass_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_road_tiles, grass_sprites_full, grass_sprites_part, 3)
 end
 
-local water_sprites_full = {[64]=true, [69]=true, [70]=true, [85]=true, [86]=true,}
-local water_sprites_part = {[65]=true, [66]=true, [67]=true, [68]=true, [81]=true, [82]=true, [83]=true, [84]=true,}
+local water_sprites_full = hash_set('64,69,70,85,86')
+local water_sprites_part = hash_set('65,66,67,68,81,82,83,84')
 function collides_water_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, water_sprites_full, water_sprites_part, 12, 7)
 end
 
-local boost_sprites_full = {[21]=true,}
-local boost_sprites_part = {[22]=true, [23]=true, [24]=true, [25]=true,}
+local boost_sprites_full = hash_set('21')
+local boost_sprites_part = hash_set('22,23,24,25')
 function collides_boost_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, boost_sprites_full, boost_sprites_part, 10)
 end
 
-local jump_sprites_full = {[37]=true,}
-local jump_sprites_part = {[38]=true, [39]=true, [40]=true, [41]=true,}
+local jump_sprites_full = hash_set('37')
+local jump_sprites_part = hash_set('38,39,40,41')
 function collides_jump_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, jump_sprites_full, jump_sprites_part, 15)
 end
@@ -1251,7 +1266,7 @@ local sprite_sorts = {
   [61] = {y_intercept = 3, slope = -1}, 
   [62] = {y_intercept = 0, slope = 1}, -- This one has two y_intercepts so this might not always work
 }
-local solid_chunks = {5, 10, 3, 12}
+local solid_chunks = split('5,10,3,12')
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player, has_jumps)
   if game_state ~= 0 then
