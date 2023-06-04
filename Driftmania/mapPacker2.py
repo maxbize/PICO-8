@@ -4,6 +4,7 @@ Given a Tiled map of individual tiles, generate a map string with tiles arranged
 TODO: So much code cleanup ;)
 '''
 
+import codecs
 import math
 import re
 import sys
@@ -13,8 +14,19 @@ import xml.etree.ElementTree as ET
 sys.stdout.reconfigure(encoding='utf-8')
 
 # https://gist.githubusercontent.com/joelsgp/bf930961230731fe370e5c25ba05c5d3/raw/d837ae7bff7b5b6375f684dc69b6e9195f02e78a/p8scii.json
-# Note: the single quote (') has an extra escape in front of it so that it will not end the string when pasting as Lua code
-p8scii = ["\\0", "\\*", "\\#", "\\-", "\\|", "\\+", "\\^", "\\a", "\\b", "\\t", "\\n", "\\v", "\\f", "\\r", "\\014", "\\015", "▮", "■", "□", "⁙", "⁘", "‖", "◀", "▶", "「", "」", "¥", "•", "、", "。", "゛", "゜", " ", "!", "\"", "#", "$", "%", "&", "\\'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~", "○", "█", "▒", "🐱", "⬇️", "░", "✽", "●", "♥", "☉", "웃", "⌂", "⬅️", "😐", "♪", "🅾️", "◆", "…", "➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤", "▥", "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と", "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ", "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り", "る", "れ", "ろ", "わ", "を", "ん", "っ", "ゃ", "ゅ", "ょ", "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ヲ", "ン", "ッ", "ャ", "ュ", "ョ", "◜", "◝"]
+# https://www.lexaloffle.com/bbs/?tid=38692
+p8scii = ["\\0", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "\\t", "\\n", "ᵇ", "ᶜ", "\\r", "ᵉ", "ᶠ", "▮", "■", "□", "⁙", "⁘", "‖", "◀", "▶", "「", "」", "¥", "•", "、", "。", "゛", "゜", " ", "!", "\\\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\\\", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~", "○", "█", "▒", "🐱", "⬇️", "░", "✽", "●", "♥", "☉", "웃", "⌂", "⬅️", "😐", "♪", "🅾️", "◆", "…", "➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤", "▥", "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と", "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ", "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り", "る", "れ", "ろ", "わ", "を", "ん", "っ", "ゃ", "ゅ", "ょ", "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ヲ", "ン", "ッ", "ャ", "ュ", "ョ", "◜", "◝"]
+
+# Chunk state is global so that chunks are shared across maps
+chunks = {} # string of index,index,.. -> chunk index
+chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
+# Seed the first chunks with solid colors
+for idx in [0, 1, 21, 26, 64]:
+	chunk_size = 3
+	chunk = ''.join([f'{idx:003}' for _ in range(chunk_size**2)])
+	chunks[chunk] = len(chunks)
+	chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
+
 
 # Get index,index,.. of chunk size n*n starting at x,y
 def get_chunk(data, x, y, n):
@@ -45,13 +57,13 @@ def write_map(chunks, n):
 	p8_map_str = [f"{''.join([f'{val:0{2}x}' for val in row])}\n" for row in p8_map]
 
 	# Write the __map__ into the .p8 file itself
-	with open(sys.argv[3], 'r') as f:
+	with codecs.open(sys.argv[2], 'r', 'utf-8') as f:
 		lines = f.readlines()
 	for i, line in enumerate(lines):
 		if '__map__' in line:
 			lines[i+1:i+1+len(p8_map_str)] = p8_map_str
 			break
-	with open(sys.argv[3], 'w') as f:
+	with codecs.open(sys.argv[2], 'w', 'utf-8') as f:
 		f.writelines(lines)
 
 	#print('\n__map__')
@@ -65,27 +77,27 @@ def write_map(chunks, n):
 #  0: uncompressed
 #  1: 8 bit index, 8 bit count as hex (4 chars per token)
 #  2: 7 bit index + 1 bit count flag, 8 bit count as hex (2-4 chars per token). Requires <= 2**7 chunks
-#  3: 7 bit index, 7 bit count as unicode (2 chars per token). Requires <= 2**7 chunks
-#  4: 6 bit index + 1 bit count flag, 7 bit count as unicode (1-2 chars per token). Requires <= 2**6 chunks
+#  3: 8 bit index, 8 bit count as unicode (2 chars per token). Requires <= 2**8 chunks
+#  4: 7 bit index + 1 bit count flag, 8 bit count as unicode (1-2 chars per token). Requires <= 2**7 chunks
 # TODO: None of the compressions have been tested ;) There's probably bugs
 # TODO: If the num_chunks is per layer, and sprites aren't shared between layers, you could use higher compression
 def compress_map_str(map_hex, num_chunks, compression_level):
 	if compression_level == 0:
 		return map_hex
-	if ([0, 2**8, 2**7, 2**7, 2**6])[compression_level] < num_chunks:
+	if ([0, 2**8, 2**7, 2**8, 2**7])[compression_level] < num_chunks:
 		raise Exception(f'Cannot use compression level {compression_level} - too many chunks ({num_chunks})')
-	max_count = ([0, 2**8, 2**8, 2**7, 2**7])[compression_level]
+	max_count = 255
 	map_str_comp = ""
 	i = 0
 	val = map_hex[i:i+2]
-	current_val = val
 	count = 0
+	total_count = 0
 	while i < len(map_hex):
 		next_val = map_hex[i:i+2]
 		i += 2
-		if val == next_val and count < max_count:
+		if val == next_val:
 			count += 1
-		else:
+		if val != next_val or count == max_count or i >= len(map_hex):
 			val_int = int(val, 16)
 			# Build out the map string depending on the compression level
 			if compression_level == 1:
@@ -97,40 +109,39 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 					val_int |= 1<<7 # Flag is 8th bit
 					map_str_comp += f'{val_int:0{2}x}{count:0{2}x}'
 			elif compression_level == 3:
-				map_str_comp += f'{p8scii[val_int+16]}{p8scii[count+16]}'
+				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
+					map_str_comp += f'\\000{p8scii[count]}'
+				else:
+					map_str_comp += f'{p8scii[val_int]}{p8scii[count]}'
 			elif compression_level == 4:
 				if count == 1:
-					map_str_comp += f'{p8scii[val_int+16]}'
+					map_str_comp += f'{p8scii[val_int]}'
 				else:
-					val_int |= 1<<6 # Flag is 7th bit
-					map_str_comp += f'{p8scii[val_int+16]}{p8scii[count+16]}'
+					val_int |= 1<<7 # Flag is 8th bit
+					map_str_comp += f'{p8scii[val_int]}{p8scii[count]}'
 			val = next_val
-			count = 1
+			total_count += count
+			count = 1 if count < max_count else 0
 
+	print('>>>>', total_count)
 	return map_str_comp
 
-def replace_lua_str(data_type, s):
-	marker = f'{sys.argv[1]} {data_type}'
-	with open(sys.argv[2], 'r') as f:
+def replace_lua_str(filename, data_type, s):
+	marker = f'{filename} {data_type}'
+	with codecs.open(sys.argv[1], 'r', 'utf-8') as f:
 		lines = f.readlines()
 	for i, line in enumerate(lines):
 		if marker in line:
 			lines[i] = f"  {s}, -- {marker}\n"
 			break
-	with open(sys.argv[2], 'w') as f:
+	with codecs.open(sys.argv[1], 'w', 'utf-8') as f:
 		f.writelines(lines)
 
-def build_map(data_map, n, pad_x, pad_y):
-	chunks = {} # string of index,index,.. -> chunk index
-	chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
-
-	# Seed the first chunks with solid colors
-	for idx in [0, 1, 21, 26, 64]:
-		chunk = ''.join([f'{idx:003}' for _ in range(n*n)])
-		chunks[chunk] = len(chunks)
-		chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
-
+def build_map(filename, data_map, n, pad_x, pad_y):
 	for name in data_map:
+		if name.lower() == 'markers':
+			continue
+
 		data = data_map[name]
 		map_hex = ""  # The map tile values. 8 bits per tile
 		num_rows = len(data)
@@ -149,11 +160,12 @@ def build_map(data_map, n, pad_x, pad_y):
 		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 		# Compress the string. First byte is index, second byte is count
-		map_str_comp = compress_map_str(map_hex, num_chunks, 1)
+		print(f'\n>>{filename} {name}:\n{map_hex}\n')
+		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
 		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
-		replace_lua_str(name.lower(), f"'{map_hex}'")
+		replace_lua_str(filename, name.lower(), f'"{map_str_comp}"')
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
 	write_map(chunks, n)
@@ -217,7 +229,7 @@ def walk_line(data, sprites, x, y, delta_x, delta_y):
 green_checkpoint_sprites = [10, 11, 27, 28]
 brown_checkpoint_sprites = [12, 13, 14, 15]
 wall_sprites = [43, 44, 45, 46, 47, 59, 60, 61, 62]
-def build_checkpoints(data_map):
+def build_checkpoints(filename, data_map):
 	# Setup
 	props_data = data_map['Props']
 	decal_data = data_map['Decals']
@@ -257,11 +269,11 @@ def build_checkpoints(data_map):
 		s += f'{{x={p1[0]*8+4},y={p1[1]*8+4},dx={delta_x},dy={delta_y},l={(len(line)-1)*8}}},'
 	s = s[:-1] + '}'
 	#print(s)
-	replace_lua_str('checkpoints', s)
+	replace_lua_str(filename, 'checkpoints', s)
 
 # Builds a map[chunk x][chunk y] => jump index
 jump_sprites = [37, 38, 39, 40, 41]
-def build_jumps(decal_data, n):
+def build_jumps(filename, decal_data, n):
 	jump_map = {}
 	jump_id = 1
 
@@ -280,7 +292,7 @@ def build_jumps(decal_data, n):
 	s = str(jump_map)
 	s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
 	s = re.sub(' ', '', s)
-	replace_lua_str('jumps', s)
+	replace_lua_str(filename, 'jumps', s)
 
 # Finds all connected neighboring chunks to assign the same jump_id
 def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
@@ -314,7 +326,7 @@ def jump_dfs(jump_map, decal_data, chunk_x, chunk_y, jump_id, n):
 						jump_dfs(jump_map, decal_data, neighbor_chunk_x, neighbor_chunk_y, jump_id, n)
 
 in_bound_sprites = [10,11,12,13,14,15,27,28,37,38,39,40,41] # Checkpoints and jumps
-def build_bounds(data_map, n):
+def build_bounds(filename, data_map, n):
 	decal_data = data_map['Decals']
 	props_data = data_map['Props']
 	num_chunks = math.floor(len(decal_data) / n)
@@ -332,7 +344,9 @@ def build_bounds(data_map, n):
 		for col in bounds_map[row]:
 			s += f'{bounds_map[row][col]:0{2}x}' # 0{2} == pad to two digits
 
-	replace_lua_str('bounds', f"'{s}'")
+	bounds_str_comp = compress_map_str(s, num_chunks, 3)
+
+	replace_lua_str(filename, 'bounds', f'"{bounds_str_comp}"')
 
 def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 	chunk_x = math.floor(start_x / n)
@@ -367,9 +381,9 @@ def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 					q.append((neighbor_x, neighbor_y))
 
 # Ex: local map_settings = {laps=3, size=30, spawn_x=23*8, spawn_y=32*8, spawn_dir=0.375}
-# Note: 256 is because the first 256 indices are taken by the other tileset
+# Note: +256 is because the first 256 indices are taken by the other tileset
 spawn_sprites = [i + 256 for i in range(9)]
-def build_settings(data_map, n):
+def build_settings(filename, data_map, n):
 	markers_data = data_map.get('Markers')
 	laps = 3 # TODO: Will this ever be different?
 	size = math.floor(len(markers_data) / n)
@@ -377,38 +391,46 @@ def build_settings(data_map, n):
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
 	settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
 
-	replace_lua_str('settings', settings)
+	replace_lua_str(filename, 'settings', settings)
 
-# Grab the raw data
-root = ET.parse(sys.argv[1]).getroot()
-# Data has forward and trailing blank lines
-data_list = [layer.find("data").text[1:-1] for layer in root.findall("layer")]
-layer_names = [layer.get("name") for layer in root.findall("layer")]
-# Data has trailing commas
-# Data is 1-indexed so subtract one. Side effect: 0 is used for "empty" which we want to keep at 0 (rather than -1)
-for i, data in enumerate(data_list):
-	data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
-	data = [[cell if cell != 26 else 0 for cell in row] for row in data] # Set full grass sprite to 0 since it'll be drawn in cls(3)
-	data_list[i] = data
-# Data is now indexed by [row][col] aka [y][x]
-data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
+def process_file(filename):
+	# Grab the raw data
+	root = ET.parse(filename).getroot()
+	# Data has forward and trailing blank lines
+	data_list = [layer.find("data").text[1:-1] for layer in root.findall("layer")]
+	layer_names = [layer.get("name") for layer in root.findall("layer")]
+	# Data has trailing commas
+	# Data is 1-indexed so subtract one. Side effect: 0 is used for "empty" which we want to keep at 0 (rather than -1)
+	for i, data in enumerate(data_list):
+		data = [[int(cell) - 1 if int(cell) > 0 else 0 for cell in row.rstrip(',').split(',')] for row in data.split("\n")]
+		data = [[cell if cell != 26 else 0 for cell in row] for row in data] # Set full grass sprite to 0 since it'll be drawn in cls(3)
+		data_list[i] = data
+	# Data is now indexed by [row][col] aka [y][x]
+	data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
 
-# Iterate all possibilities to find the best result
-#results = []
-#for i in range(1, 7):
-#	for pad_x in range(i):
-#		for pad_y in range(i):
-#			map_len, map_len_comp, chunk_len = build_map(data_list, i, pad_x, pad_y)
-#			results.append([i, pad_x, pad_y, map_len, map_len_comp, chunk_len, chunk_len * i * i])
+	# Iterate all possibilities to find the best result
+	#results = []
+	#for i in range(1, 7):
+	#	for pad_x in range(i):
+	#		for pad_y in range(i):
+	#			map_len, map_len_comp, chunk_len = build_map(data_list, i, pad_x, pad_y)
+	#			results.append([i, pad_x, pad_y, map_len, map_len_comp, chunk_len, chunk_len * i * i])
 
-# Uncomment to see other possibilities
-#print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
-#print('\n'.join(str(r) for r in results))
+	# Uncomment to see other possibilities
+	#print('i, pad_x, pad_y, map_str_len, map_str_comp_len, num_chunks, map_tile_size')
+	#print('\n'.join(str(r) for r in results))
+
+	build_map(filename, data_map, chunk_size, 0, 0)
+	build_checkpoints(filename, data_map)
+	build_jumps(filename, data_map['Decals'], chunk_size)
+	build_bounds(filename, data_map, chunk_size)
+	build_settings(filename, data_map, chunk_size)
 
 
-chunk_size = 3
-build_map(data_map, chunk_size, 0, 0)
-build_checkpoints(data_map)
-build_jumps(data_map['Decals'], chunk_size)
-build_bounds(data_map, chunk_size)
-build_settings(data_map, chunk_size)
+for filename in sys.argv[3:]:
+	process_file(filename)
+
+bin_s = ''
+for char in p8scii:
+	bin_s += char
+replace_lua_str('bin_test', 'bin_test', f'local bintst = "{bin_s}"')
