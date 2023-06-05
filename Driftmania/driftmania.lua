@@ -7,13 +7,14 @@
 local objects = {}
 local player = nil
 local level_m = nil
+local level_select_m = nil
 local trail_m = nil
 local particle_front_m = nil
 local particle_back_m = nil
 local particle_water_m = nil
 local menu_m = nil
-local game_state = 1 -- 0=race, 1=customization, 2=level select
-local level_index = 3
+local game_state = 2 -- 0=race, 1=customization, 2=level select
+local level_index = 1
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -43,37 +44,37 @@ end
 -- Data
 --------------------
 local map_road_data = {
-  "\0^7¹⁶²8¹\0¥⁸¹¹³8¹\0」⁸¹¹⁴8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵⁶⁸⁷¹\0▮9¹¹⁴\n⁶ᵇ¹¹¹ᶜ¹\0■9¹¹²:¹\0⁶ᶠ¹▮¹ᶜ¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0、⁸¹ᶜ¹\0、⁸¹ᶜ¹\0□⁵¹⁷¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0•⁘¹‖¹」¹¥¹\0⁘⁵¹⁶⁵◀¹¹²■¹⁶⁴⁷¹\0ᶠ□¹\n⁵ᵇ¹¹²\t¹\n²ᵇ¹¹¹ᶜ¹\0‖ᶠ¹▮¹▶¹「¹\0²ᶠ¹▮¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹」¹¥¹\0²⁘¹‖¹ᶜ¹\0◀⁸¹¹¹■¹⁶²◀¹¹¹ᶜ¹\0◀□¹\n⁶⁙¹\0>", -- driftmaniaLevel1.tmx road
+  "\0^7¹⁶²8¹\0¥⁸¹¹³8¹\0」⁸¹¹⁴8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵⁶⁵⁷¹\0⁙9¹¹⁴\n⁵⁙¹\0⁘9¹¹²:¹\0•⁸¹ᶜ¹\0⁸⁵¹⁷¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0、⁸¹ᶜ¹\0、⁸¹ᶜ¹\0□⁵¹⁷¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0•⁘¹‖¹」¹¥¹\0⁘⁵¹⁶⁵◀¹¹²■¹⁶⁴⁷¹\0ᶠ□¹\n⁵ᵇ¹¹²\t¹\n²ᵇ¹¹¹ᶜ¹\0‖ᶠ¹▮¹▶¹「¹\0²ᶠ¹▮¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹」¹¥¹\0²⁘¹‖¹ᶜ¹\0◀⁸¹¹¹■¹⁶²◀¹¹¹ᶜ¹\0◀□¹\n⁶⁙¹\0>", -- driftmaniaLevel1.tmx road
   "\0◝\0◀⁵¹⁶⁷⁷¹\0‖⁸¹¹¹\t¹\n³ᵇ¹¹¹ᶜ¹\0‖⁸¹\r¹ᵉ¹\0³ᶠ¹▮¹ᶜ¹\0‖⁸¹¹¹■¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶⁴⁷¹\0ᵉ□¹\n⁴⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n²ᵇ¹¹¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴ᶠ¹▮¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴⁘¹‖¹ᶜ¹\0▮⁵¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶²◀¹¹¹ᶜ¹\0▮⁸¹¹¹\t¹⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n⁴⁙¹\0▮⁸¹▶¹「¹\0²⁸¹ᶜ¹\0▶⁸¹」¹¥¹\0¹⁘¹‖¹ᶜ¹\0▶⁸¹¹¹■¹⁶¹◀¹¹¹ᶜ¹\0▶□¹\n⁵⁙¹\0◜", -- driftmaniaLevel2.tmx road
-  "\0,⁘¹b¹⁶²c¹¥¹⁘¹b¹⁶²d¹e¹\0\tf¹¹¹\t¹ᵇ¹¹¹g¹h¹¹¹\t¹\n¹¹¹i¹e¹\0⁸⁸¹▶¹「¹ᶠ¹▮¹¹²▶¹「¹\0¹9¹¹¹i¹e¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0³9¹¹¹j¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0⁴⁸¹ᶜ¹\0⁷⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0⁴⁸¹ᶜ¹\0⁷⁸¹ᶜ¹\0²k¹¹²l¹\0³7¹¹¹m¹\0⁷⁸¹ᶜ¹\0²ᶠ¹n¹o¹「¹\0²7¹¹¹p¹q¹\0⁷r¹¹¹8¹\0⁶7¹¹¹p¹q¹\0⁸s¹t¹¹¹8¹\0⁴7¹¹¹p¹q¹\0\ns¹t¹¹¹⁶⁴¹¹p¹q¹\0ᶜs¹u¹\n⁴v¹q¹\0う", -- driftmaniaMaps2.tmx road
+  "\0さ7¹⁶²s¹t¹\0」⁸¹¹¹\t¹¹¹u¹t¹\0「⁸¹▶¹「¹9¹¹¹v¹\0▶⁘¹‖¹ᶜ¹\0²⁸¹ᶜ¹\0□⁘¹w¹⁶³◀¹¹¹ᶜ¹\0²⁸¹ᶜ¹\0□x¹¹¹\t¹ᵇ¹¹³ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹▶¹「¹ᶠ¹▮¹¹²ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²⁸¹」¹¥¹\0■⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²□¹ᵇ¹■¹⁶²⁷¹\0ᵉ⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0³ᶠ¹▮¹¹²ᶜ¹\0ᵉ⁸¹ᶜ¹\0²y¹¹²z¹\0³7¹¹¹{¹\n¹⁙¹\0ᵉ⁸¹ᶜ¹\0²ᶠ¹|¹}¹「¹\0²7¹¹¹~¹○¹\0▮█¹¹¹8¹\0⁶7¹¹¹~¹○¹\0■▒¹🐱¹¹¹8¹\0⁴7¹¹¹~¹○¹\0⁙▒¹🐱¹¹¹⁶⁴¹¹~¹○¹\0‖▒¹⬇️¹\n⁴░¹○¹\0◝\0•", -- driftmaniaMaps2.tmx road
 }
 local map_decals_data = {
-  "\0か;¹\0、<¹\0、\"¹\0、=¹\0▥#²\0、>¹?¹\0⁸@¹A¹\0□B¹C¹\0⁸D¹E¹\0□F¹G¹\0&H¹I¹\0、J¹K¹\0:L¹\0」M¹\0⁷M¹\0」N¹O¹\0、P¹Q¹\0^R¹\0゛S¹\0>", -- driftmaniaLevel1.tmx decals
+  "\0か;¹\0、<¹\0、\"¹\0、=¹\0(>¹?¹@²A¹\0」B¹C¹⁴²D¹\0¥E¹F¹⁴¹D¹\0•G¹H¹I¹\0、J¹K¹\0000L¹M¹\0、N¹O¹\0&P¹Q¹\0、R¹S¹\0□L¹T¹U¹\0•V¹⁴¹W¹\0⁷X¹\0⁙Y¹Z¹[¹\0³\\¹\0⁷\\¹\0」]¹^¹\0、_¹`¹\0、a¹b¹\0@c¹\0゛d¹\0>", -- driftmaniaLevel1.tmx decals
   "\0◝\0◀•¹\0゛、¹\0D。¹゛¹\0³゜¹\0「 ¹!¹\0²\"¹\0¥#¹\0。$¹\0◀%¹&¹\0、'¹(¹\0。#¹\0。$¹\0•\"¹\0、)¹\0◝\0⁵", -- driftmaniaLevel2.tmx decals
-  "\0\\w¹x¹\0Xy¹\0⁙y¹\0⁙y¹\0⁙y¹\0ᶠz¹\0³y¹\0▮z¹\0く", -- driftmaniaMaps2.tmx decals
+  "\0◝\0Y✽¹●¹\0²●²\0x♥¹\0、♥¹\0、♥¹\0、♥¹\0「☉¹\0³♥¹\0」☉¹\0◝\0 ", -- driftmaniaMaps2.tmx decals
 }
 local map_props_data = {
-  "\0@T¹+²U¹\0」V¹W¹\0²X¹Y¹\0「-¹\0¹Z¹[¹\0¹X¹Y¹\0▶-¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀]¹[¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀^¹[¹\0¹X¹\\¹[¹\0¹X¹Y¹\0◀^¹[¹\0¹X¹\\¹[¹\0¹X¹_¹+⁸,¹\0\r^¹[¹\0¹X¹\\¹[¹\0\n-¹\0ᵉ^¹[¹\0¹X¹\\¹[¹\0\t-¹\0ᶠ^¹[¹\0¹X¹`¹+⁶,¹\0²-¹\0▮a¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²0¹+⁶5¹\0²0¹+⁵,¹\0\n-¹\0□-¹\0\n-¹\0□-¹\0\n0¹+\t,¹\0²*¹+²,¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²0¹+²5¹\0²-¹\0⁘-¹\0⁸-¹\0⁘-¹\0⁸-¹\0⁘0¹+⁸5¹\0゜", -- driftmaniaLevel1.tmx props
+  "\0@e¹+²f¹\0」g¹h¹\0²i¹j¹\0「-¹\0¹k¹l¹\0¹i¹j¹\0▶-¹\0¹i¹m¹l¹\0¹i¹j¹\0◀n¹l¹\0¹i¹m¹l¹\0¹i¹j¹\0◀o¹l¹\0¹i¹m¹l¹\0¹i¹j¹\0◀o¹l¹\0¹i¹m¹l¹\0¹i¹p¹+⁸,¹\0\ro¹l¹\0¹i¹m¹l¹\0\n-¹\0ᵉo¹l¹\0¹i¹m¹l¹\0\t-¹\0ᶠo¹l¹\0¹i¹q¹+⁶,¹\0²-¹\0▮r¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²0¹+⁶5¹\0²0¹+⁵,¹\0\n-¹\0□-¹\0\n-¹\0□-¹\0\n0¹+\t,¹\0²*¹+²,¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²0¹+²5¹\0²-¹\0⁘-¹\0⁸-¹\0⁘-¹\0⁸-¹\0⁘0¹+⁸5¹\0゜", -- driftmaniaLevel1.tmx props
   "\0ロ*¹+\t,¹\0⁙-¹\0\t-¹\0⁙-¹\0\t-¹\0⁙-¹\0².¹+³,¹\0²/¹+⁶,¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ0¹+⁶1¹\0²/¹+³2¹\0²-¹\0ᵉ*¹+⁴1¹\0²/¹+³3¹\0²-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0²4¹+¹1¹\0²/¹+⁶5¹\0ᵉ-¹\0²6¹+¹3¹\0²-¹\0‖-¹\0⁷-¹\0‖-¹\0⁷-¹\0‖0¹+⁷5¹\0ト", -- driftmaniaLevel2.tmx props
-  "\0▶Z¹{¹+²|¹[¹Z¹{¹+³,¹\0⁸Z¹}¹\0⁴~¹○¹\0⁴0¹,¹\0⁷█¹\0⁵▒¹🐱¹\0⁵0¹,¹\0⁶-¹\0²4¹2¹\0¹▒¹🐱¹\0¹4¹|¹[¹\0²0¹,¹\0⁵-¹\0²-²\0¹▒¹🐱¹\0¹-¹\0¹^¹[¹\0²-¹\0⁵-¹\0²-²\0¹▒¹🐱¹\0¹-¹\0²a¹\0²-¹\0⁵-¹\0²-²\0¹⬇️¹░¹\0¹-¹\0²✽¹\0²-¹\0⁵-¹\0²-¹●¹\0⁴✽¹\0¹♥¹W¹\0²-¹\0⁵-¹\0²●¹X¹Y¹\0²♥¹W¹♥¹W¹\0²*¹5¹\0⁵-¹\0²X¹Y¹X¹_¹☉¹W¹♥¹W¹\0²*¹5¹\0⁶0¹,¹\0²X¹_¹+²☉¹W¹\0²*¹5¹\0⁸0¹,¹\0⁸*¹5¹\0\n0¹,¹\0⁶*¹5¹\0ᶜ0¹+⁶5¹\0♥", -- driftmaniaMaps2.tmx props
+  "\0●e¹+³,¹\0「g¹h¹\0³0¹,¹\0▶-¹\0⁵0¹,¹\0◀-¹\0²웃¹l¹\0²-¹\0■k¹⌂¹+²⬅️¹😐¹\0²-¹r¹\0²-¹\0▮k¹♪¹\0⁴🅾️¹◆¹\0¹-²\0²-¹\0▮…¹\0⁵➡️¹★¹\0¹-²\0²-¹\0▮-¹\0²4¹2¹\0¹➡️¹★¹\0¹-²\0²-¹\0▮-¹\0²-²\0¹➡️¹★¹\0¹-²\0²6¹+³,¹\0ᶜ-¹\0²-²\0¹➡️¹★¹\0¹-²\0⁶-¹\0ᶜ-¹\0²-²\0¹⧗¹⬆️¹\0¹-¹6¹+¹ˇ¹∧¹❎¹\0²-¹\0ᶜ-¹\0²-¹▤¹\0⁴▥¹\0¹あ¹h¹\0⁴-¹\0ᶜ-¹\0²▤¹i¹j¹\0²あ¹h¹あ¹h¹\0²*¹+²5¹\0ᶜ-¹\0²i¹j¹i¹p¹い¹h¹あ¹h¹\0²*¹5¹\0ᶠ0¹,¹\0²i¹p¹+²い¹h¹\0²*¹5¹\0■0¹,¹\0⁸*¹5¹\0⁙0¹,¹\0⁶*¹5¹\0‖0¹+⁶5¹\0ュ", -- driftmaniaMaps2.tmx props
 }
 local map_bounds_data = {
   "\0@¹⁴\0」¹⁶\0「¹⁷\0▶¹⁸\0◀¹\t\0◀¹\t\0◀¹□\0\r¹■\0ᵉ¹▮\0ᶠ¹ᶠ\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁘\0\n¹⁘\0\n¹⁘\0\n¹⁘\0⁘¹⁴\0²¹⁴\0⁘¹⁴\0²¹⁴\0⁘¹\n\0⁘¹\n\0⁘¹\n\0⁘¹\n\0゜", -- driftmaniaLevel1.tmx bounds
   "\0ロ¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0ト", -- driftmaniaLevel2.tmx bounds
-  "\0▶¹ᶜ\0⁸¹ᵉ\0⁷¹ᶠ\0⁶¹▮\0⁵¹\n\0¹¹⁵\0⁵¹\n\0²¹⁴\0⁵¹\n\0²¹⁴\0⁵¹\n\0¹¹⁵\0⁵¹▮\0⁵¹ᶠ\0⁶¹ᵉ\0⁸¹ᶜ\0\n¹\n\0ᶜ¹⁸\0♥", -- driftmaniaMaps2.tmx bounds
+  "\0●¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0ュ", -- driftmaniaMaps2.tmx bounds
 }
 local map_settings_data = {
   {laps=3,size=30,spawn_x=216,spawn_y=160,spawn_dir=0.375}, -- driftmaniaLevel1.tmx settings
   {laps=3,size=30,spawn_x=192,spawn_y=264,spawn_dir=0.125}, -- driftmaniaLevel2.tmx settings
-  {laps=3,size=21,spawn_x=168,spawn_y=312,spawn_dir=0.5}, -- driftmaniaMaps2.tmx settings
+  {laps=3,size=30,spawn_x=312,spawn_y=480,spawn_dir=0.5}, -- driftmaniaMaps2.tmx settings
 }
 local map_checkpoints_data = {
   {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}, -- driftmaniaLevel1.tmx checkpoints
   {{x=164,y=212,dx=1,dy=1,l=64},{x=556,y=284,dx=-1,dy=1,l=64},{x=276,y=468,dx=-1,dy=1,l=64}}, -- driftmaniaLevel2.tmx checkpoints
-  {{x=156,y=276,dx=0,dy=1,l=72},{x=196,y=116,dx=1,dy=0,l=56}}, -- driftmaniaMaps2.tmx checkpoints
+  {{x=300,y=444,dx=0,dy=1,l=72},{x=340,y=276,dx=1,dy=0,l=56},{x=420,y=276,dx=1,dy=0,l=72}}, -- driftmaniaMaps2.tmx checkpoints
 }
 local map_jumps_data = {
-  {[10]={[14]=1},[11]={[14]=1},[20]={[15]=2,[22]=3,[23]=3},[21]={[15]=2,[22]=3,[23]=3}}, -- driftmaniaLevel1.tmx jumps
+  {[20]={[23]=1},[21]={[23]=1}}, -- driftmaniaLevel1.tmx jumps
   {[17]={[12]=1,[13]=1},[18]={[15]=2},[12]={[16]=3,[17]=3,[19]=4}}, -- driftmaniaLevel2.tmx jumps
   {}, -- driftmaniaMaps2.tmx jumps
 }
@@ -98,14 +99,13 @@ function _init()
   init_outline_cache(outline_cache, 30.5)
   init_outline_cache(bbox_cache, 28.5)
 
-  load_level()
+  load_level(false)
 
+  spawn_level_select_manager()
   spawn_customization_manager()
   particle_back_m = spawn_particle_manager_vol()
   particle_front_m = spawn_particle_manager_vol()
   particle_water_m = spawn_particle_manager_water()
-
-  game_state = 1
 end
 
 function _update60()
@@ -197,7 +197,6 @@ function _draw()
   --_player_debug_draw(player)
   --print(stat(0), player.x, player.y - 20, 0)
   --print(dist(player.v_x, player.v_y), player.x, player.y - 20, 0)
-
 end
 
 --------------------
@@ -953,7 +952,7 @@ end
 --------------------
 -- Level Management
 --------------------
-function load_level()
+function load_level(start)
   map_settings = map_settings_data[level_index]
   map_checkpoints = map_checkpoints_data[level_index]
   map_jumps = map_jumps_data[level_index]
@@ -968,7 +967,9 @@ function load_level()
   spawn_player()
   spawn_trail_manager()
 
-  game_state = 0
+  if start then
+    game_state = 0
+  end
 end
 
 function spawn_level_manager()
@@ -991,8 +992,8 @@ function spawn_level_manager()
   cache_checkpoints(level_m, map_checkpoints)
 
   local buttons = {
-    new_button(0, 0, 'rETRY', 'xo', function() load_level() end),
-    new_button(0, 10, 'qUIT', 'xo', function() game_state = 1 end),
+    new_button(0, 0, 'rETRY', 'xo', function() load_level(true) end),
+    new_button(0, 10, 'qUIT', 'xo', function() game_state = 2 end),
   }
   level_m.menu = new_menu(50, -10, buttons)
 end
@@ -1730,7 +1731,7 @@ function spawn_customization_manager()
     end
     add(buttons, new_button(0, i * 10, d.text, 'lr', btn_customization))
   end
-  add(buttons, new_button(38, 92, 'cONTINUE', 'xo', function() load_level() end))
+  add(buttons, new_button(38, 92, 'cONTINUE', 'xo', function() load_level(true) end))
   customization_m.menu = new_menu(15, 15, buttons)
 
   add(objects, customization_m)
@@ -1795,6 +1796,53 @@ function _customization_manager_update(self)
   end
 end
 
+function spawn_level_select_manager()
+  local buttons = {
+    new_button(0, 0, 'level ' .. level_index, 'lr', function(self, index, input)
+      -- 1-index hell :(
+      level_index = ((level_index - 1 + input) % count(map_road_data)) + 1
+      load_level(false)
+      self.txt = 'level ' .. level_index
+    end),
+    new_button(0, 10, 'race', 'xo', function() game_state = 1 end)
+  }
+
+  level_select_m = {
+    update = _level_select_manager_update,
+    draw = _level_select_manager_draw,
+    menu = new_menu(15, 60, buttons)
+  }
+
+  add(objects, level_select_m)
+end
+
+function _level_select_manager_draw(self)
+  if game_state ~= 2 then
+    return
+  end
+
+  local border = 5
+  cls(0)
+  rectfill(0, border, 128, 128 - border, 1)
+  rect(-1, border, 128, 128 - border, 12)
+  print_shadowed('sELECT tRACK', 40, border + 5, 7)
+
+  self.menu.draw()
+
+  draw_minimap2()
+
+end
+
+function _level_select_manager_update(self)
+  if game_state ~= 2 then
+    return
+  end
+  camera()
+
+  self.menu.update()
+
+end
+
 -- todo: these maps should be auto-generated by mapPacker
 -- todo: minimap should be cached in sprite sheet
 --local road_chunk_map = {6,10,3,12,13,6,13,6,13,6,6,6,6,13,13,6,6,6,6,13,6,6,13,6,6,6,6,13}
@@ -1824,23 +1872,25 @@ local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15
 function draw_minimap2()
   local camera_x = peek2(0x5f28)
   local camera_y = peek2(0x5f2a)
-  local offset = -15--128 - map_settings.size
+  local offset_x = 128 - map_settings.size*chunk_size
+  local offset_y = 128 - map_settings.size*chunk_size - 6
   --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
   for tile_x = 0, count(map_road_tiles) - 1 do
     for tile_y = 0, count(map_road_tiles[0]) - 1 do
       local road_tile = map_road_tiles[tile_x][tile_y]
       if road_tile >= 1 and road_tile <= 5 then
-        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 5)
+        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, 5)
       end
       local decal_tile = map_decal_tiles[tile_x][tile_y]
       if decal_pset_map[decal_tile] ~= nil then
-        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, decal_pset_map[decal_tile])
+        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, decal_pset_map[decal_tile])
       end
       local prop_tile = map_prop_tiles[tile_x][tile_y]
       if prop_tile > 0 then
-        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 7)
+        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, 7)
       end
     end
   end
-  pset(flr(offset + camera_x + player.x/8), flr(offset + camera_y + player.y/8), 7)
+  pset(flr(offset_x + camera_x + map_settings.spawn_x/8), flr(offset_y + camera_y + map_settings.spawn_y/8), 8)
+  --rectfill(camera_x + offset_x, camera_y + offset_y, camera_x + offset_x + 90, camera_y + offset_y + 90, 7)
 end
