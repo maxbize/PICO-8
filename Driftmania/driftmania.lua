@@ -980,8 +980,6 @@ function spawn_level_manager()
     settings = map_settings,
     next_checkpoint = 2,
     lap = 1,
-    checkpoint_frames = {}, -- Order: 2, 3, 4, ... 1
-    best_checkpoint_frames = {},
     frame = 1,
     anim_frame = 0,
     cp_cache = {}, -- table[x][y] -> cp index
@@ -1071,9 +1069,11 @@ function _level_manager_draw(self)
     rectfill(x-1, y-1, x + w+1, y + h+1, 12)
     rectfill(x, y, x + w, y + h, 1)
 
+    data_index = get_lap_time_index(self.lap)
+    local best_time = dget(data_index)
     print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
     print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x+13, y+13, 7)
-    print_shadowed('bEST\n' .. frame_to_time_str(self.frame), x+13, y+28, 7)
+    print_shadowed('bEST\n' .. frame_to_time_str(best_time), x+13, y+28, 7)
 
     self.menu.x = x + 22
     self.menu.y = y + h - 20
@@ -1103,43 +1103,38 @@ function on_checkpoint_crossed(self, cp_index)
   self.cp_crossed[cp_index] = true
   self.cp_sprites[cp_index][1].frames = 30
 
-  -- Record checkpoint time
-  self.checkpoint_frames[self.next_checkpoint] = self.frame
-
-  -- Display checkpoint time and delta
-  add(objects, {
-    time = self.frame,
-    best_time = count(self.best_checkpoint_frames) > 0 and self.best_checkpoint_frames[self.next_checkpoint] or 0,
-    life = 60,
-    update = function(self)
-      self.life -= 1
-      if self.life == 0 then
-        del(objects, self)
-      end
-    end,
-    draw = function(self)
-      local camera_x = peek2(0x5f28)
-      local camera_y = peek2(0x5f2a)
-      print(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
-      if self.best_time ~= 0 then
-        print((self.best_time > self.time and '-' or '+') 
-          .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
-          self.best_time >= self.time and 11 or 8)
-      end
-    end,
-  })
-
   -- Completed a lap
   if self.next_checkpoint == 1 then
-    if count(self.best_checkpoint_frames) == 0 or self.best_checkpoint_frames[1] > self.frame then
-      self.best_checkpoint_frames = {}
-      for frame in all(self.checkpoint_frames) do
-        add(self.best_checkpoint_frames, frame)
-      end
-      ghost_recording, ghost_playback = ghost_playback, ghost_recording
-      ghost_playback[self.frame + 1] = -1
-      ghost_start_best = ghost_start_last
+    -- Save / Load best time for this lap
+    data_index = get_lap_time_index(self.lap)
+    local best_time = dget(data_index)
+    if best_time == 0 or best_time > self.frame then
+      dset(data_index, self.frame)
     end
+
+    -- Display checkpoint time and delta
+    add(objects, {
+      time = self.frame,
+      best_time = best_time,
+      life = 60,
+      update = function(self)
+        self.life -= 1
+        if self.life == 0 then
+          del(objects, self)
+        end
+      end,
+      draw = function(self)
+        local camera_x = peek2(0x5f28)
+        local camera_y = peek2(0x5f2a)
+        print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
+        if self.best_time ~= 0 then
+          print_shadowed((self.best_time > self.time and '-' or '+') 
+            .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
+            self.best_time >= self.time and 11 or 8)
+        end
+      end,
+    })
+
     --spawn_ghost() -- TODO: Ghost is not accurate
     _set_ghost_start(player)
     --self.frame = 1
@@ -1161,6 +1156,15 @@ function on_checkpoint_crossed(self, cp_index)
   -- Advance checkpoint marker
   self.next_checkpoint = (self.next_checkpoint % count(self.cp_crossed)) + 1
   return true
+end
+
+function get_lap_time_index(lap)
+  local data_index = 8 -- end of car customization
+  for i = 1, level_index - 1 do
+    data_index += map_settings_data[i].laps
+  end
+  data_index += lap
+  return data_index
 end
 
 function cache_checkpoints(self, checkpoints)
