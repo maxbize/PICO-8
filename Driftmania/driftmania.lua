@@ -1001,7 +1001,7 @@ function _level_manager_update(self)
     self.frame += 1
   end
 
-  if game_state == 0 and self.anim_frame < 0x6fff then
+  if self.anim_frame < 0x0fff then
     self.anim_frame += 1
   end
 
