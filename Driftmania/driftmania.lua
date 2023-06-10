@@ -93,6 +93,11 @@ function _init()
   printh('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
   cartdata('mbize_driftmania_v1')
 
+  -- Reset high scores for debugging
+  --for i = 9, 30 do
+  --  dset(i, 0)
+  --end
+
   -- Disable btnp repeat
   poke(0x5f5c, 255)
 
@@ -986,6 +991,7 @@ function spawn_level_manager()
     cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
     cp_crossed = {}, -- table[cp_index] -> true/false
     state = 1, -- 1=intro, 2=playing, 3=ending
+    last_best = 0, -- Previous best time for the track that just finished
   }
   cache_checkpoints(level_m, map_checkpoints)
 
@@ -1070,10 +1076,15 @@ function _level_manager_draw(self)
     rectfill(x, y, x + w, y + h, 1)
 
     data_index = get_lap_time_index(self.lap)
-    local best_time = dget(data_index)
     print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
     print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x+13, y+13, 7)
-    print_shadowed('bEST\n' .. frame_to_time_str(best_time), x+13, y+28, 7)
+    if self.last_best_time ~= 0 then 
+      print_shadowed((self.last_best_time >= self.frame and '-' or '+') 
+        .. frame_to_time_str(abs(self.last_best_time - self.frame)), x+9, y+25,
+        self.last_best_time >= self.frame and 11 or 8)
+    end
+
+--    print_shadowed('bEST\n' .. frame_to_time_str(best_time), x+13, y+28, 7)
 
     self.menu.x = x + 22
     self.menu.y = y + h - 20
@@ -1105,17 +1116,17 @@ function on_checkpoint_crossed(self, cp_index)
 
   -- Completed a lap
   if self.next_checkpoint == 1 then
-    -- Save / Load best time for this lap
+    -- Save/Load best time for this lap
     data_index = get_lap_time_index(self.lap)
-    local best_time = dget(data_index)
-    if best_time == 0 or best_time > self.frame then
+    self.last_best_time = dget(data_index)
+    if self.last_best_time == 0 or self.last_best_time > self.frame then
       dset(data_index, self.frame)
     end
 
     -- Display checkpoint time and delta
     add(objects, {
       time = self.frame,
-      best_time = best_time,
+      best_time = self.last_best_time,
       life = 60,
       update = function(self)
         self.life -= 1
@@ -1128,7 +1139,7 @@ function on_checkpoint_crossed(self, cp_index)
         local camera_y = peek2(0x5f2a)
         print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
         if self.best_time ~= 0 then
-          print_shadowed((self.best_time > self.time and '-' or '+') 
+          print_shadowed((self.best_time >= self.time and '-' or '+') 
             .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
             self.best_time >= self.time and 11 or 8)
         end
