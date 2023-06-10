@@ -31,8 +31,6 @@ local map_jump_frames = nil
 -- Ghost cars
 local ghost_recording = {}
 local ghost_playback = {}
-local ghost_start_last = {} -- x, y, etc for first frame
-local ghost_start_best = {} -- x, y, etc for first frame
 -- Allocate buffers on init
 for i = 1, 0x7fff do
   add(ghost_recording, 0)
@@ -285,12 +283,23 @@ function decomp_str(s)
   return arr
 end
 
-function hash_set(csv)
-  local arr = {}
+-- Creates a table of [v]=true
+function parse_hash_set(csv)
+  local t = {}
   for num in all(split(csv)) do
-    arr[num] = true
+    t[num] = true
   end
-  return arr
+  return t
+end
+
+-- Creates a table of [v1]=v2
+function parse_hash_map(csv)
+  local t = {}
+  local csv_split = split(csv)
+  for i = 1, #csv_split, 2 do
+    t[csv_split[i]] = csv_split[i+1]
+  end
+  return t
 end
 
 --------------------
@@ -302,12 +311,14 @@ function spawn_player()
   local dir = map_settings.spawn_dir
 
   player = create_car(x, y, 0, 0, 0, 0, 0, 0, 0, dir, false)
-  _set_ghost_start(player)
 end
 
 function spawn_ghost()
-  local gs = ghost_start_best
-  local ghost = create_car(gs.x, gs.y, gs.x_remainder, gs.y_remainder, gs.v_x, gs.v_y, gs.dir, true)
+  local x = map_settings.spawn_x
+  local y = map_settings.spawn_y
+  local dir = map_settings.spawn_dir
+
+  local ghost = create_car(x, y, 0, 0, 0, 0, 0, 0, 0, dir, true)
   ghost.update = _ghost_update
   ghost.buffer = ghost_playback
   ghost.frame = 1
@@ -351,21 +362,6 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     respawn_frames = 0,
     respawn_start_x = 0,
     respawn_start_y = 0,
-  }
-end
-
-function _set_ghost_start(self)
-  ghost_start_last = {
-    x = self.x,
-    y = self.y,
-    z = self.z,
-    x_remainder = self.x_remainder,
-    y_remainder = self.y_remainder,
-    z_remainder = self.z_remainder,
-    dir = self.angle_fwd,
-    v_x = self.v_x,
-    v_y = self.v_y,
-    v_z = self.v_z,
   }
 end
 
@@ -440,9 +436,6 @@ function _ghost_update(self)
 end
 
 function _car_move(self, btns)
-  if rnd(1) < 10.1 then
-    --_wheel_particles(self, 10)
-  end
   -- Input
   local move_side = 0
   local move_fwd = 0
@@ -456,7 +449,6 @@ function _car_move(self, btns)
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
   local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
-  local first_boost_frame = false
 
   -- Jump checked on move and at start of each frame in case we're stopped
   check_jump(self, self.x, self.y, self.z)
@@ -504,7 +496,6 @@ function _car_move(self, btns)
     mod_brake = 0.25
   end
   if boost_wheels >= 1 then
-    --first_boost_frame = true
     if not self.started_boost_last_frame then
       self.started_boost_last_frame = true
       self.flash_frames = 5
@@ -548,20 +539,10 @@ function _car_move(self, btns)
   self.flash_frames = max(self.flash_frames - 1, 0)
   if self.boost_frames > 0 then
     if rnd(boost_duration) < self.boost_frames then
-      _wheel_particles(self, 10)
+      boost_particles(self, 10)
     end
     self.boost_frames -= 1
     mod_max_vel *= 1 + (0.5 * self.boost_frames / boost_duration)
-    if grass_wheels < 2 then
-      --mod_turn *= 1 + min(2.5, (2.5 * self.boost_frames / boost_duration))
-    end
-    if first_boost_frame then
-      for i = 1, 10 do
-        _wheel_particles(self, 10)
-      end
-      local angle_vel = atan2(self.v_x, self.v_y)
-      self.v_x, self.v_y = angle_vector(angle_vel, self.max_speed_fwd * mod_max_vel)
-    end
   end
 
   -- Update wheel offsets
@@ -669,26 +650,10 @@ function _car_move(self, btns)
   end
 end
 
-function _wheel_particles(self, c)
-  for i = 1, 3, 2 do -- back wheels
-    local wheel_x = flr(self.x) + self.wheel_offsets[i].x
-    local wheel_y = flr(self.y) + self.wheel_offsets[i].y
-    local particle_m = particle_back_m
-    if i == 1 and self.angle_fwd > 0.25 and self.angle_fwd < 0.75 then
-      particle_m = particle_front_m
-    end
-    if i == 3 and (self.angle_fwd < 0.25 or self.angle_fwd > 0.75) then
-      particle_m = particle_front_m
-    end
-    --add_particle(particle_m, wheel_x, wheel_y, 0, c, rnd(0.5)-0.25, rnd(0.5)-0.25, rnd(0.5)+1.25, 60)
-    --add_particle(particle_m, wheel_x, wheel_y, 2, c, rnd(0.5)-0.25, 0, rnd(0.5)+0.5, 60)
-    
-  end
+function boost_particles(self, c)
   local cone_angle = 0.1
-  local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 1)
-  local wheel_x = flr(self.x) + offset_x * 6
-  local wheel_y = flr(self.y) + offset_y * 6
-  add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
+  local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
+  add_particle_vol(particle_front_m, self.x + offset_x, self.y + offset_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, offset_y, rnd(0.5)-0.25, 30, 4)
 end
 
 function _car_draw(self)
@@ -734,32 +699,6 @@ function _car_draw(self)
     --break
   end
   pal()
-
-  --local w = 11
-  --local ii = 11
-  --for i = -1, 1, 2 do
-  --  for j = -1, 1, 2 do
-  --    local wheel_x = round(cos(self.angle_fwd + 0.083 * i) * 5 * j)
-  --    local wheel_y = round(sin(self.angle_fwd + 0.083 * i) * 5 * j)
-  --    pset(player.x+wheel_x, round(player.y-0.5+wheel_y), ii)
-  --    ii += 1
-  --  end
-  --end
-
-  --line(player.x, player.y, player.x, player.y, 15)
-
-  --print(self.x, self.x, self.y - 20)
-  --print(self.y, self.x + 20, self.y - 20)
-  --local cpi = level_m.cp_cache[self.x] ~= nil and level_m.cp_cache[self.x][self.y]
-  --print(cpi, self.x + 20, self.y - 30)
-  --line(map_checkpoints2[1].x1, map_checkpoints2[1].y1, map_checkpoints2[1].x2, map_checkpoints2[1].y2, 15)
-  --line(map_checkpoints2[2].x1, map_checkpoints2[2].y1, map_checkpoints2[2].x2, map_checkpoints2[2].y2, 14)
-  --line(map_checkpoints2[3].x1, map_checkpoints2[3].y1, map_checkpoints2[3].x2, map_checkpoints2[3].y2, 14)
-  --for x, l in pairs(level_m.cp_cache) do
-  --  for y, i in pairs(l) do
-  --    pset(x, y, 12 + i)
-  --  end
-  --end
 end
 
 function draw_car_shadow(self)
@@ -816,6 +755,7 @@ function _on_player_moved(self, x, y, z, angle)
   for i, offset in pairs(self.wheel_offsets) do
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
+    check_jump(self, check_x, check_y, z)
     local checkpoint = collides_checkpoint_at(check_x, check_y, z)
     if checkpoint ~= nil then
       local new_cp = on_checkpoint_crossed(level_m, checkpoint)
@@ -871,53 +811,32 @@ function _player_collides_at(self, x, y, z, angle)
   return false
 end
 
---function _player_debug_draw(self)
---  -- Collision point visualization
---  pset(self.x, self.y, 3)
---
---  -- Front/back collision points
---  for i, offset in pairs(self.wheel_offsets) do
---    local x = flr(self.x) + offset.x
---    local y = flr(self.y) + offset.y
---    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
---    --checkpoint_check(x, y)
---  end
---
---  -- Side collision points
---  for i = -1, 1, 2 do
---    local x = flr(self.x) + cos(self.angle_fwd + 0.25 * i) * 2
---    local y = flr(self.y) + sin(self.angle_fwd + 0.25 * i) * 2
---    pset(x, y, collides_wall_at(x, y, self.z) and 8 or 11)
---  end
---
---end
-
 -- Checks if the given position on the map overlaps a wall
-local wall_collision_sprites = hash_set('43,44,45,46,47,59,60,61,62')
+local wall_collision_sprites = parse_hash_set('43,44,45,46,47,59,60,61,62')
 function collides_wall_at(x, y, z)
   return collides_part_at(x, y, z, wall_height, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
 
-local grass_sprites_full = hash_set('0,26')
-local grass_sprites_part = hash_set('6,7,8,9,26')
+local grass_sprites_full = parse_hash_set('0,26')
+local grass_sprites_part = parse_hash_set('6,7,8,9,26')
 function collides_grass_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_road_tiles, grass_sprites_full, grass_sprites_part, 3)
 end
 
-local water_sprites_full = hash_set('64,69,70,85,86')
-local water_sprites_part = hash_set('65,66,67,68,81,82,83,84')
+local water_sprites_full = parse_hash_set('64,69,70,85,86')
+local water_sprites_part = parse_hash_set('65,66,67,68,81,82,83,84')
 function collides_water_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, water_sprites_full, water_sprites_part, 12, 7)
 end
 
-local boost_sprites_full = hash_set('21')
-local boost_sprites_part = hash_set('22,23,24,25')
+local boost_sprites_full = parse_hash_set('21')
+local boost_sprites_part = parse_hash_set('22,23,24,25')
 function collides_boost_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, boost_sprites_full, boost_sprites_part, 10)
 end
 
-local jump_sprites_full = hash_set('37')
-local jump_sprites_part = hash_set('38,39,40,41')
+local jump_sprites_full = parse_hash_set('37')
+local jump_sprites_part = parse_hash_set('38,39,40,41')
 function collides_jump_at(x, y, z)
   return collides_part_at(x, y, z, 0, map_decal_tiles, jump_sprites_full, jump_sprites_part, 15)
 end
@@ -976,8 +895,6 @@ function spawn_level_manager()
   level_m = {
     update = _level_manager_update,
     draw = _level_manager_draw,
-    index = index,
-    settings = map_settings,
     next_checkpoint = 2,
     lap = 1,
     frame = 1,
@@ -1018,6 +935,7 @@ function _level_manager_update(self)
 
 end
 
+-- TODO: Token optimization
 function _level_manager_draw(self)
   if game_state ~= 0 then
     return
@@ -1122,10 +1040,10 @@ function on_checkpoint_crossed(self, cp_index)
     add(objects, {
       time = self.frame,
       best_time = self.last_best_time,
-      life = 60,
+      frames = 60,
       update = function(self)
-        self.life -= 1
-        if self.life == 0 then
+        self.frames -= 1
+        if self.frames == 0 then
           del(objects, self)
         end
       end,
@@ -1141,9 +1059,6 @@ function on_checkpoint_crossed(self, cp_index)
       end,
     })
 
-    --spawn_ghost() -- TODO: Ghost is not accurate
-    _set_ghost_start(player)
-    --self.frame = 1
     self.anim_frame = 1
     for i = 1, count(self.cp_crossed) do
       self.cp_crossed[i] = false
@@ -1228,7 +1143,6 @@ end
 -- Map
 --------------------
 
--- TODO: move map_size, chunk_size to data header?
 function load_map(data, map_size, chunk_size)
   local chunks_per_row = flr(128/chunk_size)
   
@@ -1380,7 +1294,6 @@ end
 
 function spawn_trail_manager()
   trail_m = {
-    update = _trail_manager_update,
     draw = _trail_manager_draw,
     points = {},
     points_i = 1,
@@ -1399,9 +1312,6 @@ function add_trail_point(self, x, y, c)
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
-function _trail_manager_update(self)
-end
-
 function _trail_manager_draw(self)
   --for i = 0x8000, 0x8000+self.max_points*6, 6 do
   --  pset(%i, %(i+2), %(i+4))
@@ -1410,59 +1320,6 @@ function _trail_manager_draw(self)
     pset(p.x, p.y, p.c)
   end
 end
-
-
--- Similar to Trail Manager, but particles are more complex and short-lived
-function spawn_particle_manager()
-  local particle_m = {
-    update = _particle_manager_update,
-    draw = _particle_manager_draw,
-    points = {},
-    points_i = 1,
-    max_points = 75,
-  }
-
-  for i = 1, particle_m.max_points do
-    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, b=0})
-  end
-
-  return particle_m
-end
-
-function add_particle(self, x, y, z, c, v_x, v_y, v_z, t)
-  self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, b=0, r=round(rnd(1.5))}
-  self.points_i = (self.points_i % self.max_points) + 1
-end
-
-function _particle_manager_update(self)
-  for p in all(self.points) do
-    p.x += p.v_x
-    p.y += p.v_y
-    p.v_z -= 0.1 -- gravity
-    p.z += p.v_z
-    if p.z < 0 then
-      p.b += 1 -- bounces
-      p.v_z *= -0.8
-      p.z = -p.z
-      p.c = gradients[p.c]
-      p.v_x *= 0.5
-      if p.c == 0 then
-        p.t = 0
-      end
-    end
-    p.t -= 1
-  end
-end
-
-function _particle_manager_draw(self)
-  for p in all(self.points) do
-    if p.t > 0 then
-      local r = max(0, p.r - p.b/2)
-      rectfill(p.x, p.y - p.z, p.x + r, p.y - p.z + r, p.c)
-    end
-  end
-end
-
 
 -- Volumetric particle manager
 function spawn_particle_manager_vol()
@@ -1559,8 +1416,7 @@ end
 -- Water trail/wake
 function spawn_particle_manager_water()
   local particle_m = {
-    update = _particle_manager_water_update,
-    draw = _particle_manager_water_draw,
+    draw = _particle_manager_water_draw, -- updates handled in draw so we can pget for performance
     points = {},
     points_i = 1,
     max_points = 500,
@@ -1582,13 +1438,6 @@ function add_particle_water(self, x, y, c, v_x, v_y, t, double)
     self.points[self.points_i] = {x=x+(v_x_greater and 1 or 0), y=y+(v_x_greater and 0 or 1), c=c, v_x=v_x, v_y=v_y, t=round(t+rnd2(t*.2)),}
     self.points_i = (self.points_i % self.max_points) + 1
   end
-end
-
-function _particle_manager_water_update(self)
-  --for p in all(self.points) do
-  --  if p.t > 0 then
-  --  end
-  --end
 end
 
 function _particle_manager_water_draw(self)
@@ -1844,7 +1693,7 @@ function _level_select_manager_draw(self)
 
   self.menu.draw()
 
-  draw_minimap2()
+  draw_minimap()
 end
 
 function _level_select_manager_update(self)
@@ -1920,31 +1769,28 @@ function _main_menu_manager_update(self)
   self.menu.update()
 end
 
-
--- todo: minimap should be cached in sprite sheet
-local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[37]=15,[38]=15,[39]=15,[40]=15,[41]=15,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
-function draw_minimap2()
-  local camera_x = peek2(0x5f28)
-  local camera_y = peek2(0x5f2a)
+-- todo: minimap should not be redrawn every frame
+local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,37,15,38,15,39,15,40,15,41,15,43,7,44,7,45,7,46,7,47,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
+function draw_minimap()
   local offset_x = 128 - map_settings.size*chunk_size
   local offset_y = 128 - map_settings.size*chunk_size - 6
   --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
   for tile_x = 0, count(map_road_tiles) - 1 do
     for tile_y = 0, count(map_road_tiles[0]) - 1 do
-      local road_tile = map_road_tiles[tile_x][tile_y]
-      if road_tile >= 1 and road_tile <= 5 then
-        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, 5)
+      -- Duplicated logic is purposely inlined to reduce CPU cost while redrawing every frame
+      local tile = map_road_tiles[tile_x][tile_y]
+      if pset_map[tile] ~= nil then
+        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
       end
-      local decal_tile = map_decal_tiles[tile_x][tile_y]
-      if decal_pset_map[decal_tile] ~= nil then
-        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, decal_pset_map[decal_tile])
+      tile = map_decal_tiles[tile_x][tile_y]
+      if pset_map[tile] ~= nil then
+        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
       end
-      local prop_tile = map_prop_tiles[tile_x][tile_y]
-      if prop_tile > 0 then
-        pset(offset_x + camera_x + tile_x, offset_y + camera_y + tile_y, 7)
+      tile = map_prop_tiles[tile_x][tile_y]
+      if pset_map[tile] ~= nil then
+        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
       end
     end
   end
-  pset(flr(offset_x + camera_x + map_settings.spawn_x/8), flr(offset_y + camera_y + map_settings.spawn_y/8), 8)
-  --rectfill(camera_x + offset_x, camera_y + offset_y, camera_x + offset_x + 90, camera_y + offset_y + 90, 7)
+  pset(flr(offset_x + map_settings.spawn_x/8), flr(offset_y + map_settings.spawn_y/8), 8)
 end
