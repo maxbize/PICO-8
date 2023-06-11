@@ -1573,7 +1573,7 @@ function _menu_draw(self)
     local b = self.buttons[i]
     print_shadowed(b.txt, self.x + b.x + (i == self.index and 1 or 0), self.y + b.y, i == self.index and 7 or 6)
   end
-  spr(16, self.x + self.buttons[self.index].x - (self.frames == 0 and 9 or 8), self.y + self.buttons[self.index].y - 2)
+  spr(16, self.x + self.buttons[self.index].x - (self.frames == 0 and 8 or 7), self.y + self.buttons[self.index].y - 2)
 end
 
 function btn_customization(self, index, input)
@@ -1634,7 +1634,7 @@ function _customization_manager_draw(self)
   rectfill(0, border, 128, 128 - border, 1)
   rect(-1, border, 128, 128 - border, 12)
   print_shadowed('gARAGE', 54, 18, 7)
-  rectfill(60, 32, 123, 96, 6)
+  rectfill(61, 33, 122, 95, 12)
   rectfill(62, 34, 121, 94, 5)
 
 --  local ow = 22
@@ -1694,14 +1694,14 @@ function spawn_level_select_manager()
       load_level(false)
       self.txt = 'lEVEL ' .. level_index
     end),
-    new_button(0, 10, 'sTART', 'xo', function(self) self.menu.index = 1 game_state = 0 end),
-    new_button(0, 20, 'bACK', 'xo', function(self) self.menu.index = 1 game_state = 3 end)
+    new_button(44, 0, 'sTART', 'xo', function(self) self.menu.index = 1 game_state = 0 end),
+    new_button(80, 0, 'bACK', 'xo', function(self) self.menu.index = 1 game_state = 3 end)
   }
 
   add(objects, {
     update = _level_select_manager_update,
     draw = _level_select_manager_draw,
-    menu = new_menu(15, 60, buttons)
+    menu = new_menu(15, 23, buttons)
   })
 end
 
@@ -1719,6 +1719,13 @@ function _level_select_manager_draw(self)
   self.menu.draw()
 
   draw_minimap()
+
+  data_index = get_lap_time_index(map_settings.laps)
+  local best_time = dget(data_index)
+  local x = 5
+  local y = 64
+  print_shadowed('bEST', x, y+0, 7)
+  print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
 end
 
 function _level_select_manager_update(self)
@@ -1797,11 +1804,12 @@ end
 -- todo: minimap should not be redrawn every frame
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,37,15,38,15,39,15,40,15,41,15,43,7,44,7,45,7,46,7,47,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
 function draw_minimap()
-  local offset_x = 128 - map_settings.size*chunk_size
-  local offset_y = 128 - map_settings.size*chunk_size - 6
-  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
-  for tile_x = 0, count(map_road_tiles) - 1 do
-    for tile_y = 0, count(map_road_tiles[0]) - 1 do
+  local offset_x = 83 - map_settings.size*chunk_size/2
+  local offset_y = 33
+  rectfill(-1, offset_y-1, 128, offset_y + map_settings.size*chunk_size,3)
+  rect(-1, offset_y-1, 128, offset_y + map_settings.size*chunk_size,12)
+  for tile_x = 0, count(map_road_tiles) do
+    for tile_y = 0, count(map_road_tiles[0]) do
       -- Duplicated logic is purposely inlined to reduce CPU cost while redrawing every frame
       local tile = map_road_tiles[tile_x][tile_y]
       if pset_map[tile] ~= nil then
