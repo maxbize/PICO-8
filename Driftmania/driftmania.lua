@@ -724,11 +724,9 @@ function _car_draw(self)
 end
 
 function draw_car_shadow(self)
-  -- Shadow / Underglow. TODO: better way to restore customized palette
+  -- Shadow / Underglow
   palt(15, true)
   palt(0, false)
-  prev_low = peek2(0x5f00)
-  prev_high = peek(0x5f0e)
   pal(14, 1)
   pal(0, 1)
   local height = 0
@@ -736,9 +734,8 @@ function draw_car_shadow(self)
     height = flr(map_jump_frames[map_jumps[flr(self.x/24)][flr(self.y/24)]] / 8)
   end
   pd_rotate(self.x,self.y-height,round_nth(self.angle_fwd, 32),127,30.5,2,true,self.scale)
-  poke2(0x5f00, prev_low)
-  poke(0x5f0e, prev_high)
   palt()
+  pal()
 end
 
 
@@ -1718,9 +1715,23 @@ function _level_select_manager_draw(self)
   data_index = get_lap_time_index(map_settings.laps)
   local best_time = dget(data_index)
   local x = 5
-  local y = 64
+  local y = 61
+  rect(-1, y - 4, 39, y + 36, 12)
+  rectfill(0, y - 3, 38, y + 35, 1)
   print_shadowed('bEST', x, y+0, 7)
   print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
+
+  local f = function(dx, dy) sspr(0, 48, 16, 16, x + 5 + dx, y + 17 + dy) end
+  for i = 0, 15 do
+    pal(i, 0)
+  end
+  f(-1, 0)
+  f( 1, 0)
+  f( 0,-1)
+  f( 0, 1)
+  pal()
+  f( 0, 0)
+
 end
 
 function _level_select_manager_update(self)
