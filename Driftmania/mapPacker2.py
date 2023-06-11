@@ -132,7 +132,7 @@ def replace_lua_str(filename, data_type, s):
 		lines = f.readlines()
 	for i, line in enumerate(lines):
 		if marker in line:
-			lines[i] = f"  {s}, -- {marker}\n"
+			lines[i] = f"  {s} -- {marker}\n"
 			break
 	with codecs.open(sys.argv[1], 'w', 'utf-8') as f:
 		f.writelines(lines)
@@ -165,7 +165,7 @@ def build_map(filename, data_map, n, pad_x, pad_y):
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
 		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
-		replace_lua_str(filename, name.lower(), f'"{map_str_comp}"')
+		replace_lua_str(filename, name.lower(), f'"{map_str_comp}",')
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
 	write_map(chunks, n)
@@ -260,16 +260,18 @@ def build_checkpoints(filename, data_map):
 		checkpoints.append(line)
 
 	# Write the lua code
-	s = '{'
+	s = ''
 	for line in checkpoints:
 		p1 = line[0]
 		p2 = line[1]
 		delta_x = p2[0] - p1[0]
 		delta_y = p2[1] - p1[1]
-		s += f'{{x={p1[0]*8+4},y={p1[1]*8+4},dx={delta_x},dy={delta_y},l={(len(line)-1)*8}}},'
-	s = s[:-1] + '}'
+		s += f'|{p1[0]*8+4},{p1[1]*8+4},{delta_x},{delta_y},{(len(line)-1)*8}'
+
 	#print(s)
-	replace_lua_str(filename, 'checkpoints', s)
+  	#parse_table_arr(map_checkpoints_data_header, '|236,124,-1,1,40|188,172,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
+
+	replace_lua_str(filename, 'checkpoints', f"parse_table_arr(map_checkpoints_data_header, '{s}'),")
 
 # Builds a map[chunk x][chunk y] => jump index
 jump_sprites = [37, 38, 39, 40, 41]
@@ -292,6 +294,7 @@ def build_jumps(filename, decal_data, n):
 	s = str(jump_map)
 	s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
 	s = re.sub(' ', '', s)
+	s += ','
 	replace_lua_str(filename, 'jumps', s)
 
 # Finds all connected neighboring chunks to assign the same jump_id
@@ -346,7 +349,7 @@ def build_bounds(filename, data_map, n):
 
 	bounds_str_comp = compress_map_str(s, num_chunks, 3)
 
-	replace_lua_str(filename, 'bounds', f'"{bounds_str_comp}"')
+	replace_lua_str(filename, 'bounds', f'"{bounds_str_comp}",')
 
 def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 	chunk_x = math.floor(start_x / n)
@@ -389,7 +392,8 @@ def build_settings(filename, data_map, n):
 	size = math.floor(len(markers_data) / n)
 	spawn_x, spawn_y = find_all_sprites(markers_data, spawn_sprites)[0]
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
-	settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
+	#settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
+	settings = f'"|{laps},{size},{spawn_x*8},{spawn_y*8},{spawn_dir}" ..'
 
 	replace_lua_str(filename, 'settings', settings)
 

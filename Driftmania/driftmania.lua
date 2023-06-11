@@ -8,8 +8,7 @@ local objects = {}
 local player = nil
 local level_m = nil
 local trail_m = nil
-local particle_front_m = nil
-local particle_back_m = nil
+local particle_vol_m = nil
 local particle_water_m = nil
 local menu_m = nil
 local game_state = 3 -- 0=race, 1=customization, 2=level select, 3=main menu
@@ -38,6 +37,51 @@ for i = 1, 0x7fff do
 end
 
 --------------------
+-- Token saving convenience methods
+--------------------
+
+-- Creates a table of [v]=true
+function parse_hash_set(csv)
+  local t = {}
+  for num in all(split(csv)) do
+    t[num] = true
+  end
+  return t
+end
+
+-- Creates a table of [v1]=v2
+function parse_hash_map(csv)
+  local t = {}
+  local csv_arr = split(csv)
+  for i = 1, count(csv_arr), 2 do
+    t[csv_arr[i]] = csv_arr[i+1]
+  end
+  return t
+end
+
+-- Creates a table of [header]=val
+function parse_table(headers, csv)
+  local t = {}
+  local headers_arr = split(headers)
+  local csv_arr = split(csv)
+  for i = 1, count(headers_arr) do
+    t[headers_arr[i]] = csv_arr[i]
+  end
+  return t
+end
+
+-- Creates a list of tables of [header]=val
+-- Assume obj separator is '|' and that the first entry is empty
+function parse_table_arr(headers, csv)
+  local a = {}
+  local csv_arr = split(csv, '|')
+  for i = 2, count(csv_arr) do
+    add(a, parse_table(headers, csv_arr[i]))
+  end
+  return a
+end
+
+--------------------
 -- Data
 --------------------
 local map_road_data = {
@@ -60,15 +104,18 @@ local map_bounds_data = {
   "\0ロ¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0ト", -- driftmaniaLevel2.tmx bounds
   "\0●¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0ュ", -- driftmaniaMaps2.tmx bounds
 }
-local map_settings_data = {
-  {laps=3,size=30,spawn_x=216,spawn_y=160,spawn_dir=0.375}, -- driftmaniaLevel1.tmx settings
-  {laps=3,size=30,spawn_x=192,spawn_y=264,spawn_dir=0.125}, -- driftmaniaLevel2.tmx settings
-  {laps=3,size=30,spawn_x=312,spawn_y=480,spawn_dir=0.5}, -- driftmaniaMaps2.tmx settings
-}
+
+local map_settings_data = parse_table_arr("laps,size,spawn_x,spawn_y,spawn_dir",
+  "|3,30,216,160,0.375" .. -- driftmaniaLevel1.tmx settings
+  "|3,30,192,264,0.125" .. -- driftmaniaLevel2.tmx settings
+  "|3,30,312,480,0.5" .. -- driftmaniaMaps2.tmx settings
+  ""
+)
+local map_checkpoints_data_header = "x,y,dx,dy,l"
 local map_checkpoints_data = {
-  {{x=236,y=124,dx=-1,dy=1,l=40},{x=188,y=172,dx=-1,dy=1,l=40},{x=604,y=604,dx=1,dy=1,l=72}}, -- driftmaniaLevel1.tmx checkpoints
-  {{x=164,y=212,dx=1,dy=1,l=64},{x=556,y=284,dx=-1,dy=1,l=64},{x=276,y=468,dx=-1,dy=1,l=64}}, -- driftmaniaLevel2.tmx checkpoints
-  {{x=300,y=444,dx=0,dy=1,l=72},{x=340,y=276,dx=1,dy=0,l=56},{x=420,y=276,dx=1,dy=0,l=72}}, -- driftmaniaMaps2.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|236,124,-1,1,40|188,172,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|164,212,1,1,64|556,284,-1,1,64|276,468,-1,1,64'), -- driftmaniaLevel2.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|300,444,0,1,72|340,276,1,0,56|420,276,1,0,72'), -- driftmaniaMaps2.tmx checkpoints
 }
 local map_jumps_data = {
   {[20]={[23]=1},[21]={[23]=1}}, -- driftmaniaLevel1.tmx jumps
@@ -106,8 +153,7 @@ function _init()
   spawn_main_menu_manager()
   spawn_level_select_manager()
   spawn_customization_manager()
-  particle_back_m = spawn_particle_manager_vol()
-  particle_front_m = spawn_particle_manager_vol()
+  particle_vol_m = spawn_particle_manager_vol()
   particle_water_m = spawn_particle_manager_water()
 end
 
@@ -124,11 +170,7 @@ function _update60()
   end
 
   -- 0% CPU (idle)
-  _particle_manager_vol_update(particle_front_m)
-  --_particle_manager_vol_update(particle_back_m)
-  
-  -- 2% CPU (idle)
-  _particle_manager_water_update(particle_water_m)
+  _particle_manager_vol_update(particle_vol_m)
 end
 
 function _draw()
@@ -162,13 +204,10 @@ function _draw()
   draw_car_shadow(player)
 
   -- 0% CPU (idle)
-  _particle_manager_vol_draw_bg(particle_front_m)
+  _particle_manager_vol_draw_bg(particle_vol_m)
 
   -- 11% CPU
   draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true, false)
-
-  -- ?% CPU
-  --_particle_manager_vol_draw(particle_back_m)
 
   --draw_map(map_bounds_chunks, map_settings.size, 3, true, true, true)
 
@@ -183,7 +222,7 @@ function _draw()
   end
 
   -- 1% CPU (idle)
-  _particle_manager_vol_draw_fg(particle_front_m)
+  _particle_manager_vol_draw_fg(particle_vol_m)
 
   -- 0% CPU
   for obj in all(objects) do
@@ -283,25 +322,6 @@ function decomp_str(s)
   return arr
 end
 
--- Creates a table of [v]=true
-function parse_hash_set(csv)
-  local t = {}
-  for num in all(split(csv)) do
-    t[num] = true
-  end
-  return t
-end
-
--- Creates a table of [v1]=v2
-function parse_hash_map(csv)
-  local t = {}
-  local csv_split = split(csv)
-  for i = 1, #csv_split, 2 do
-    t[csv_split[i]] = csv_split[i+1]
-  end
-  return t
-end
-
 --------------------
 -- Car class (player + ghost)
 --------------------
@@ -368,7 +388,9 @@ end
 function _car_update(self)
   if self.respawn_frames == 0 then
     _car_move(self, level_m.state == 2 and btn() or 0)
-    camera(self.x - 64, self.y - 64)
+    if level_m.state ~= 3 then
+      camera(self.x - 64, self.y - 64)
+    end
   else
     _car_move(self, 0)
     self.respawn_frames -= 1
@@ -653,7 +675,7 @@ end
 function boost_particles(self, c)
   local cone_angle = 0.1
   local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_front_m, self.x + offset_x, self.y + offset_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, offset_y, rnd(0.5)-0.25, 30, 4)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + offset_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, offset_y, rnd(0.5)-0.25, 30, 4)
 end
 
 function _car_draw(self)
@@ -1180,17 +1202,21 @@ function load_map(data, map_size, chunk_size)
   return map_chunks, map_tiles
 end
 
-local sprite_sorts = {
-  [43] = {y_intercept = 4, slope = 1}, 
-  [44] = {y_intercept = -99, slope = 0}, -- Always draw car above vertical walls. To flip behavior, comment this out
-  [45] = {y_intercept = 11, slope = -1}, 
-  [46] = {y_intercept = 3, slope = 0}, 
-  [47] = {y_intercept = 3, slope = 0}, 
-  [59] = {y_intercept = -4, slope = 1}, 
-  [60] = {y_intercept = 3, slope = 0}, 
-  [61] = {y_intercept = 3, slope = -1}, 
-  [62] = {y_intercept = 0, slope = 1}, -- This one has two y_intercepts so this might not always work
-}
+local sprite_sorts_raw = parse_table_arr('y_intercept,slope',[[
+|4,1
+|-99,0
+|11,-1
+|3,0
+|3,0
+|-4,1
+|3,0
+|3,-1,
+|0,1]])
+-- Table of [sprite_index] = {y_intercept=y_int, slope=s}
+local sprite_sorts = {}
+for __i, __spr_index in pairs(split('43,44,45,46,47,59,60,61,62')) do
+  sprite_sorts[__spr_index] = sprite_sorts_raw[__i]
+end
 local solid_chunks = split('5,10,3,12')
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player, has_jumps)
@@ -1558,7 +1584,6 @@ function btn_customization(self, index, input)
 end
 
 function spawn_customization_manager()
-  local opt = split("0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15")
   customization_m = {
     update = _customization_manager_update,
     draw = _customization_manager_draw,
@@ -1572,16 +1597,16 @@ function spawn_customization_manager()
       water_wheels = 0,
       scale = 2
     },
-    data = {
-      {text='tYPE',original=0,chosen=0},
-      {text='bODY',original=8,chosen=8},
-      {text='sTRIPE',original=10,chosen=10},
-      {text='wINDOWS',original=4,chosen=1},
-      {text='wHEELS',original=0,chosen=0},
-      {text='uNDERGLOW',original=14,chosen=1},
-      {text='hEADLIGHTS',original=7,chosen=7},
-      {text='bUMPER',original=6,chosen=6},
-    },
+    data = parse_table_arr('text,original,chosen',[[
+|tYPE,0,0
+|bODY,8,8
+|sTRIPE,10,10
+|wINDOWS,4,1
+|wHEELS,0,0
+|uNDERGLOW,14,1
+|hEADLIGHTS,7,7
+|bUMPER,6,6
+]]),
   }
 
   local buttons = {}
@@ -1741,8 +1766,8 @@ function _main_menu_manager_draw(self)
   rect(-1, self.car.y - 22, 128, self.car.y + 13, 6)
 
 
-  _particle_manager_vol_draw_bg(particle_front_m)
-  _particle_manager_vol_draw_fg(particle_front_m)
+  _particle_manager_vol_draw_bg(particle_vol_m)
+  _particle_manager_vol_draw_fg(particle_vol_m)
 
   _car_draw(self.car)
 
@@ -1761,9 +1786,9 @@ function _main_menu_manager_update(self)
   camera()
 
   --function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
-  --add_particle_vol(particle_front_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
+  --add_particle_vol(particle_vol_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
   if rnd(1) < 0.5 then
-    add_particle_vol(particle_front_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6)
+    add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6)
   end
 
   self.menu.update()
