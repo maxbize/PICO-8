@@ -930,10 +930,10 @@ function spawn_level_manager()
   cache_checkpoints(level_m, map_checkpoints)
 
   local buttons = {
-    new_button(0, 0, 'rETRY', 'xo', function() load_level(true) end),
-    new_button(0, 10, 'qUIT', 'xo', function() game_state = 2 end),
+    new_button(0, 0, 'rETRY', function() load_level(true) end),
+    new_button(0, 10, 'qUIT', function() game_state = 2 end),
   }
-  level_m.menu = new_menu(50, -10, buttons)
+  level_m.menu = new_menu(50, -10, buttons, 'vert')
 end
 
 function _level_manager_update(self)
@@ -1526,16 +1526,16 @@ end
 -- UI
 --------------------
 
--- type = "lr", "xo"
-function new_button(x, y, txt, type, update)
-  local obj = {x=x, y=y, txt=txt, type=type}
+function new_button(x, y, txt, update)
+  local obj = {x=x, y=y, txt=txt}
   obj.update = function(index, input) update(obj, index, input) end
   return obj
 end
 
 -- A menu is just a list of buttons + navigation
-function new_menu(x, y, buttons)
-  local obj = {x=x, y=y, buttons=buttons, index=1, frames=0}
+-- type one of 'vert', 'hor'
+function new_menu(x, y, buttons, type)
+  local obj = {x=x, y=y, buttons=buttons, type=type, index=1, frames=0}
   obj.update = function() return _menu_update(obj) end
   obj.draw = function() return _menu_draw(obj) end
   for button in all(buttons) do
@@ -1547,21 +1547,16 @@ end
 function _menu_update(self)
   self.frames = max(0, self.frames - 1)
 
-  -- up/down
-  if btnp(3) then
+  -- up/down & left/right
+  if btnp(self.type == 'vert' and 3 or 1) then
     self.index = (self.index % count(self.buttons)) + 1
-  elseif btnp(2) then
+  elseif btnp(self.type == 'vert' and 2 or 0) then
     self.index = self.index == 1 and count(self.buttons) or self.index - 1
   end
 
   -- update active button
   local button = self.buttons[self.index]
-  local input = 0
-  if button.type == 'lr' then
-    input = (btnp(1) and 1 or 0) - (btnp(0) and 1 or 0)
-  else
-    input = (btnp(4) and 1 or 0) - (btnp(5) and 1 or 0)
-  end
+  local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
   if input ~= 0 then
     button.update(self.index, input)
     self.frames = 5
@@ -1615,10 +1610,10 @@ function spawn_customization_manager()
     if dget(0) ~= 0 then
       d.chosen = dget(i)
     end
-    add(buttons, new_button(0, i * 10, d.text, 'lr', btn_customization))
+    add(buttons, new_button(0, i * 10, d.text, btn_customization))
   end
-  add(buttons, new_button(46, 92, 'bACK', 'xo', function(self) self.menu.index = 1 game_state = 3 end))
-  customization_m.menu = new_menu(15, 15, buttons)
+  add(buttons, new_button(46, 92, 'bACK', function(self) self.menu.index = 1 game_state = 3 end))
+  customization_m.menu = new_menu(15, 15, buttons, 'vert')
   _customization_manager_save(customization_m)
 
   add(objects, customization_m)
@@ -1688,20 +1683,20 @@ end
 
 function spawn_level_select_manager()
   local buttons = {
-    new_button(0, 0, 'lEVEL ' .. level_index, 'lr', function(self, index, input)
+    new_button(0, 0, 'lEVEL ' .. level_index, function(self, index, input)
       -- 1-index hell :(
       level_index = ((level_index - 1 + input) % count(map_road_data)) + 1
       load_level(false)
       self.txt = 'lEVEL ' .. level_index
     end),
-    new_button(44, 0, 'sTART', 'xo', function(self) self.menu.index = 1 game_state = 0 end),
-    new_button(80, 0, 'bACK', 'xo', function(self) self.menu.index = 1 game_state = 3 end)
+    new_button(44, 0, 'sTART', function(self) self.menu.index = 1 game_state = 0 end),
+    new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end)
   }
 
   add(objects, {
     update = _level_select_manager_update,
     draw = _level_select_manager_draw,
-    menu = new_menu(15, 23, buttons)
+    menu = new_menu(15, 23, buttons, 'hor')
   })
 end
 
@@ -1739,14 +1734,14 @@ end
 
 function spawn_main_menu_manager()
   local buttons = {
-    new_button(0, 0, 'rACE', 'xo', function() printh('race') game_state = 2 end),
-    new_button(0, 10, 'gARAGE', 'xo', function() game_state = 1 end)
+    new_button(0, 0, 'rACE', function() printh('race') game_state = 2 end),
+    new_button(0, 10, 'gARAGE', function() game_state = 1 end)
   }
 
   add(objects, {
     update = _main_menu_manager_update,
     draw = _main_menu_manager_draw,
-    menu = new_menu(55, 90, buttons),
+    menu = new_menu(55, 90, buttons, 'vert'),
     car = {
       x = 90,
       y = 60,
