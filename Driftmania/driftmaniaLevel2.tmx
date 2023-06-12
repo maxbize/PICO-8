@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="90" height="90" tilewidth="8" tileheight="8" infinite="0" nextlayerid="5" nextobjectid="1">
+ <properties>
+  <property name="bronze" type="int" value="4300"/>
+  <property name="gold" type="int" value="2500"/>
+  <property name="laps" type="int" value="5"/>
+  <property name="plat" type="int" value="2420"/>
+  <property name="silver" type="int" value="2800"/>
+ </properties>
  <tileset firstgid="1" source="driftmaniaTiles.tsx"/>
  <tileset firstgid="257" source="markers.tsx"/>
  <layer id="1" name="Road" width="90" height="90">

@@ -386,14 +386,13 @@ def bounds_dfs(bounds_map, props_data, start_x, start_y, n):
 # Ex: local map_settings = {laps=3, size=30, spawn_x=23*8, spawn_y=32*8, spawn_dir=0.375}
 # Note: +256 is because the first 256 indices are taken by the other tileset
 spawn_sprites = [i + 256 for i in range(9)]
-def build_settings(filename, data_map, n):
+def build_settings(filename, data_map, props, n):
 	markers_data = data_map.get('Markers')
-	laps = 3 # TODO: Will this ever be different?
 	size = math.floor(len(markers_data) / n)
 	spawn_x, spawn_y = find_all_sprites(markers_data, spawn_sprites)[0]
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
 	#settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
-	settings = f'"|{laps},{size},{spawn_x*8},{spawn_y*8},{spawn_dir}" ..'
+	settings = f'"|{props["laps"]},{size},{spawn_x*8},{spawn_y*8},{spawn_dir},{props["bronze"]},{props["silver"]},{props["gold"]},{props["plat"]}" ..'
 
 	replace_lua_str(filename, 'settings', settings)
 
@@ -411,6 +410,7 @@ def process_file(filename):
 		data_list[i] = data
 	# Data is now indexed by [row][col] aka [y][x]
 	data_map = {layer_names[i]: data_list[i] for i in range(len(data_list))}
+	properties = {p.get('name'): p.get('value') for p in root.find('properties').findall('property')}
 
 	# Iterate all possibilities to find the best result
 	#results = []
@@ -428,7 +428,7 @@ def process_file(filename):
 	build_checkpoints(filename, data_map)
 	build_jumps(filename, data_map['Decals'], chunk_size)
 	build_bounds(filename, data_map, chunk_size)
-	build_settings(filename, data_map, chunk_size)
+	build_settings(filename, data_map, properties, chunk_size)
 
 
 for filename in sys.argv[3:]:
