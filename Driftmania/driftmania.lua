@@ -107,7 +107,7 @@ local map_bounds_data = {
 
 local map_settings_data = parse_table_arr("laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|3,30,216,160,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|2,30,192,264,0.125,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
+  "|5,30,192,264,0.125,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
   "|4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
@@ -1002,26 +1002,26 @@ function _level_manager_draw(self)
   -- End sequence
   if self.state == 3 then
     local w = 64
-    local h = 64
+    local h = 55
     local x = camera_x + 64 - w/2
-    local y = camera_y + 64 - h/2 - max(0, (15 - self.anim_frame)*4) -- max(0, (self.anim_frame - 150)*4)
+    local y = camera_y + 64 - h/2 - max(0, (75 - self.anim_frame)*4) -- max(0, (self.anim_frame - 150)*4)
 
-    rectfill(x-1, y-1, x + w+1, y + h+1, 12)
-    rectfill(x, y, x + w, y + h, 1)
+    rect(camera_x-1, y-1, camera_x + 128, y + h+1, 12)
+    rectfill(camera_x, y, camera_x + 128, y + h, 1)
 
     data_index = get_lap_time_index(self.lap)
     print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
-    print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x+13, y+13, 7)
+    print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x, y+14, 7)
     if self.last_best_time ~= 0 then 
       print_shadowed((self.last_best_time >= self.frame and '-' or '+') 
-        .. frame_to_time_str(abs(self.last_best_time - self.frame)), x+9, y+25,
+        .. frame_to_time_str(abs(self.last_best_time - self.frame)), x-4, y+26,
         self.last_best_time >= self.frame and 11 or 8)
     end
 
---    print_shadowed('bEST\n' .. frame_to_time_str(best_time), x+13, y+28, 7)
+    draw_medal(x + 45, y + 15, get_num_medals(self.frame))
 
     self.menu.x = x + 22
-    self.menu.y = y + h - 20
+    self.menu.y = y + h - 18
     self.menu.draw()
   end
 
@@ -1057,29 +1057,6 @@ function on_checkpoint_crossed(self, cp_index)
       dset(data_index, self.frame)
     end
 
-    -- Display checkpoint time and delta
-    add(objects, {
-      time = self.frame,
-      best_time = self.last_best_time,
-      frames = 60,
-      update = function(self)
-        self.frames -= 1
-        if self.frames == 0 then
-          del(objects, self)
-        end
-      end,
-      draw = function(self)
-        local camera_x = peek2(0x5f28)
-        local camera_y = peek2(0x5f2a)
-        print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
-        if self.best_time ~= 0 then
-          print_shadowed((self.best_time >= self.time and '-' or '+') 
-            .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
-            self.best_time >= self.time and 11 or 8)
-        end
-      end,
-    })
-
     self.anim_frame = 1
     for i = 1, count(self.cp_crossed) do
       self.cp_crossed[i] = false
@@ -1088,6 +1065,29 @@ function on_checkpoint_crossed(self, cp_index)
     if self.lap == map_settings.laps then
       self.state = 3
     else
+      -- Display checkpoint time and delta
+      add(objects, {
+        time = self.frame,
+        best_time = self.last_best_time,
+        frames = 60,
+        update = function(self)
+          self.frames -= 1
+          if self.frames == 0 then
+            del(objects, self)
+          end
+        end,
+        draw = function(self)
+          local camera_x = peek2(0x5f28)
+          local camera_y = peek2(0x5f2a)
+          print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
+          if self.best_time ~= 0 then
+            print_shadowed((self.best_time >= self.time and '-' or '+') 
+              .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
+              self.best_time >= self.time and 11 or 8)
+          end
+        end,
+      })
+
       self.lap += 1
     end
     sfx(15)
@@ -1724,41 +1724,45 @@ function _level_select_manager_draw(self)
   print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
 
   if best_time > 0 then
-    local num_medals = 0
-    if best_time <= map_settings.bronze then num_medals += 1 end
-    if best_time <= map_settings.silver then num_medals += 1 end
-    if best_time <= map_settings.gold then num_medals += 1 end
-    if best_time <= map_settings.plat then num_medals += 1 end
-
+    local num_medals = get_num_medals(best_time)
     dx = 4
     dy = -1
     x += 7 - dx * (num_medals - 1) / 2
     y += 18 - dy * (num_medals - 1) / 2
-    if num_medals >= 1 then draw_medal(x + dx*0, y + dy*0, 9,  9,  4,  2, 2) end -- bronze
-    if num_medals >= 2 then draw_medal(x + dx*1, y + dy*1, 6,  6,  5, 13, 13) end -- silver
-    if num_medals >= 3 then draw_medal(x + dx*2, y + dy*2, 10, 10,  9,  4, 2) end -- gold
-    if num_medals >= 4 then draw_medal(x + dx*3, y + dy*3, 7, 12, 13,  2, 1) end -- plat
-    pal()
+    for i = 1, num_medals do
+      draw_medal(x + dx*(i-1), y + dy*(i-1), i)
+    end
   end
 end
 
 -- From the original sprite: c1 = white, c2 = yellow, c3 = orange, c4 = brown, c5 = purple
-function draw_medal(x, y, c1, c2, c3, c4, c5)
-  local f = function(dx, dy) sspr(0, 48, 16, 16, x + dx, y + dy) end
-  --for i = 0, 15 do
-  --  pal(i, 0)
-  --end
-  --f(-1, 0)
-  --f( 1, 0)
-  --f( 0,-1)
-  --f( 0, 1)
+local medal_pal = {
+  split('7,9,10,9,9,4,4,2,2,2'), -- bronze
+  split('7,6,10,6,9,5,4,13,2,13'), -- silver
+  split('7,10,10,10,9,9,4,4,2,2'), -- gold
+  split('7,7,10,12,9,13,4,2,2,1'), -- plat
+}
+function draw_medal(x, y, n)
+  if n < 1 then
+    return
+  end
+
   pal()
-  pal(7, c1)
-  pal(10, c2)
-  pal(9, c3)
-  pal(4, c4)
-  pal(2, c5)
-  f( 0, 0)
+  local medal_p = medal_pal[n]
+  for i = 1, count(medal_p), 2 do
+    pal(medal_p[i], medal_p[i+1])
+  end
+  sspr(0, 48, 16, 16, x, y)
+  pal()
+end
+
+function get_num_medals(time)
+  local num_medals = 0
+  if time <= map_settings.bronze then num_medals += 1 end
+  if time <= map_settings.silver then num_medals += 1 end
+  if time <= map_settings.gold then num_medals += 1 end
+  if time <= map_settings.plat then num_medals += 1 end
+  return num_medals
 end
 
 function _level_select_manager_update(self)
