@@ -107,7 +107,7 @@ local map_bounds_data = {
 
 local map_settings_data = parse_table_arr("laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|3,30,216,160,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|5,30,192,264,0.125,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
+  "|2,30,192,264,0.125,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
   "|4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
@@ -188,41 +188,43 @@ function _draw()
   --end
   --if true then return end
 
-  -- 7% CPU
-  draw_map(map_road_chunks, map_settings.size, 3, true, true, false)
-  -- 3% CPU
-  draw_map(map_decal_chunks, map_settings.size, 3, true, true, true)
-
-  draw_cp_highlights(level_m)
-
-  -- 2% CPU (idle)
-  _particle_manager_water_draw(particle_water_m)
-
-  -- 9% CPU
-  _trail_manager_draw(trail_m)
-
-  draw_car_shadow(player)
-
-  -- 0% CPU (idle)
-  _particle_manager_vol_draw_bg(particle_vol_m)
-
-  -- 11% CPU
-  draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true, false)
-
-  --draw_map(map_bounds_chunks, map_settings.size, 3, true, true, true)
-
   if game_state == 0 then
     -- 7% CPU
+    draw_map(map_road_chunks, map_settings.size, 3, true, true, false)
+    -- 3% CPU
+    draw_map(map_decal_chunks, map_settings.size, 3, true, true, true)
+
+    draw_cp_highlights(level_m)
+
+    -- 2% CPU (idle)
+    _particle_manager_water_draw(particle_water_m)
+
+    -- 9% CPU
+    _trail_manager_draw(trail_m)
+
+    draw_car_shadow(player)
+
+    -- 0% CPU (idle)
+    _particle_manager_vol_draw_bg(particle_vol_m)
+
+    -- 11% CPU
+    draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true, false)
+
+    --draw_map(map_bounds_chunks, map_settings.size, 3, true, true, true)
+
+    -- 7% CPU
     _car_draw(player)
+  
+    -- 12% CPU
+    if player.z <= wall_height then
+      draw_map(map_prop_chunks, map_settings.size, 3, true, false, false)
+    end
+
+    -- 1% CPU (idle)
+    _particle_manager_vol_draw_fg(particle_vol_m)
   end
 
-  -- 12% CPU
-  if player.z <= wall_height then
-    draw_map(map_prop_chunks, map_settings.size, 3, true, false, false)
-  end
 
-  -- 1% CPU (idle)
-  _particle_manager_vol_draw_fg(particle_vol_m)
 
   -- 0% CPU
   for obj in all(objects) do
@@ -674,8 +676,8 @@ end
 
 function boost_particles(self, c)
   local cone_angle = 0.1
-  local offset_x, offset_y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + offset_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, offset_y, rnd(0.5)-0.25, 30, 4)
+  local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
 end
 
 function _car_draw(self)
@@ -1710,7 +1712,7 @@ function _level_select_manager_draw(self)
 
   self.menu.draw()
 
-  draw_minimap()
+  draw_minimap(83 - map_settings.size*chunk_size/2, 33)
 
   data_index = get_lap_time_index(map_settings.laps)
   local best_time = dget(data_index)
@@ -1736,6 +1738,7 @@ function _level_select_manager_draw(self)
     if num_medals >= 2 then draw_medal(x + dx*1, y + dy*1, 6,  6,  5, 13, 13) end -- silver
     if num_medals >= 3 then draw_medal(x + dx*2, y + dy*2, 10, 10,  9,  4, 2) end -- gold
     if num_medals >= 4 then draw_medal(x + dx*3, y + dy*3, 7, 12, 13,  2, 1) end -- plat
+    pal()
   end
 end
 
@@ -1823,7 +1826,7 @@ function _main_menu_manager_update(self)
   camera()
 
   --function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
-  --add_particle_vol(particle_vol_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, offset_y*5, rnd(0.5)-0.25, 30, 4)
+  --add_particle_vol(particle_vol_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, y*5, rnd(0.5)-0.25, 30, 4)
   if rnd(1) < 0.5 then
     add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6)
   end
@@ -1831,29 +1834,38 @@ function _main_menu_manager_update(self)
   self.menu.update()
 end
 
--- todo: minimap should not be redrawn every frame
+-- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,37,15,38,15,39,15,40,15,41,15,43,7,44,7,45,7,46,7,47,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
-function draw_minimap()
-  local offset_x = 83 - map_settings.size*chunk_size/2
-  local offset_y = 33
-  rectfill(-1, offset_y-1, 128, offset_y + map_settings.size*chunk_size,3)
-  rect(-1, offset_y-1, 128, offset_y + map_settings.size*chunk_size,12)
-  for tile_x = 0, count(map_road_tiles) do
-    for tile_y = 0, count(map_road_tiles[0]) do
+function draw_minimap(x, y)
+  rectfill(-1, y-1, 128, y + map_settings.size*chunk_size,3)
+  rect(-1, y-1, 128, y + map_settings.size*chunk_size,12)
+  for chunk_x = 0, count(map_road_chunks) do
+    for chunk_y = 0, count(map_road_chunks) do
+
       -- Duplicated logic is purposely inlined to reduce CPU cost while redrawing every frame
-      local tile = map_road_tiles[tile_x][tile_y]
-      if pset_map[tile] ~= nil then
-        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
+      if map_road_chunks[chunk_x][chunk_y] ~= 0 then
+        draw_minimap_chunk(map_road_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
       end
-      tile = map_decal_tiles[tile_x][tile_y]
-      if pset_map[tile] ~= nil then
-        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
+      if map_decal_chunks[chunk_x][chunk_y] ~= 0 then
+        draw_minimap_chunk(map_decal_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
       end
-      tile = map_prop_tiles[tile_x][tile_y]
+      if map_prop_chunks[chunk_x][chunk_y] ~= 0 then
+        draw_minimap_chunk(map_prop_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
+      end
+
+    end
+  end
+  pset(flr(x + map_settings.spawn_x/8), flr(y + map_settings.spawn_y/8), 8)
+end
+
+function draw_minimap_chunk(tile_map, x, y, chunk_x, chunk_y)
+  for tile_x = chunk_x, chunk_x + chunk_size - 1 do
+    for tile_y = chunk_y, chunk_y + chunk_size - 1 do
+      local tile = tile_map[tile_x][tile_y]
       if pset_map[tile] ~= nil then
-        pset(offset_x + tile_x, offset_y + tile_y, pset_map[tile])
+        pset(x + tile_x, y + tile_y, pset_map[tile])
       end
     end
   end
-  pset(flr(offset_x + map_settings.spawn_x/8), flr(offset_y + map_settings.spawn_y/8), 8)
 end
+
