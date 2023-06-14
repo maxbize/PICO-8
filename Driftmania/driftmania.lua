@@ -488,11 +488,10 @@ function _car_move(self, btns)
     -- Visual only when on the road?
     local collides_grass = collides_grass_at(check_x, check_y, self.z)
     local collides_water = collides_water_at(check_x, check_y, self.z)
-    if collides_grass then
+    if collides_grass and not collides_water then
       grass_wheels += 1
     end
     if collides_water then
-      grass_wheels = 0
       self.dirt_frames[i] = 0
     end
     if not collides_grass and self.z == 0 and self.dirt_frames[i] > 0 then
@@ -530,11 +529,16 @@ function _car_move(self, btns)
     self.started_boost_last_frame = false
   end
   if water_wheels >= 2 then
-    mod_accel = 0.5
+    if self.boost_frames > 0 then
+      mod_accel = move_side == 0 and 0.6 or 0.2
+    else
+      mod_accel = move_side == 0 and 0.5 or 0.0
+    end
     mod_brake = 0.5
     mod_turn = 0.1
     mod_turn_rate = 0.75
     mod_corrective = 2
+    d_brake = false -- no d-brake in water
   end
 
   -- Note: allowing air control close to ground feels better
@@ -630,7 +634,7 @@ function _car_move(self, btns)
   -- Velocity rotation
   -- TODO: Cleanup ;)
   local a = self.angle_fwd - angle_vel
-  if abs(a) < self.turn_rate_vel * 1.1 then
+  if abs(a) < self.turn_rate_vel * mod_turn * 1.1 then
     angle_vel = self.angle_fwd
   else
     if a < 0 then
