@@ -934,9 +934,9 @@ function spawn_level_manager()
 
   local buttons = {
     new_button(0, 0, 'rETRY', function() load_level(true) end),
-    new_button(0, 10, 'qUIT', function() game_state = 2 end),
+    new_button(0, 10, 'qUIT', function() load_level(false) game_state = 2 end),
   }
-  level_m.menu = new_menu(50, -10, buttons, 'vert', 180)
+  level_m.menu = new_menu(50, -10, buttons, 'vert', 120)
 end
 
 function _level_manager_update(self)
@@ -1580,7 +1580,7 @@ end
 function _menu_draw(self)
   for i = 1, count(self.buttons) do
     local b = self.buttons[i]
-    print_shadowed(b.txt, self.x + b.x + (i == self.index and 1 or 0), self.y + b.y, i == self.index and 7 or 6)
+    print_shadowed(b.txt, self.x + b.x + (i == self.index and 1 or 0), self.y + b.y, i == self.index and self.idle_frames == 0 and 7 or 6)
   end
   spr(16, self.x + self.buttons[self.index].x - (self.frames == 0 and 8 or 7), self.y + self.buttons[self.index].y - 2)
 end
