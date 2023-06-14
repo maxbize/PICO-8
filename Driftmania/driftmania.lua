@@ -552,7 +552,14 @@ function _car_move(self, btns)
   -- No d-brake when not grounded
   if self.z > 0 then
     d_brake = false
-  end  
+  end
+
+  -- Reduced turning when going slow
+  local speed = dist(self.v_x, self.v_y)
+  if speed < 0.5 then
+    move_side *= speed * 2
+    d_brake = false
+  end
 
   -- Visual Rotation
   --self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.5 * abs(vel_dot_fwd) or 1)) % 1
