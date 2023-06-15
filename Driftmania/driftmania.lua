@@ -1029,7 +1029,7 @@ function _level_manager_draw(self)
         self.last_best_time >= self.frame and 11 or 8)
     end
 
-    draw_medal(x + 45, y + 15, get_num_medals(self.frame))
+    draw_medals(x + 45, y + 15, get_num_medals(self.frame))
 
     self.menu.x = x + 22
     self.menu.y = y + h - 18
@@ -1577,7 +1577,7 @@ function _menu_update(self)
 
   -- update active button
   local button = self.buttons[self.index]
-  local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
+  local input = (btnp(4) and 1 or 0) - (btnp(5) and 1 or 0)
   if input ~= 0 then
     button.update(self.index, input)
     self.frames = 5
@@ -1746,14 +1746,7 @@ function _level_select_manager_draw(self)
   print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
 
   if best_time > 0 then
-    local num_medals = get_num_medals(best_time)
-    dx = 4
-    dy = -1
-    x += 7 - dx * (num_medals - 1) / 2
-    y += 18 - dy * (num_medals - 1) / 2
-    for i = 1, num_medals do
-      draw_medal(x + dx*(i-1), y + dy*(i-1), i)
-    end
+    draw_medals(x + 7, y + 18, get_num_medals(best_time))
   end
 end
 
@@ -1764,17 +1757,22 @@ local medal_pal = {
   split('7,10,10,10,9,9,4,4,2,2'), -- gold
   split('7,7,10,12,9,13,4,2,2,1'), -- plat
 }
-function draw_medal(x, y, n)
-  if n < 1 then
-    return
-  end
 
-  pal()
-  local medal_p = medal_pal[n]
-  for i = 1, count(medal_p), 2 do
-    pal(medal_p[i], medal_p[i+1])
+function draw_medals(x, y, n)
+  local dx = 4
+  local dy = -1
+
+  x -= dx * (n - 1) / 2
+  y -= dy * (n - 1) / 2
+
+  for i = 1, n do
+    pal()
+    local medal_p = medal_pal[i]
+    for j = 1, count(medal_p), 2 do
+      pal(medal_p[j], medal_p[j+1])
+    end
+    sspr(0, 48, 16, 16, x + dx*(i-1), y + dy*(i-1))
   end
-  sspr(0, 48, 16, 16, x, y)
   pal()
 end
 
