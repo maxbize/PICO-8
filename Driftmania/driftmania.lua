@@ -384,17 +384,19 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     respawn_frames = 0,
     respawn_start_x = 0,
     respawn_start_y = 0,
+    engine_pitch = 0,
   }
 end
 
 function _car_update(self)
+  local d_brake, move_fwd
   if self.respawn_frames == 0 then
-    _car_move(self, level_m.state == 2 and btn() or 0)
+    d_brake, move_fwd = _car_move(self, level_m.state == 2 and btn() or 0)
     if level_m.state ~= 3 then
       camera(self.x - 64, self.y - 64)
     end
   else
-    _car_move(self, 0)
+    d_brake, move_fwd = _car_move(self, 0)
     self.respawn_frames -= 1
 
     if self.respawn_frames < 30 then
@@ -422,12 +424,36 @@ function _car_update(self)
 
   -- Sound effects
   local speed = dist(self.v_x, self.v_y)
+  local target_pitch = 0
   if self.z > 6 then
-    sfx(8, 0, 24, 0)
-  elseif speed > 0 then
-    sfx(8, 0, speed * 8, 0)
+    target_pitch = 24
+  elseif level_m.state == 3 then
+    if speed > 0 then
+      target_pitch = speed * 8
+    else
+      target_pitch = -1
+    end
   else
-    sfx(8, -2)
+    if move_fwd < 0 then
+      target_pitch = speed * 4
+    elseif d_brake or move_fwd == 0 then
+      target_pitch = speed * 6
+    else
+      target_pitch = speed * 8
+    end
+  end
+
+  if self.engine_pitch ~= target_pitch then
+    self.engine_pitch += sgn(target_pitch - self.engine_pitch) * 0.25
+  end
+  if self.engine_pitch >= 0 then
+    sfx(8, 0, self.engine_pitch, 0)
+  else
+    sfx(8, -2) -- stop sfx
+  end
+
+  if d_brake then
+    sfx(17, 1, 0, 0)
   end
 
   -- Record ghost
@@ -473,6 +499,7 @@ function _car_move(self, btns)
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
   local v_x_normalized, v_y_normalized = normalized(self.v_x, self.v_y)
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
+  local speed = dist(self.v_x, self.v_y)
 
   -- Jump checked on move and at start of each frame in case we're stopped
   check_jump(self, self.x, self.y, self.z)
@@ -531,6 +558,8 @@ function _car_move(self, btns)
   if water_wheels >= 2 then
     if self.boost_frames > 0 then
       mod_accel = move_side == 0 and 0.6 or 0.2
+    elseif speed < 0.5 then
+      mod_accel = move_side == 0 and 0.5 or 0.2
     else
       mod_accel = move_side == 0 and 0.5 or 0.0
     end
@@ -555,7 +584,6 @@ function _car_move(self, btns)
   end
 
   -- Reduced turning when going slow
-  local speed = dist(self.v_x, self.v_y)
   if speed < 0.5 then
     move_side *= speed * 2
     d_brake = false
@@ -683,6 +711,9 @@ function _car_move(self, btns)
       sfx(9)
     end
   end
+
+  -- Return results for processing
+  return d_brake, move_fwd
 end
 
 function boost_particles(self, c)
@@ -836,7 +867,10 @@ function _player_collides_at(self, x, y, z, angle)
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     if collides_wall_at(check_x, check_y, z) then
-      sfx(10)
+      -- Really annoying to have the car crash effects on level end when it goes off screen
+      if level_m.state ~= 3 then
+        sfx(10)
+      end
       return true, check_x, check_y
     end
   end
@@ -941,7 +975,7 @@ function spawn_level_manager()
 
   local buttons = {
     new_button(0, 0, 'rETRY', function() load_level(true) end),
-    new_button(0, 10, 'qUIT', function() load_level(false) game_state = 2 end),
+    new_button(0, 10, 'qUIT', function() load_level(false) sfx(8, -2) game_state = 2 end),
   }
   level_m.menu = new_menu(50, -10, buttons, 'vert', 120)
 end
@@ -989,6 +1023,9 @@ function _level_manager_draw(self)
     local cr = 8
     local l = 45
     local c = self.anim_frame > l*3 and 11 or self.anim_frame > l*2 and 9 or self.anim_frame > l*1 and 8 or 1
+    if self.anim_frame == l then
+      sfx(16)
+    end
     draw_shadowed(0, c, function(dx, dy, c)
       rectfill(dx + x + cr,     dy + y, dx+x+w-cr, dy+y+h, c)
       circfill(dx + x + cr,     dy + y + cr, cr, c)
