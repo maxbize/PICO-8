@@ -1138,9 +1138,9 @@ function on_checkpoint_crossed(self, cp_index)
 
       self.lap += 1
     end
-    sfx(15)
+    sfx(15, -1, 0, 10)
   else
-    sfx(14) 
+    sfx(14, -1, 0, 3)
   end
 
   -- Advance checkpoint marker
@@ -1608,14 +1608,17 @@ function _menu_update(self)
   -- up/down & left/right
   if btnp(self.type == 'vert' and 3 or 1) then
     self.index = (self.index % count(self.buttons)) + 1
+    sfx(14, -1, 8, 1)
   elseif btnp(self.type == 'vert' and 2 or 0) then
     self.index = self.index == 1 and count(self.buttons) or self.index - 1
+    sfx(14, -1, 8, 1)
   end
 
   -- update active button
   local button = self.buttons[self.index]
   local input = (btnp(4) and 1 or 0) - (btnp(5) and 1 or 0)
   if input ~= 0 then
+    sfx(14, -1, 16, 1)
     button.update(self.index, input)
     self.frames = 5
   end
