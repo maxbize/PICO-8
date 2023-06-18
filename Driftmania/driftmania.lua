@@ -13,6 +13,7 @@ local particle_water_m = nil
 local menu_m = nil
 local game_state = 3 -- 0=race, 1=customization, 2=level select, 3=main menu
 local level_index = 1
+local pause_frames = 0
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -158,6 +159,11 @@ function _init()
 end
 
 function _update60()
+  if pause_frames > 0 then
+    pause_frames -= 1
+    return
+  end
+
   for obj in all(objects) do
     obj.update(obj)
   end
@@ -174,6 +180,13 @@ function _update60()
 end
 
 function _draw()
+  if pause_frames > 0 then
+    pause_frames -= 1
+    return
+  elseif pause_frames < 0 then
+    pause_frames = -pause_frames
+  end
+
   cls(3) -- Most grass is drawn as part of cls
   -- CPU debugging
   -- 23% CPU for full screen map, 0% for sprite 0
@@ -375,7 +388,6 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     dirt_frames = split('0,0,0,0'),
     boost_frames = 0,
     flash_frames = 0,
-    started_boost_last_frame = false,
     water_wheels = 0,
     scale = 1,
     last_checkpoint_x = x,
@@ -393,6 +405,9 @@ function _car_update(self)
   if self.respawn_frames == 0 then
     d_brake, move_fwd = _car_move(self, level_m.state == 2 and btn() or 0)
     if level_m.state ~= 3 then
+      --local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+      --local lead = mid(dist(self.v_x, self.v_y) * 10, 5, 20)*0
+      --camera(self.x - 64 + fwd_x * lead, self.y - 64 + fwd_y * lead)
       camera(self.x - 64, self.y - 64)
     end
   else
@@ -546,14 +561,12 @@ function _car_move(self, btns)
     mod_brake = 0.25
   end
   if boost_wheels >= 1 then
-    if not self.started_boost_last_frame then
-      self.started_boost_last_frame = true
+    if self.boost_frames <= 85 then
       self.flash_frames = 5
+      pause_frames = -2
       sfx(13)
     end
     self.boost_frames = 90
-  else
-    self.started_boost_last_frame = false
   end
   if water_wheels >= 2 then
     if self.boost_frames > 0 then
@@ -636,7 +649,7 @@ function _car_move(self, btns)
   elseif d_brake then
     local f_stop = (move_fwd > 0 and self.f_friction * 0.5
                 or (move_fwd == 0 and self.f_friction * 2 
-                or (move_fwd < 0 and self.brake * 2 * mod_brake or 1000)))
+                or (move_fwd < 0 and self.brake * mod_brake or 1000)))
     self.v_x -= mid(v_x_normalized * f_stop, self.v_x, -self.v_x)
     self.v_y -= mid(v_y_normalized * f_stop, self.v_y, -self.v_y)
   else
@@ -855,6 +868,7 @@ function check_jump(self, x, y, z)
     map_jump_frames[map_jumps[flr(x/24)][flr(y/24)]] = 30
     self.v_z = 2
     self.z = 1
+    pause_frames = -2
     sfx(11)
   end
 end
@@ -1073,8 +1087,10 @@ function _level_manager_draw(self)
     self.menu.draw()
   end
 
-  -- Lap counter
-  print_shadowed('lAP ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 120, 7)
+  -- Level UI
+  local kph = tostr(flr(dist(player.v_x, player.v_y) * 75.01))
+  print_shadowed('\*' .. (3 - #kph) .. ' ' .. kph .. ' kph', camera_x + 98, camera_y + 114, 7)
+  print_shadowed('lAP ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 121, 7)
 
 end
 
