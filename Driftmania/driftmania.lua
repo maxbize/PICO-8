@@ -29,12 +29,13 @@ local map_jumps = nil
 local map_jump_frames = nil
 
 -- Ghost cars
+local ghost = nil
 local ghost_recording = {}
 local ghost_playback = {}
 -- Allocate buffers on init
 for i = 1, 0x7fff do
-  add(ghost_recording, 0)
-  add(ghost_playback, 0)
+  add(ghost_recording, -1)
+  add(ghost_playback, -1)
 end
 
 --------------------
@@ -86,41 +87,41 @@ end
 -- Data
 --------------------
 local map_road_data = {
-  "\0^7¹⁶²8¹\0¥⁸¹¹³8¹\0」⁸¹¹⁴8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵8¹\0「9¹¹⁵⁶⁵⁷¹\0⁙9¹¹⁴\n⁵⁙¹\0⁘9¹¹²:¹\0•⁸¹ᶜ¹\0⁸⁵¹⁷¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0、⁸¹ᶜ¹\0、⁸¹ᶜ¹\0□⁵¹⁷¹\0⁸⁸¹ᶜ¹\0□□¹⁙¹\0⁸⁸¹ᶜ¹\0•⁘¹‖¹」¹¥¹\0⁘⁵¹⁶⁵◀¹¹²■¹⁶⁴⁷¹\0ᶠ□¹\n⁵ᵇ¹¹²\t¹\n²ᵇ¹¹¹ᶜ¹\0‖ᶠ¹▮¹▶¹「¹\0²ᶠ¹▮¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹」¹¥¹\0²⁘¹‖¹ᶜ¹\0◀⁸¹¹¹■¹⁶²◀¹¹¹ᶜ¹\0◀□¹\n⁶⁙¹\0>", -- driftmaniaLevel1.tmx road
-  "\0◝\0◀⁵¹⁶⁷⁷¹\0‖⁸¹¹¹\t¹\n³ᵇ¹¹¹ᶜ¹\0‖⁸¹\r¹ᵉ¹\0³ᶠ¹▮¹ᶜ¹\0‖⁸¹¹¹■¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶⁴⁷¹\0ᵉ□¹\n⁴⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n²ᵇ¹¹¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴ᶠ¹▮¹ᶜ¹\0‖⁸¹ᶜ¹\0⁴⁘¹‖¹ᶜ¹\0▮⁵¹⁶²⁷¹\0¹⁸¹ᶜ¹\0¹⁵¹⁶²◀¹¹¹ᶜ¹\0▮⁸¹¹¹\t¹⁙¹\0¹⁸¹ᶜ¹\0¹□¹\n⁴⁙¹\0▮⁸¹▶¹「¹\0²⁸¹ᶜ¹\0▶⁸¹」¹¥¹\0¹⁘¹‖¹ᶜ¹\0▶⁸¹¹¹■¹⁶¹◀¹¹¹ᶜ¹\0▶□¹\n⁵⁙¹\0◜", -- driftmaniaLevel2.tmx road
-  "\0さ7¹⁶²s¹t¹\0」⁸¹¹¹\t¹¹¹u¹t¹\0「⁸¹▶¹「¹9¹¹¹v¹\0▶⁘¹‖¹ᶜ¹\0²⁸¹ᶜ¹\0□⁘¹w¹⁶³◀¹¹¹ᶜ¹\0²⁸¹ᶜ¹\0□x¹¹¹\t¹ᵇ¹¹³ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹▶¹「¹ᶠ¹▮¹¹²ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²⁸¹」¹¥¹\0■⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²□¹ᵇ¹■¹⁶²⁷¹\0ᵉ⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0³ᶠ¹▮¹¹²ᶜ¹\0ᵉ⁸¹ᶜ¹\0²y¹¹²z¹\0³7¹¹¹{¹\n¹⁙¹\0ᵉ⁸¹ᶜ¹\0²ᶠ¹|¹}¹「¹\0²7¹¹¹~¹○¹\0▮█¹¹¹8¹\0⁶7¹¹¹~¹○¹\0■▒¹🐱¹¹¹8¹\0⁴7¹¹¹~¹○¹\0⁙▒¹🐱¹¹¹⁶⁴¹¹~¹○¹\0‖▒¹⬇️¹\n⁴░¹○¹\0◝\0•", -- driftmaniaLevel3.tmx road
+  "\0^(¹⁶²)¹\0¥⁸¹¹³)¹\0」⁸¹¹⁴)¹\0「*¹¹⁵)¹\0「*¹¹⁵)¹\0「*¹¹⁵)¹\0「*¹¹⁵⁶⁵⁷¹\0⁙*¹¹⁴\n⁵⁘¹\0⁘*¹¹²+¹\0•⁸¹ᶜ¹\0⁸⁵¹⁷¹\0□⁸¹ᶜ¹\0⁸⁸¹ᶜ¹\0□⁙¹⁘¹\0⁸⁸¹ᶜ¹\0、⁸¹ᶜ¹\0、⁸¹ᶜ¹\0□⁵¹⁷¹\0⁸⁸¹ᶜ¹\0□⁙¹⁘¹\0⁸⁸¹ᶜ¹\0•,¹-¹.¹/¹\0⁘⁵¹⁶⁵□¹¹²■¹⁶⁴⁷¹\0ᶠ⁙¹\n⁵ᵇ¹¹²\t¹\n²ᵇ¹¹¹ᶜ¹\0‖0¹1¹2¹3¹\0²0¹1¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹ᶜ¹\0⁴⁸¹ᶜ¹\0◀⁸¹.¹/¹\0²,¹-¹ᶜ¹\0◀⁸¹¹¹■¹⁶²□¹¹¹ᶜ¹\0◀⁙¹\n⁶⁘¹\0>", -- driftmaniaLevel1.tmx road
+  "\0◝\0◀⁵¹⁶⁷⁷¹\0‖⁸¹¹¹\t¹\n³ᵇ¹¹¹ᶜ¹\0‖⁸¹\r¹ᵉ¹\0³ᶠ¹▮¹ᶜ¹\0‖⁸¹¹¹■¹⁶³□¹¹¹ᶜ¹\0‖⁙¹\n⁷⁘¹\0◝\0ヤ", -- driftmaniaLevel2.tmx road
+  "\0さ(¹⁶²v¹w¹\0」⁸¹¹¹\t¹¹¹x¹w¹\0「⁸¹2¹3¹*¹¹¹y¹\0▶,¹-¹ᶜ¹\0²⁸¹ᶜ¹\0□,¹z¹⁶³□¹¹¹ᶜ¹\0²⁸¹ᶜ¹\0□{¹¹¹\t¹ᵇ¹¹³ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹2¹3¹0¹1¹¹²ᶜ¹\0²⁸¹ᶜ¹\0□⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²⁸¹.¹/¹\0■⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0²⁙¹ᵇ¹■¹⁶²⁷¹\0ᵉ⁸¹ᶜ¹\0²⁸¹¹²ᶜ¹\0³0¹1¹¹²ᶜ¹\0ᵉ⁸¹ᶜ¹\0²|¹¹²}¹\0³(¹¹¹~¹\n¹⁘¹\0ᵉ⁸¹ᶜ¹\0²0¹○¹█¹3¹\0²(¹¹¹▒¹🐱¹\0▮⬇️¹¹¹)¹\0⁶(¹¹¹▒¹🐱¹\0■░¹✽¹¹¹)¹\0⁴(¹¹¹▒¹🐱¹\0⁙░¹✽¹¹¹⁶⁴¹¹▒¹🐱¹\0‖░¹●¹\n⁴♥¹🐱¹\0◝\0•", -- driftmaniaLevel3.tmx road
 }
 local map_decals_data = {
-  "\0か;¹\0、<¹\0、\"¹\0、=¹\0(>¹?¹@²A¹\0」B¹C¹⁴²D¹\0¥E¹F¹⁴¹D¹\0•G¹H¹I¹\0、J¹K¹\0000L¹M¹\0、N¹O¹\0&P¹Q¹\0、R¹S¹\0□L¹T¹U¹\0•V¹⁴¹W¹\0⁷X¹\0⁙Y¹Z¹[¹\0³\\¹\0⁷\\¹\0」]¹^¹\0、_¹`¹\0、a¹b¹\0@c¹\0゛d¹\0>", -- driftmaniaLevel1.tmx decals
-  "\0◝\0◀•¹\0゛、¹\0D。¹゛¹\0³゜¹\0「 ¹!¹\0²\"¹\0¥#¹\0。$¹\0◀%¹&¹\0、'¹(¹\0。#¹\0。$¹\0•\"¹\0、)¹\0◝\0⁵", -- driftmaniaLevel2.tmx decals
-  "\0◝\0Y✽¹●¹\0²●²\0x♥¹\0、♥¹\0、♥¹\0、♥¹\0「☉¹\0³♥¹\0」☉¹\0◝\0 ", -- driftmaniaLevel3.tmx decals
+  "\0か4¹\0、5¹\0、6¹\0、7¹\0(8¹9¹:²;¹\0」<¹=¹⁴²>¹\0¥?¹@¹⁴¹>¹\0•A¹B¹C¹\0、D¹E¹\0、F¹G¹\0□H¹I¹\0⁸J²\0□K¹L¹\0⁸M¹N¹\0、O¹P¹\0、Q¹R¹\0□H¹S¹T¹\0•U¹⁴¹V¹\0⁷W¹\0⁙X¹Y¹Z¹\0³[¹\0⁷[¹\0」\\¹]¹\0、^¹_¹\0、%¹`¹\0@a¹\0゛b¹\0>", -- driftmaniaLevel1.tmx decals
+  "\0◝\0「‖¹◀¹▶¹「¹」¹\0」‖¹¥¹•¹、¹。¹\0007゛¹゜¹ ¹!¹ ¹\0」゛¹\"¹、¹#¹$¹\0、%¹&¹\0◝\0ク", -- driftmaniaLevel2.tmx decals
+  "\0◝\0Y☉¹웃¹\0²웃²\0x⌂¹\0、⌂¹\0、⌂¹\0、⌂¹\0「⬅️¹\0³⌂¹\0」⬅️¹\0◝\0 ", -- driftmaniaLevel3.tmx decals
 }
 local map_props_data = {
-  "\0@e¹+²f¹\0」g¹h¹\0²i¹j¹\0「-¹\0¹k¹l¹\0¹i¹j¹\0▶-¹\0¹i¹m¹l¹\0¹i¹j¹\0◀n¹l¹\0¹i¹m¹l¹\0¹i¹j¹\0◀o¹l¹\0¹i¹m¹l¹\0¹i¹j¹\0◀o¹l¹\0¹i¹m¹l¹\0¹i¹p¹+⁸,¹\0\ro¹l¹\0¹i¹m¹l¹\0\n-¹\0ᵉo¹l¹\0¹i¹m¹l¹\0\t-¹\0ᶠo¹l¹\0¹i¹q¹+⁶,¹\0²-¹\0▮r¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²-¹\0⁶-¹\0²-¹\0▮-¹\0²0¹+⁶5¹\0²0¹+⁵,¹\0\n-¹\0□-¹\0\n-¹\0□-¹\0\n0¹+\t,¹\0²*¹+²,¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²-¹\0²-¹\0²-¹\0⁘-¹\0²0¹+²5¹\0²-¹\0⁘-¹\0⁸-¹\0⁘-¹\0⁸-¹\0⁘0¹+⁸5¹\0゜", -- driftmaniaLevel1.tmx props
-  "\0ロ*¹+\t,¹\0⁙-¹\0\t-¹\0⁙-¹\0\t-¹\0⁙-¹\0².¹+³,¹\0²/¹+⁶,¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ-¹\0⁶-¹\0²-¹\0⁶-¹\0ᶜ0¹+⁶1¹\0²/¹+³2¹\0²-¹\0ᵉ*¹+⁴1¹\0²/¹+³3¹\0²-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0⁴-¹\0²-¹\0⁶-¹\0ᵉ-¹\0²4¹+¹1¹\0²/¹+⁶5¹\0ᵉ-¹\0²6¹+¹3¹\0²-¹\0‖-¹\0⁷-¹\0‖-¹\0⁷-¹\0‖0¹+⁷5¹\0ト", -- driftmaniaLevel2.tmx props
-  "\0●e¹+³,¹\0「g¹h¹\0³0¹,¹\0▶-¹\0⁵0¹,¹\0◀-¹\0²웃¹l¹\0²-¹\0■k¹⌂¹+²⬅️¹😐¹\0²-¹r¹\0²-¹\0▮k¹♪¹\0⁴🅾️¹◆¹\0¹-²\0²-¹\0▮…¹\0⁵➡️¹★¹\0¹-²\0²-¹\0▮-¹\0²4¹2¹\0¹➡️¹★¹\0¹-²\0²-¹\0▮-¹\0²-²\0¹➡️¹★¹\0¹-²\0²6¹+³,¹\0ᶜ-¹\0²-²\0¹➡️¹★¹\0¹-²\0⁶-¹\0ᶜ-¹\0²-²\0¹⧗¹⬆️¹\0¹-¹6¹+¹ˇ¹∧¹❎¹\0²-¹\0ᶜ-¹\0²-¹▤¹\0⁴▥¹\0¹あ¹h¹\0⁴-¹\0ᶜ-¹\0²▤¹i¹j¹\0²あ¹h¹あ¹h¹\0²*¹+²5¹\0ᶜ-¹\0²i¹j¹i¹p¹い¹h¹あ¹h¹\0²*¹5¹\0ᶠ0¹,¹\0²i¹p¹+²い¹h¹\0²*¹5¹\0■0¹,¹\0⁸*¹5¹\0⁙0¹,¹\0⁶*¹5¹\0‖0¹+⁶5¹\0ュ", -- driftmaniaLevel3.tmx props
+  "\0@c¹'²d¹\0」e¹f¹\0²g¹h¹\0「i¹\0¹j¹k¹\0¹g¹h¹\0▶i¹\0¹g¹l¹k¹\0¹g¹h¹\0◀m¹k¹\0¹g¹l¹k¹\0¹g¹h¹\0◀n¹k¹\0¹g¹l¹k¹\0¹g¹h¹\0◀n¹k¹\0¹g¹l¹k¹\0¹g¹o¹'⁸p¹\0\rn¹k¹\0¹g¹l¹k¹\0\ni¹\0ᵉn¹k¹\0¹g¹l¹k¹\0\ti¹\0ᶠn¹k¹\0¹g¹q¹'⁶p¹\0²i¹\0▮r¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²i¹\0⁶i¹\0²i¹\0▮i¹\0²s¹'⁶t¹\0²s¹'⁵p¹\0\ni¹\0□i¹\0\ni¹\0□i¹\0\ns¹'\tp¹\0²u¹'²p¹\0²i¹\0⁘i¹\0²i¹\0²i¹\0²i¹\0⁘i¹\0²i¹\0²i¹\0²i¹\0⁘i¹\0²s¹'²t¹\0²i¹\0⁘i¹\0⁸i¹\0⁘i¹\0⁸i¹\0⁘s¹'⁸t¹\0゜", -- driftmaniaLevel1.tmx props
+  "\0ロ'ᵇ\0R'⁵\0R'ᵇ\0◝\0オ", -- driftmaniaLevel2.tmx props
+  "\0●c¹'³p¹\0「e¹f¹\0³s¹p¹\0▶i¹\0⁵s¹p¹\0◀i¹\0²😐¹k¹\0²i¹\0■j¹♪¹'²🅾️¹◆¹\0²i¹r¹\0²i¹\0▮j¹…¹\0⁴➡️¹★¹\0¹i²\0²i¹\0▮⧗¹\0⁵⬆️¹ˇ¹\0¹i²\0²i¹\0▮i¹\0²∧¹❎¹\0¹⬆️¹ˇ¹\0¹i²\0²i¹\0▮i¹\0²i²\0¹⬆️¹ˇ¹\0¹i²\0²▤¹'³p¹\0ᶜi¹\0²i²\0¹⬆️¹ˇ¹\0¹i²\0⁶i¹\0ᶜi¹\0²i²\0¹▥¹あ¹\0¹i¹▤¹'¹い¹う¹え¹\0²i¹\0ᶜi¹\0²i¹お¹\0⁴か¹\0¹き¹f¹\0⁴i¹\0ᶜi¹\0²お¹g¹h¹\0²き¹f¹き¹f¹\0²u¹'²t¹\0ᶜi¹\0²g¹h¹g¹o¹く¹f¹き¹f¹\0²u¹t¹\0ᶠs¹p¹\0²g¹o¹'²く¹f¹\0²u¹t¹\0■s¹p¹\0⁸u¹t¹\0⁙s¹p¹\0⁶u¹t¹\0‖s¹'⁶t¹\0ュ", -- driftmaniaLevel3.tmx props
 }
 local map_bounds_data = {
   "\0@¹⁴\0」¹⁶\0「¹⁷\0▶¹⁸\0◀¹\t\0◀¹\t\0◀¹□\0\r¹■\0ᵉ¹▮\0ᶠ¹ᶠ\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁘\0\n¹⁘\0\n¹⁘\0\n¹⁘\0⁘¹⁴\0²¹⁴\0⁘¹⁴\0²¹⁴\0⁘¹\n\0⁘¹\n\0⁘¹\n\0⁘¹\n\0゜", -- driftmaniaLevel1.tmx bounds
-  "\0ロ¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0ト", -- driftmaniaLevel2.tmx bounds
+  "¹◝¹◝¹◝¹♥", -- driftmaniaLevel2.tmx bounds
   "\0●¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0ュ", -- driftmaniaLevel3.tmx bounds
 }
 
 local map_settings_data = parse_table_arr("laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|3,30,216,160,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|5,30,192,264,0.125,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
+  "|2,30,208,240,0.0,4300,2800,2500,2420" .. -- driftmaniaLevel2.tmx settings
   "|4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"
 local map_checkpoints_data = {
   parse_table_arr(map_checkpoints_data_header, '|236,124,-1,1,40|188,172,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|164,212,1,1,64|556,284,-1,1,64|276,468,-1,1,64'), -- driftmaniaLevel2.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|236,204,0,1,72|236,276,0,1,72'), -- driftmaniaLevel2.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|300,444,0,1,72|340,276,1,0,56|420,276,1,0,72'), -- driftmaniaLevel3.tmx checkpoints
 }
 local map_jumps_data = {
   {[20]={[23]=1},[21]={[23]=1}}, -- driftmaniaLevel1.tmx jumps
-  {[17]={[12]=1,[13]=1},[18]={[15]=2},[12]={[16]=3,[17]=3,[19]=4}}, -- driftmaniaLevel2.tmx jumps
+  {[10]={[9]=1,[10]=1},[12]={[9]=2,[10]=2,[12]=5,[13]=5},[13]={[9]=3,[10]=3,[12]=5,[13]=5},[11]={[12]=4,[13]=4}}, -- driftmaniaLevel2.tmx jumps
   {}, -- driftmaniaLevel3.tmx jumps
 }
 local gradients =     split('0,1,1,2,1,13,6,2,4,9,3,1,5,13,14')
@@ -169,6 +170,10 @@ function _update60()
   end
 
   if game_state == 0 then
+    if ghost ~= nil then
+      _ghost_update(ghost)
+    end
+
     -- 3% CPU
     _car_update(player)
 
@@ -215,6 +220,9 @@ function _draw()
     -- 9% CPU
     _trail_manager_draw(trail_m)
 
+    if ghost ~= nil then
+      draw_car_shadow(ghost)
+    end
     draw_car_shadow(player)
 
     -- 0% CPU (idle)
@@ -224,6 +232,10 @@ function _draw()
     draw_map(map_prop_chunks, map_settings.size, 3, player.z > wall_height, true, false)
 
     --draw_map(map_bounds_chunks, map_settings.size, 3, true, true, true)
+
+    if ghost ~= nil then
+      _car_draw(ghost)
+    end
 
     -- 7% CPU
     _car_draw(player)
@@ -345,7 +357,7 @@ function spawn_player()
   local y = map_settings.spawn_y
   local dir = map_settings.spawn_dir
 
-  player = create_car(x, y, 0, 0, 0, 0, 0, 0, 0, dir, false)
+  player = create_car(x, y, dir, false)
 end
 
 function spawn_ghost()
@@ -353,33 +365,30 @@ function spawn_ghost()
   local y = map_settings.spawn_y
   local dir = map_settings.spawn_dir
 
-  local ghost = create_car(x, y, 0, 0, 0, 0, 0, 0, 0, dir, true)
-  ghost.update = _ghost_update
+  ghost = create_car(x, y, dir, true)
   ghost.buffer = ghost_playback
-  ghost.frame = 1
-  add(objects, ghost)
 end
 
-function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_z, dir, is_ghost)
+function create_car(x, y, dir, is_ghost)
   return {
     update = _car_update,
     draw = _car_draw,
     x = x,
     y = y,
-    z = z,
-    x_remainder = x_remainder,
-    y_remainder = y_remainder,
-    z_remainder = z_remainder,
+    z = 0,
+    x_remainder = 0,
+    y_remainder = 0,
+    z_remainder = 0,
     angle_fwd = dir,
-    v_x = v_x,
-    v_y = v_y,
-    v_z = v_z,
+    v_x = 0,
+    v_y = 0,
+    v_z = 0,
     turn_rate_fwd = 0.0065,
     turn_rate_vel = 0.005,
     accel = 0.075,
     brake = 0.05,
     max_speed_fwd = 2,
-    max_speed_rev = -1, -- TODO: fix
+    max_speed_rev = -0.5, -- TODO: fix
     f_friction = 0.01,
     f_corrective = 0.1,
     is_ghost = is_ghost,
@@ -397,6 +406,7 @@ function create_car(x, y, z, x_remainder, y_remainder, z_remainder, v_x, v_y, v_
     respawn_start_x = 0,
     respawn_start_y = 0,
     engine_pitch = 0,
+    ghost_frame = 1,
   }
 end
 
@@ -471,16 +481,10 @@ function _car_update(self)
     sfx(17, 1, 0, 0)
   end
 
-  -- Record ghost
-  if level_m.frame == 0 then
-    throw()
-  end
-  ghost_recording[level_m.frame] = btn()
-
   -- Check bounds
   local chunk_x = flr(self.x / 24)
   local chunk_y = flr(self.y / 24)
-  if self.respawn_frames == 0 and self.z == 0 and map_bounds_chunks[chunk_x][chunk_y] == 0 and not self.is_ghost then
+  if self.respawn_frames == 0 and self.z == 0 and map_bounds_chunks[chunk_x][chunk_y] == 0 then
     self.respawn_frames = 60
     self.respawn_start_x = self.x
     self.respawn_start_y = self.y
@@ -491,13 +495,13 @@ function _car_update(self)
 end
 
 function _ghost_update(self)
-  local btns = self.buffer[self.frame]
-  if btns == -1 then
-    del(objects, self)
-  else
+  local btns = self.buffer[self.ghost_frame]
+  if btns ~= -1 then
     _car_move(self, btns)
+    self.ghost_frame += 1
+  else
+    del(objects, self)
   end
-  self.frame += 1
 end
 
 function _car_move(self, btns)
@@ -561,7 +565,7 @@ function _car_move(self, btns)
     mod_brake = 0.25
   end
   if boost_wheels >= 1 then
-    if self.boost_frames <= 85 then
+    if self.boost_frames <= 87 then
       self.flash_frames = 5
       pause_frames = -2
       sfx(13)
@@ -725,6 +729,12 @@ function _car_move(self, btns)
     end
   end
 
+  -- Record ghost
+  if not self.is_ghost then
+    ghost_recording[self.ghost_frame] = btns
+    self.ghost_frame += 1
+  end
+
   -- Return results for processing
   return d_brake, move_fwd
 end
@@ -815,9 +825,7 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
         y += sign * y_mask
         z += sign * z_mask
         move -= sign
-        if not self.is_ghost then
-          _on_player_moved(self, x, y, z, self.angle_fwd)
-        end
+        _on_player_moved(self, x, y, z, self.angle_fwd)
       end
     end
   end
@@ -832,13 +840,15 @@ function _on_player_moved(self, x, y, z, angle)
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     check_jump(self, check_x, check_y, z)
-    local checkpoint = collides_checkpoint_at(check_x, check_y, z)
-    if checkpoint ~= nil then
-      local new_cp = on_checkpoint_crossed(level_m, checkpoint)
-      if new_cp then
-        self.last_checkpoint_x = x
-        self.last_checkpoint_y = y
-        self.last_checkpoint_angle = angle
+    if not self.is_ghost then
+      local checkpoint = collides_checkpoint_at(check_x, check_y, z)
+      if checkpoint ~= nil then
+        local new_cp = on_checkpoint_crossed(level_m, checkpoint)
+        if new_cp then
+          self.last_checkpoint_x = x
+          self.last_checkpoint_y = y
+          self.last_checkpoint_angle = angle
+        end
       end
     end
     local collides_water = collides_water_at(check_x, check_y, z)
@@ -964,6 +974,9 @@ function load_level(start)
 
   spawn_level_manager()
   spawn_player()
+  if start and ghost_playback[1] ~= -1 then
+    --spawn_ghost()
+  end
   spawn_trail_manager()
 
   if start then
@@ -1088,7 +1101,7 @@ function _level_manager_draw(self)
   end
 
   -- Level UI
-  local kph = tostr(flr(dist(player.v_x, player.v_y) * 75.01))
+  local kph = tostr(flr(dist(player.v_x, player.v_y) * 70.01))
   print_shadowed('\*' .. (3 - #kph) .. ' ' .. kph .. ' kph', camera_x + 98, camera_y + 114, 7)
   print_shadowed('lAP ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 121, 7)
 
@@ -1128,6 +1141,11 @@ function on_checkpoint_crossed(self, cp_index)
     -- Completed the track
     if self.lap == map_settings.laps then
       self.state = 3
+      ghost_playback = ghost_recording
+      ghost_recording = {}
+      for i = 1, 0x7fff do
+        add(ghost_recording, -1)
+      end
     else
       -- Display checkpoint time and delta
       add(objects, {
@@ -1899,7 +1917,6 @@ function _main_menu_manager_draw(self)
 end
 
 function _main_menu_manager_update(self)
-  printh(game_state)
   if game_state ~= 3 then
     return
   end
