@@ -219,6 +219,13 @@ function _draw()
     -- 3% CPU
     draw_map(map_decal_chunks, map_settings.size, 3, true, true, true)
 
+    -- Tutorial. Only used once so special case here
+    if level_index == 1 then
+      rectfill(64*8, 27*8, 68*8, 30*8, 1)
+      print('drift!', 64.75*8, 27.5*8, 7)
+      print('hold z!', 64.5*8, 29*8, 7)
+    end
+
     draw_cp_highlights(level_m)
 
     -- 2% CPU (idle)
