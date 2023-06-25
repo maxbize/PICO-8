@@ -397,11 +397,11 @@ function create_car(x, y, dir, is_ghost)
     v_x = 0,
     v_y = 0,
     v_z = 0,
-    turn_rate_fwd = 0.0055,
-    turn_rate_vel = 0.0045,
+    turn_rate_fwd = 0.0060,
+    turn_rate_vel = 0.0050,
     accel = 0.075,
     brake = 0.05,
-    max_speed_fwd = 2,
+    max_speed_fwd = 2.2,
     max_speed_rev = 0.5,
     f_friction = 0.01,
     f_corrective = 0.1,
@@ -421,6 +421,7 @@ function create_car(x, y, dir, is_ghost)
     respawn_start_y = 0,
     engine_pitch = 0,
     ghost_frame = 1,
+    wall_penalty_frames = 0,
   }
 end
 
@@ -618,6 +619,15 @@ function _car_move(self, btns)
   if speed < 0.5 then
     move_side *= speed * 2
     d_brake = false
+  end
+
+  -- Penalty for hitting a wall
+  if self.wall_penalty_frames > 0 then
+    self.wall_penalty_frames -= 1
+    if self.boost_frames == 0 then
+      mod_accel = 0.2
+      mod_max_vel = 0.8
+    end
   end
 
   -- Visual Rotation
@@ -837,7 +847,7 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
     remainder -= move;
     local sign = sgn(move);
     while move ~= 0 do
-      if _player_collides_at(self, x + sign * x_mask, y + sign * y_mask, z + sign * z_mask, self.angle_fwd) then
+      if _player_collides_at(self, x + sign * x_mask, y + sign * y_mask, z + sign * z_mask, self.angle_fwd, true) then
         return x, y, z, remainder, true
       else
         x += sign * x_mask
@@ -902,7 +912,7 @@ function check_jump(self, x, y, z)
   end
 end
 
-function _player_collides_at(self, x, y, z, angle)
+function _player_collides_at(self, x, y, z, angle, penalize)
   if z < 0 then
     return true
   end
@@ -910,9 +920,12 @@ function _player_collides_at(self, x, y, z, angle)
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     if collides_wall_at(check_x, check_y, z) then
-      -- Really annoying to have the car crash effects on level end when it goes off screen
-      if level_m.state ~= 3 then
-        sfx(10)
+      if penalize then
+        self.wall_penalty_frames = 20
+        -- Really annoying to have the car crash effects on level end when it goes off screen
+        if level_m.state ~= 3 then
+          sfx(10)
+        end
       end
       return true, check_x, check_y
     end
