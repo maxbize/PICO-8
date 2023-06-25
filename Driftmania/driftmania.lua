@@ -221,9 +221,9 @@ function _draw()
 
     -- Tutorial. Only used once so special case here
     if level_index == 1 then
-      rectfill(64*8, 27*8, 68*8, 30*8, 1)
-      print('drift!', 64.75*8, 27.5*8, 7)
-      print('hold z!', 64.5*8, 29*8, 7)
+      rectfill(512, 216, 544, 240, 1)
+      print('drift!', 518, 220, 7)
+      print('hold z!', 516, 232, 7)
     end
 
     draw_cp_highlights(level_m)
@@ -397,8 +397,8 @@ function create_car(x, y, dir, is_ghost)
     v_x = 0,
     v_y = 0,
     v_z = 0,
-    turn_rate_fwd = 0.0065,
-    turn_rate_vel = 0.005,
+    turn_rate_fwd = 0.0055,
+    turn_rate_vel = 0.0045,
     accel = 0.075,
     brake = 0.05,
     max_speed_fwd = 2,
