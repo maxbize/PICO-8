@@ -927,7 +927,8 @@ function _player_collides_at(self, x, y, z, angle, penalize)
     local check_x = flr(x) + offset.x
     local check_y = flr(y) + offset.y
     if collides_wall_at(check_x, check_y, z) then
-      if penalize then
+      -- No penalty when on top of wall ;)
+      if penalize and z < wall_height then
         self.wall_penalty_frames = 20
         -- Really annoying to have the car crash effects on level end when it goes off screen
         if level_m.state ~= 3 then
