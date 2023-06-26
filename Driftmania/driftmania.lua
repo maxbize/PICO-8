@@ -639,7 +639,7 @@ function _car_move(self, btns)
 
   -- Visual Rotation
   --self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.5 * abs(vel_dot_fwd) or 1)) % 1
-  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.25 or 1)) % 1
+  self.angle_fwd = (self.angle_fwd + move_side * self.turn_rate_fwd * mod_turn_rate * (d_brake and 1.35 or 1)) % 1
   if move_side == 0 then
     -- If there's no more side input, snap to the nearest 1/8th
     self.angle_fwd = round_nth(self.angle_fwd, 32)
