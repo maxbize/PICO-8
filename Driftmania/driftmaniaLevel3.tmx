@@ -4,6 +4,7 @@
   <property name="bronze" type="int" value="3170"/>
   <property name="gold" type="int" value="2370"/>
   <property name="laps" type="int" value="4"/>
+  <property name="name" value="c1 - cUTTER"/>
   <property name="plat" type="int" value="2250"/>
   <property name="silver" type="int" value="2670"/>
  </properties>

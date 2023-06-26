@@ -4,6 +4,7 @@
   <property name="bronze" type="int" value="4100"/>
   <property name="gold" type="int" value="2300"/>
   <property name="laps" type="int" value="3"/>
+  <property name="name" value="b2 - tWISTER"/>
   <property name="plat" type="int" value="2220"/>
   <property name="silver" type="int" value="2600"/>
  </properties>
