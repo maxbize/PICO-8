@@ -228,7 +228,7 @@ def walk_line(data, sprites, x, y, delta_x, delta_y):
 # Note: assumes all checkpoints are homogenous straight lines!
 green_checkpoint_sprites = [10, 11, 27, 28]
 brown_checkpoint_sprites = [12, 13, 14, 15]
-wall_sprites = [43, 44, 45, 46, 47, 59, 60, 61, 62]
+wall_sprites = [29, 31, 42, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62]
 def build_checkpoints(filename, data_map):
 	# Setup
 	props_data = data_map['Props']
