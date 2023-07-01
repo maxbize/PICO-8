@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="90" height="90" tilewidth="8" tileheight="8" infinite="0" nextlayerid="5" nextobjectid="1">
  <properties>
-  <property name="bronze" type="int" value="4300"/>
-  <property name="gold" type="int" value="2500"/>
-  <property name="laps" type="int" value="5"/>
+  <property name="bronze" type="int" value="2900"/>
+  <property name="gold" type="int" value="2375"/>
+  <property name="laps" type="int" value="4"/>
   <property name="name" value="b1 - bUTTERFLY"/>
-  <property name="plat" type="int" value="2420"/>
+  <property name="plat" type="int" value="2015"/>
   <property name="silver" type="int" value="2800"/>
  </properties>
  <tileset firstgid="1" source="driftmaniaTiles.tsx"/>

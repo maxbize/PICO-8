@@ -123,7 +123,7 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 			total_count += count
 			count = 1 if count < max_count else 0
 
-	print('>>>>', total_count)
+	#print('>>>>', total_count)
 	return map_str_comp
 
 def replace_lua_str(filename, data_type, s):
@@ -160,7 +160,7 @@ def build_map(filename, data_map, n, pad_x, pad_y):
 		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 		# Compress the string. First byte is index, second byte is count
-		print(f'\n>>{filename} {name}:\n{map_hex}\n')
+		#print(f'\n>>{filename} {name}:\n{map_hex}\n')
 		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
