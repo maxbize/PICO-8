@@ -282,6 +282,14 @@ function _draw()
   --_player_debug_draw(player)
   --print(stat(0), player.x, player.y - 20, 0)
   --print(dist(player.v_x, player.v_y), player.x, player.y - 20, 0)
+
+  --rectfill(player.x - 64, player.y - 58, player.x + 64, player.y - 43, 1)
+  --rect(player.x - 65, player.y - 58, player.x + 64, player.y - 43, 12)
+  --rectfill(player.x - 64, player.y + 42, player.x + 64, player.y + 57, 1)
+  --rect(player.x - 65, player.y + 42, player.x + 64, player.y + 57, 12)
+  --print_shadowed('\^t\^woPEN bETA', player.x - 35, player.y - 55, 7)
+  --print_shadowed('\^t\^wpLAY nOW!', player.x - 35, player.y + 45, 7)
+
 end
 
 --------------------
@@ -1037,6 +1045,7 @@ function spawn_level_manager()
     cp_crossed = {}, -- table[cp_index] -> true/false
     state = 1, -- 1=intro, 2=playing, 3=ending
     last_best = 0, -- Previous best time for the track that just finished
+    lap_frames = {}, -- list of frames for this attempt of the track
   }
   cache_checkpoints(level_m, map_checkpoints)
 
@@ -1175,9 +1184,7 @@ function on_checkpoint_crossed(self, cp_index)
     -- Save/Load best time for this lap
     data_index = get_lap_time_index(self.lap)
     self.last_best_time = dget(data_index)
-    if self.last_best_time == 0 or self.last_best_time > self.frame then
-      dset(data_index, self.frame)
-    end
+    add(self.lap_frames, self.frame)
 
     self.anim_frame = 1
     for i = 1, count(self.cp_crossed) do
@@ -1191,6 +1198,15 @@ function on_checkpoint_crossed(self, cp_index)
       for i = 1, 0x7fff do
         add(ghost_recording, -1)
       end
+
+      -- If this is a new record update ALL lap times
+      if self.last_best_time == 0 or self.last_best_time > self.frame then
+        local start_index = get_lap_time_index(0)
+        for i = 1, map_settings.laps do
+          dset(start_index + i, self.lap_frames[i])
+        end
+      end
+
     else
       -- Display checkpoint time and delta
       add(objects, {
