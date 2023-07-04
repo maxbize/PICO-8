@@ -393,7 +393,7 @@ def build_settings(filename, data_map, props, n):
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
 	#settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
 	name = props["name"].split()[0] # TODO: Add support for longer names in UI
-	settings = f'"|{name},{props["laps"]},{size},{spawn_x*8},{spawn_y*8},{spawn_dir},{props["bronze"]},{props["silver"]},{props["gold"]},{props["plat"]}" ..'
+	settings = f'"|{name},{props["req_medals"]},{props["laps"]},{size},{spawn_x*8},{spawn_y*8},{spawn_dir},{props["bronze"]},{props["silver"]},{props["gold"]},{props["plat"]}" ..'
 
 	replace_lua_str(filename, 'settings', settings)
 

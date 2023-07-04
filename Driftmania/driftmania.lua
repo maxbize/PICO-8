@@ -115,12 +115,12 @@ local map_bounds_data = {
   "\0●¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0ュ", -- driftmaniaLevel3.tmx bounds
 }
 
-local map_settings_data = parse_table_arr("name,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
-  "|a1,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
-  "|a2,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
-  "|b1,4,30,192,264,0.125,2900,2800,2375,2015" .. -- driftmaniaLevel2.tmx settings
-  "|b2,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|c1,4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
+local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
+  "|a1,0,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
+  "|a2,0,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
+  "|b1,4,4,30,192,264,0.125,2900,2800,2375,2015" .. -- driftmaniaLevel2.tmx settings
+  "|b2,4,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
+  "|c1,8,4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"
@@ -362,6 +362,11 @@ end
 function print_shadowed(s, x, y, c)
   print(s, x+1, y, 0)
   print(s, x, y, c)
+end
+
+function rectfill_outlined(x1, y1, x2, y2, c1, c2)
+  rect(x1-1, y1-1, x2+1, y2+1, c1)
+  rectfill(x1, y1, x2, y2, c2)
 end
 
 function decomp_str(s)
@@ -1135,10 +1140,9 @@ function _level_manager_draw(self)
     local x = camera_x + 64 - w/2
     local y = camera_y + 64 - h/2 - max(0, (75 - self.anim_frame)*4) -- max(0, (self.anim_frame - 150)*4)
 
-    rect(camera_x-1, y-1, camera_x + 128, y + h+1, 12)
-    rectfill(camera_x, y, camera_x + 128, y + h, 1)
+    rectfill_outlined(camera_x, y, camera_x + 128, y + h, 12, 1)
 
-    data_index = get_lap_time_index(self.lap)
+    local data_index = get_lap_time_index(level_index, self.lap)
     print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
     print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x, y+14, 7)
     if self.last_best_time ~= 0 then 
@@ -1147,7 +1151,7 @@ function _level_manager_draw(self)
         self.last_best_time >= self.frame and 11 or 8)
     end
 
-    draw_medals(x + 45, y + 15, get_num_medals(self.frame))
+    draw_medals(x + 45, y + 15, get_num_medals(self.frame, map_settings))
 
     self.menu.x = x + 22
     self.menu.y = y + h - 18
@@ -1182,7 +1186,7 @@ function on_checkpoint_crossed(self, cp_index)
   -- Completed a lap
   if self.next_checkpoint == 1 then
     -- Save/Load best time for this lap
-    data_index = get_lap_time_index(self.lap)
+    local data_index = get_lap_time_index(level_index, self.lap)
     self.last_best_time = dget(data_index)
     add(self.lap_frames, self.frame)
 
@@ -1201,7 +1205,7 @@ function on_checkpoint_crossed(self, cp_index)
 
       -- If this is a new record update ALL lap times
       if self.last_best_time == 0 or self.last_best_time > self.frame then
-        local start_index = get_lap_time_index(0)
+        local start_index = get_lap_time_index(level_index, 0)
         for i = 1, map_settings.laps do
           dset(start_index + i, self.lap_frames[i])
         end
@@ -1243,9 +1247,9 @@ function on_checkpoint_crossed(self, cp_index)
   return true
 end
 
-function get_lap_time_index(lap)
+function get_lap_time_index(level_idx, lap)
   local data_index = 8 -- end of car customization
-  for i = 1, level_index - 1 do
+  for i = 1, level_idx - 1 do
     data_index += map_settings_data[i].laps
   end
   data_index += lap
@@ -1782,11 +1786,9 @@ function _customization_manager_draw(self)
 
   local border = 11
   cls(0)
-  rectfill(0, border, 128, 128 - border, 1)
-  rect(-1, border, 128, 128 - border, 12)
+  rectfill_outlined(0, border, 128, 128 - border, 12, 1)
   print_shadowed('gARAGE', 54, 18, 7)
-  rectfill(61, 33, 122, 95, 12)
-  rectfill(62, 34, 121, 94, 5)
+  rectfill_outlined(61, 33, 121, 95, 12, 5)
 
 --  local ow = 22
 --  local oh = 18
@@ -1841,11 +1843,21 @@ function spawn_level_select_manager()
   local buttons = {
     new_button(0, 0, 'lEVEL ' .. map_settings.name, function(self, index, input)
       -- 1-index hell :(
-      level_index = ((level_index - 1 + input) % count(map_road_data)) + 1
+      local max_level = 1
+      local total_medals = get_total_num_medals()
+      while map_settings_data[max_level].req_medals <= total_medals and max_level < count(map_settings_data) do
+        max_level += 1
+      end
+      level_index = ((level_index - 1 + input) % max_level) + 1
       load_level(false)
       self.txt = 'lEVEL ' .. map_settings.name
     end),
-    new_button(44, 0, 'sTART', function(self) self.menu.index = 1 game_state = 0 end),
+    new_button(44, 0, 'sTART', function(self)
+      if map_settings.req_medals <= get_total_num_medals() then
+        self.menu.index = 1
+        game_state = 0 
+      end
+    end),
     new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end)
   }
 
@@ -1861,27 +1873,41 @@ function _level_select_manager_draw(self)
     return
   end
 
-  local border = 5
   cls(0)
-  rectfill(0, border, 128, 128 - border, 1)
-  rect(-1, border, 128, 128 - border, 12)
-  print_shadowed('sELECT tRACK', 40, border + 5, 7)
+  rectfill_outlined(0, 5, 128, 123, 12, 1)
+  print_shadowed('sELECT tRACK', 40, 11, 7)
 
   self.menu.draw()
+  rectfill_outlined(0, 32, 128, 123, 12, 3)
 
-  draw_minimap(83 - map_settings.size*chunk_size/2, 33)
 
-  data_index = get_lap_time_index(map_settings.laps)
-  local best_time = dget(data_index)
-  local x = 5
+  local medals_to_unlock = map_settings.req_medals - get_total_num_medals()
+  local x = 3
   local y = 61
-  rect(-1, y - 4, 39, y + 38, 12)
-  rectfill(0, y - 3, 38, y + 37, 1)
-  print_shadowed('bEST', x, y+0, 7)
-  print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
 
-  if best_time > 0 then
-    draw_medals(x + 7, y + 18, get_num_medals(best_time))
+  if medals_to_unlock <= 0 then
+    draw_minimap(83 - map_settings.size*chunk_size/2, 33)
+
+    local data_index = get_lap_time_index(level_index, map_settings.laps)
+    local best_time = dget(data_index)
+    rectfill_outlined(0, y - 4, 37, y + 37, 12, 1)
+    print_shadowed('bEST', x, y, 7)
+    print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
+
+    if best_time > 0 then
+      draw_medals(x + 7, y + 18, get_num_medals(best_time, map_settings))
+    end
+  else
+    -- need 4 more medals
+  --rectfill_outlined(0, 32, 128, 123, 12, 3)
+    rectfill_outlined(0, 57, 128,  98, 12, 1)
+    --spr(32, 39, y+5)
+    --spr(32, 80, y+5)
+    spr(32, 9, y+13)
+    spr(32, 110, y+13)
+    print_shadowed('lOCKED!', 50, y+8, 7)
+    local medals_str = medals_to_unlock == 1 and ' MORE MEDAL' or ' MORE MEDALS'
+    print_shadowed('nEED ' .. medals_to_unlock .. medals_str, 28, y+16, 7)
   end
 end
 
@@ -1911,12 +1937,23 @@ function draw_medals(x, y, n)
   pal()
 end
 
-function get_num_medals(time)
+function get_num_medals(time, settings)
   local num_medals = 0
-  if time <= map_settings.bronze then num_medals += 1 end
-  if time <= map_settings.silver then num_medals += 1 end
-  if time <= map_settings.gold then num_medals += 1 end
-  if time <= map_settings.plat then num_medals += 1 end
+  if time <= settings.bronze then num_medals += 1 end
+  if time <= settings.silver then num_medals += 1 end
+  if time <= settings.gold then num_medals += 1 end
+  if time <= settings.plat then num_medals += 1 end
+  return num_medals
+end
+
+function get_total_num_medals()
+  local num_medals = 0
+  for i = 1, count(map_settings_data) do
+    local best_time = dget(get_lap_time_index(i, map_settings_data[i].laps))
+    if best_time > 0 then
+      num_medals += get_num_medals(best_time, map_settings_data[i])
+    end
+  end
   return num_medals
 end
 
@@ -1959,9 +1996,8 @@ function _main_menu_manager_draw(self)
 
   local border = 5
   cls(0)
-  rectfill(0, border, 128, 128 - border, 1)
-  rect(-1, border, 128, 128 - border, 12)
-  rectfill(0, self.car.y - 22, 128, self.car.y + 13, 5)
+  rectfill_outlined(0, border, 128, 128 - border, 12, 1)
+  rectfill_outlined(0, self.car.y - 22, 128, self.car.y + 13, 6, 5)
   rect(-1, self.car.y - 22, 128, self.car.y + 13, 6)
 
 
@@ -1975,7 +2011,7 @@ function _main_menu_manager_draw(self)
   line(35, 32, 92, 32, 7)
   print_shadowed('cREATED bY', 3, 107, 6)
   print_shadowed('mAX bIZE', 7, 115, 6)
-  print_shadowed('V 0.5.0', 98, 115, 6)
+  print_shadowed('V 0.6.0', 98, 115, 6)
 
   self.menu.draw()
 end
@@ -1998,8 +2034,6 @@ end
 -- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,37,15,38,15,39,15,40,15,41,15,43,7,44,7,45,7,46,7,47,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
 function draw_minimap(x, y)
-  rectfill(-1, y-1, 128, y + map_settings.size*chunk_size,3)
-  rect(-1, y-1, 128, y + map_settings.size*chunk_size,12)
   for chunk_x = 0, count(map_road_chunks) do
     for chunk_y = 0, count(map_road_chunks) do
 

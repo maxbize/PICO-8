@@ -6,6 +6,7 @@
   <property name="laps" type="int" value="4"/>
   <property name="name" value="b1 - bUTTERFLY"/>
   <property name="plat" type="int" value="2015"/>
+  <property name="req_medals" type="int" value="4"/>
   <property name="silver" type="int" value="2800"/>
  </properties>
  <tileset firstgid="1" source="driftmaniaTiles.tsx"/>

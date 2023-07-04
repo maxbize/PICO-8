@@ -6,6 +6,7 @@
   <property name="laps" type="int" value="3"/>
   <property name="name" value="a1 - sNAKE"/>
   <property name="plat" type="int" value="1980"/>
+  <property name="req_medals" type="int" value="0"/>
   <property name="silver" type="int" value="2340"/>
  </properties>
  <tileset firstgid="1" source="driftmaniaTiles.tsx"/>
