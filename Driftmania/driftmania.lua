@@ -10,7 +10,6 @@ local level_m = nil
 local trail_m = nil
 local particle_vol_m = nil
 local particle_water_m = nil
-local menu_m = nil
 local game_state = 3 -- 0=race, 1=customization, 2=level select, 3=main menu
 local level_index = 1
 local pause_frames = 0
@@ -32,11 +31,18 @@ local map_jump_frames = nil
 local ghost = nil
 local ghost_recording = {}
 local ghost_playback = {}
--- Allocate buffers on init
+local ghost_best_time = 0
+-- Allocate buffers on init (256 KB per buffer)
 for i = 1, 0x7fff do
   add(ghost_recording, -1)
   add(ghost_playback, -1)
 end
+
+-- Settings
+local ghost_enabled = false
+local sfx_enabled = true
+local music_enabled = true
+local minimap_enabled = true
 
 --------------------
 -- Token saving convenience methods
@@ -91,36 +97,36 @@ local map_road_data = {
   "\0け⁵¹⁶⁵⁷¹\0◀⁵¹¹¹☉¹ᵇ³ひ¹¹¹⁷¹\0⁘⁵¹¹¹⬅️¹😐¹\0³🅾️¹◆¹¹¹⁷¹\0⁙⁸¹ふ¹😐¹\0⁵🅾️¹へ¹\r¹\0⁙⁸¹\r¹\0⁷⁸¹\r¹\0⁙⁸¹\r¹\0⁷⁸¹\r¹\0⁙⁸¹ほ¹▒¹\0⁵ま¹み¹\r¹\0⁙\t¹¹¹🐱¹▒¹\0³ま¹む¹¹¹ᵉ¹\0⁘\t¹¹¹🐱¹▒¹\0¹ま¹む¹¹¹ᵉ¹\0◀\t¹¹¹め¹▶¹も¹¹¹ᵉ¹\0「や¹ゆ¹よ¹ら¹り¹\0」る¹れ¹ゆ¹よ¹ろ¹\0「⁵¹¹¹わ¹ᶠ¹▮¹🐱¹▒¹\0◀⁵¹¹¹⬅️¹😐¹\0¹\t¹¹¹🐱¹▒¹\0⁘⁵¹¹¹⬅️¹😐¹\0³\t¹¹¹🐱¹▒¹\0⁙⁸¹ふ¹😐¹\0⁵\t¹¹¹⬇️¹\0⁙⁸¹\r¹\0⁷⁸¹\r¹\0⁙⁸¹\r¹\0⁷⁸¹\r¹\0⁙⁸¹\r¹\0⁷⁸¹\r¹\0⁙⁸¹◀¹▶¹\0⁵⁘¹‖¹\r¹\0⁙⁸¹¹¹」¹⁶⁵「¹¹¹\r¹\0⁙■¹ᵇ\t□¹\0c", -- driftmaniaLevelA2.tmx road
   "\0ヲ⁵¹⁶⁵⁷¹\0◀⁵¹¹²ᵇ³¹²⁷¹\0‖⁸¹¹¹ᵉ¹\0³\t¹¹¹\r¹\0‖⁸¹◀¹▶¹\0⁴⁸¹\r¹\0‖⁸¹¹¹」¹⁶²\n¹\0¹⁸¹\r¹\0¹⁙¹⁶⁴\n¹\0ᵉ■¹ᵇ⁴□¹\0¹⁸¹\r¹\0¹■¹ᵇ²ᶜ¹¹¹\r¹\0‖⁸¹\r¹\0⁴ᶠ¹▮¹\r¹\0‖⁸¹\r¹\0⁴⁘¹‖¹\r¹\0▮⁙¹⁶²\n¹\0¹⁸¹\r¹\0¹⁙¹⁶²「¹¹¹\r¹\0▮⁸¹¹¹¥¹□¹\0¹⁸¹\r¹\0¹■¹ᵇ⁴□¹\0▮⁸¹•¹、¹\0²⁸¹\r¹\0▶⁸¹\r¹\0³⁸¹\r¹\0▶⁸¹◀¹▶¹\0¹⁘¹‖¹\r¹\0▶⁸¹¹¹」¹⁶¹「¹¹¹\r¹\0▶■¹ᵇ⁵□¹\0ナ", -- driftmaniaLevel2.tmx road
   "\0?⁵¹⁶²⁷¹\0¥⁸¹¹³⁷¹\0」⁸¹¹⁴⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁶⁸\n¹\0▮\t¹¹⁴ᵇ⁶ᶜ¹¹¹\r¹\0■\t¹¹²ᵉ¹\0⁶ᶠ¹▮¹\r¹\0□⁸¹\r¹\0⁸⁸¹\r¹\0□⁸¹\r¹\0⁸⁸¹\r¹\0□■¹□¹\0⁸⁸¹\r¹\0、⁸¹\r¹\0、⁸¹\r¹\0□⁙¹\n¹\0⁸⁸¹\r¹\0□■¹□¹\0⁸⁸¹\r¹\0•⁘¹‖¹◀¹▶¹\0⁘⁙¹⁶⁵「¹¹²」¹⁶⁵\n¹\0ᵉ■¹ᵇ⁵ᶜ¹¹²¥¹ᵇ³ᶜ¹¹¹\r¹\0⁘ᶠ¹▮¹•¹、¹\0³ᶠ¹▮¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹◀¹▶¹\0³⁘¹‖¹\r¹\0‖⁸¹¹¹」¹⁶³「¹¹¹\r¹\0‖■¹ᵇ⁷□¹\0>", -- driftmaniaLevel1.tmx road
-  "\0さ⁵¹⁶²█¹▒¹\0」⁸¹¹¹¥¹¹¹🐱¹▒¹\0「⁸¹•¹、¹\t¹¹¹⬇️¹\0▶⁘¹‖¹\r¹\0²⁸¹\r¹\0□⁘¹░¹⁶³「¹¹¹\r¹\0²⁸¹\r¹\0□✽¹¹¹¥¹ᶜ¹¹³\r¹\0²⁸¹\r¹\0□⁸¹•¹、¹ᶠ¹▮¹¹²\r¹\0²⁸¹\r¹\0□⁸¹\r¹\0²⁸¹¹²\r¹\0²⁸¹◀¹▶¹\0■⁸¹\r¹\0²⁸¹¹²\r¹\0²■¹ᶜ¹」¹⁶²\n¹\0ᵉ⁸¹\r¹\0²⁸¹¹²\r¹\0³ᶠ¹▮¹¹²\r¹\0ᵉ⁸¹\r¹\0²●¹¹²♥¹\0³⁵¹¹¹☉¹ᵇ¹□¹\0ᵉ⁸¹\r¹\0²ᶠ¹웃¹⌂¹、¹\0²⁵¹¹¹⬅️¹😐¹\0▮♪¹¹¹⁷¹\0⁶⁵¹¹¹⬅️¹😐¹\0■🅾️¹◆¹¹¹⁷¹\0⁴⁵¹¹¹⬅️¹😐¹\0⁙🅾️¹◆¹¹¹⁶⁴¹¹⬅️¹😐¹\0‖🅾️¹…¹ᵇ⁴➡️¹😐¹\0◝\0•", -- driftmaniaLevel3.tmx road
+  "\0ト⁵¹⁶²█¹▒¹\0」⁸¹¹¹¥¹¹¹🐱¹▒¹\0「⁸¹•¹、¹\t¹¹¹⬇️¹\0▶⁘¹‖¹\r¹\0²⁸¹\r¹\0□⁘¹░¹⁶³「¹¹¹\r¹\0²⁸¹\r¹\0□✽¹¹¹¥¹ᶜ¹¹³\r¹\0²⁸¹\r¹\0□⁸¹•¹、¹ᶠ¹▮¹¹²\r¹\0²⁸¹\r¹\0□⁸¹\r¹\0²⁸¹¹²\r¹\0²⁸¹◀¹▶¹\0■⁸¹\r¹\0²⁸¹¹²\r¹\0²■¹ᶜ¹」¹⁶²\n¹\0ᵉ⁸¹\r¹\0²⁸¹¹²\r¹\0³ᶠ¹▮¹¹²\r¹\0ᵉ⁸¹\r¹\0²●¹¹²♥¹\0³⁵¹¹¹☉¹ᵇ¹□¹\0ᵉ⁸¹\r¹\0²ᶠ¹웃¹⌂¹、¹\0²⁵¹¹¹⬅️¹😐¹\0▮♪¹¹¹⁷¹\0⁶⁵¹¹¹⬅️¹😐¹\0■🅾️¹◆¹¹¹⁷¹\0⁴⁵¹¹¹⬅️¹😐¹\0⁙🅾️¹◆¹¹¹⁶⁴¹¹⬅️¹😐¹\0‖🅾️¹…¹ᵇ⁴➡️¹😐¹\0ト", -- driftmaniaLevel3.tmx road
 }
 local map_decals_data = {
   "\0っね¹\0•(¹3¹の¹'¹\0¥(¹\0²(¹\0」。¹I¹\0²(¹\0⁘う¹\0⁴L¹\0⁘★¹C²\0¹う¹\0「3¹r¹\0ᵇ。¹I¹\0¥K²L¹M¹\0⁙★¹\0\nO¹\0■3¹r¹\0、6¹゛¹\0。=¹K²\0゛&¹\0◀s¹\0⁶゜¹'¹\0‖s¹\0⁷(¹\0‖6¹゛¹\0⁵。¹I¹\0◀=¹\0³K²L¹M¹\0゛O¹\0り", -- driftmaniaLevelA1.tmx decals
   "\0◝\0」を²\0⁷ˇ²\0➡️ん¹*¹\0、っ¹ゃ¹\0」ゅ¹ょ¹\0。ア¹\0?イ¹ウ¹\0、エ¹オ¹\0⁘ˇ²\0。s¹\0。s¹\0。6¹゛¹\0⁵。¹I¹\0◀=¹\0³K²L¹\0⬇️", -- driftmaniaLevelA2.tmx decals
   "\0◝\0◀d¹\0゛e¹f¹\0¹g¹\0¥6¹゛¹\0¹h¹\0•=¹K²\0⁵i¹j¹\0³k¹\0「l¹m¹\0¹&¹$¹\0¥g¹\0¹゜¹'¹\0¥h¹\0¹。¹I¹\0⁙n¹o¹\0⁵K²L¹\0⁘p¹q¹\0•3¹r¹\0²(¹\0」s¹\0³(¹\0」6¹゛¹\0¹。¹I¹\0」$¹=¹K¹L¹\0」t¹\0ヒ", -- driftmaniaLevel2.tmx decals
   "\0^。¹゛¹\0、゜¹ ¹゛¹\0¹!¹\0•\"¹#¹\0、$¹\0、%¹\0H&¹\0。゜¹'¹\0。(¹\0。)¹*¹\0、+¹,¹\0□-¹.¹\0⁸/¹0¹\0□1¹2¹\0。3¹\0⁸4¹5¹\0⁙6¹\0⁸7¹8¹\0□-¹9¹:¹\0•;¹⁴¹<¹=¹\0⁷>¹\0□?¹@¹A¹\0⁴B¹\0⁶C²&¹\0▶D¹*¹\0⁴゜¹'¹\0◀+¹,¹\0‖E¹F¹\0⁵/¹0¹\0⁵(¹\0ᶠG¹H¹\0ᶜ(¹\0▶6¹゛¹\0³。¹I¹\0◀J¹\0¹=¹K²\0¹L¹M¹\0◀N¹\0⁷O¹\0>", -- driftmaniaLevel1.tmx decals
-  "\0ろ★¹\0、3¹r¹⧗¹\0•s¹\0²(¹\0¥s¹\0「★¹&¹\0•3¹r¹゜¹'¹\0¹⬆️¹ˇ¹\0²ˇ²\0⁙s¹\0³∧¹\0」s¹\0³∧¹\0⁵&¹\0▶❎¹▤¹\0⁴゜¹▥¹あ¹\0、い¹L¹\0•い¹\0、い¹\0、い¹\0「う¹\0³い¹\0」う¹\0◝\0 ", -- driftmaniaLevel3.tmx decals
+  "\0◝\0\0★¹\0、3¹r¹⧗¹\0•s¹\0²(¹\0¥s¹\0「★¹&¹\0•3¹r¹゜¹'¹\0¹⬆️¹ˇ¹\0²ˇ²\0⁙s¹\0³∧¹\0」s¹\0³∧¹\0⁵&¹\0▶❎¹▤¹\0⁴゜¹▥¹あ¹\0、い¹L¹\0•い¹\0、い¹\0、い¹\0「う¹\0³い¹\0」う¹\0ノ", -- driftmaniaLevel3.tmx decals
 }
 local map_props_data = {
   "\0웃c¹Q⁵^¹\0▶W¹\0⁵W¹\0▶W¹\0⁵W¹\0▶W¹\0²は¹\0²W¹\0▶W¹\0²W¹\0²W¹\0ᵇc¹Qᵇb¹\0²W¹\0²W¹\0ᵇW¹\0ᵉW¹\0²W¹\0ᵇW¹\0ᵉW¹\0²W¹\0ᵇW¹\0²c¹Qᵇb¹\0²W¹\0ᵇW¹\0²W¹\0ᵉW¹\0ᵇW¹\0²W¹\0ᵉW¹\0ᵇW¹\0²W¹\0²~¹Qᵇb¹\0ᵇW¹\0²W¹\0²○¹Q⁵^¹\0■W¹\0²W¹\0⁸W¹\0■W¹\0²W¹\0⁸W¹\0■W¹\0²z¹Q⁵^¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²a¹Q⁵b¹\0²W¹\0■W¹\0ᵇW¹\0■W¹\0ᵇW¹\0■a¹Qᵇb¹\0け", -- driftmaniaLevelA1.tmx props
   "\0░P¹Q⁵R¹\0◀u¹T¹\0⁵U¹V¹\0⁘u¹T¹\0⁷U¹V¹\0□S¹T¹\0²c¹Q³^¹\0²U¹v¹\0■W¹\0²c¹b¹\0³a¹^¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²a¹^¹\0³c¹b¹\0²W¹\0■[¹Y¹\0²a¹^¹\0¹c¹b¹\0²X¹カ¹\0□\\¹Y¹\0²a¹キ¹b¹\0²X¹く¹\0⁘\\¹Y¹\0²て¹\0²X¹く¹\0◀\\¹ク¹Y¹U¹V¹X¹く¹\0▶u¹T¹\\¹Y¹U¹ケ¹^¹\0◀u¹T¹\0²`¹\0²a¹^¹\0⁘u¹T¹\0²c¹コ¹Y¹\0²a¹^¹\0□S¹T¹\0²c¹b¹\0¹\\¹Y¹\0²a¹^¹\0■W¹\0²c¹b¹\0³\\¹Y¹\0²W¹\0■W¹\0²W¹\0⁵`¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²a¹Q⁵b¹\0²W¹\0■W¹\0ᵇW¹\0■W¹\0ᵇW¹\0■a¹Qᵇb¹\0D", -- driftmaniaLevelA2.tmx props
   "\0ソP¹Q⁵R¹\0◀u¹T¹\0⁵U¹V¹\0⁘S¹T¹\0⁷U¹v¹\0⁙W¹\0²X¹w³Y¹\0²W¹\0⁙W¹\0²x¹Q³y¹\0²z¹Q⁶^¹\0ᶜW¹\0⁶W¹\0²W¹\0⁶W¹\0ᶜW¹\0⁶W¹\0²W¹\0⁶W¹\0ᶜa¹Q⁶{¹\0²z¹Q³|¹\0²W¹\0ᵉc¹Q⁴{¹\0²z¹Q³}¹\0²W¹\0ᵉW¹\0⁴W¹\0²W¹\0⁶W¹\0ᵉW¹\0⁴W¹\0²W¹\0⁶W¹\0ᵉW¹\0²~¹Q¹{¹\0²z¹Q⁶b¹\0ᵉW¹\0²W¹\0¹W¹\0²W¹\0‖W¹\0²○¹Q¹}¹\0²W¹\0‖W¹\0⁷W¹\0‖W¹\0⁷W¹\0‖a¹Q⁷b¹\0り", -- driftmaniaLevel2.tmx props
   "\0!P¹Q²R¹\0」S¹T¹\0²U¹V¹\0「W¹\0¹X¹Y¹\0¹U¹V¹\0▶W¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀[¹Y¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀\\¹Y¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀\\¹Y¹\0¹U¹Z¹Y¹\0¹U¹]¹Q⁸^¹\0\r\\¹Y¹\0¹U¹Z¹Y¹\0\nW¹\0ᵉ\\¹Y¹\0¹U¹Z¹Y¹\0\tW¹\0ᶠ\\¹Y¹\0¹U¹_¹Q⁶^¹\0²W¹\0▮`¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²a¹Q⁶b¹\0²a¹Q⁶^¹\0\tW¹\0⁙W¹\0\tW¹\0⁙W¹\0\ta¹Q\t^¹\0²c¹Q³^¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²a¹Q³b¹\0²W¹\0⁙W¹\0\tW¹\0⁙W¹\0\tW¹\0⁙a¹Q\tb¹\0゜", -- driftmaniaLevel1.tmx props
-  "\0●P¹Q³^¹\0「S¹T¹\0³a¹^¹\0▶W¹\0⁵a¹^¹\0◀W¹\0²え¹Y¹\0²W¹\0■X¹お¹Q²か¹き¹\0²W¹`¹\0²W¹\0▮X¹く¹\0⁴け¹こ¹\0¹W²\0²W¹\0▮さ¹\0⁵し¹す¹\0¹W²\0²W¹\0▮W¹\0²~¹|¹\0¹し¹す¹\0¹W²\0²W¹\0▮W¹\0²W²\0¹し¹す¹\0¹W²\0²○¹Q³^¹\0ᶜW¹\0²W²\0¹し¹す¹\0¹W²\0⁶W¹\0ᶜW¹\0²W²\0¹せ¹そ¹\0¹W¹○¹Q¹た¹ち¹つ¹\0²W¹\0ᶜW¹\0²W¹て¹\0⁴と¹\0¹u¹T¹\0⁴W¹\0ᶜW¹\0²て¹U¹V¹\0²u¹T¹u¹T¹\0²c¹Q²b¹\0ᶜW¹\0²U¹V¹U¹]¹な¹T¹u¹T¹\0²c¹b¹\0ᶠa¹^¹\0²U¹]¹Q²な¹T¹\0²c¹b¹\0■a¹^¹\0⁸c¹b¹\0⁙a¹^¹\0⁶c¹b¹\0‖a¹Q⁶b¹\0ュ", -- driftmaniaLevel3.tmx props
+  "\0りP¹Q³^¹\0「S¹T¹\0³a¹^¹\0▶W¹\0⁵a¹^¹\0◀W¹\0²え¹Y¹\0²W¹\0■X¹お¹Q²か¹き¹\0²W¹`¹\0²W¹\0▮X¹く¹\0⁴け¹こ¹\0¹W²\0²W¹\0▮さ¹\0⁵し¹す¹\0¹W²\0²W¹\0▮W¹\0²~¹|¹\0¹し¹す¹\0¹W²\0²W¹\0▮W¹\0²W²\0¹し¹す¹\0¹W²\0²○¹Q³^¹\0ᶜW¹\0²W²\0¹し¹す¹\0¹W²\0⁶W¹\0ᶜW¹\0²W²\0¹せ¹そ¹\0¹W¹○¹Q¹た¹ち¹つ¹\0²W¹\0ᶜW¹\0²W¹て¹\0⁴と¹\0¹u¹T¹\0⁴W¹\0ᶜW¹\0²て¹U¹V¹\0²u¹T¹u¹T¹\0²c¹Q²b¹\0ᶜW¹\0²U¹V¹U¹]¹な¹T¹u¹T¹\0²c¹b¹\0ᶠa¹^¹\0²U¹]¹Q²な¹T¹\0²c¹b¹\0■a¹^¹\0⁸c¹b¹\0⁙a¹^¹\0⁶c¹b¹\0‖a¹Q⁶b¹\0り", -- driftmaniaLevel3.tmx props
 }
 local map_bounds_data = {
   "\0웃¹⁷\0▶¹⁷\0▶¹⁷\0▶¹⁷\0▶¹⁷\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹\r\0■¹\r\0■¹\r\0■¹\r\0■¹⁴\0⁵¹⁴\0■¹\r\0■¹\r\0■¹\r\0■¹\r\0け", -- driftmaniaLevelA1.tmx bounds
   "\0░¹⁷\0◀¹\t\0⁘¹ᵇ\0□¹\r\0■¹⁵\0³¹⁵\0■¹⁴\0⁵¹⁴\0■¹⁴\0⁵¹⁴\0■¹⁵\0³¹⁵\0■¹⁶\0¹¹⁶\0□¹ᵇ\0⁘¹\t\0◀¹⁷\0▶¹⁷\0◀¹\t\0⁘¹ᵇ\0□¹⁶\0¹¹⁶\0■¹⁵\0³¹⁵\0■¹⁴\0⁵¹⁴\0■¹⁴\0⁵¹⁴\0■¹⁴\0⁵¹⁴\0■¹\r\0■¹\r\0■¹\r\0■¹\r\0D", -- driftmaniaLevelA2.tmx bounds
   "\0ソ¹⁷\0◀¹\t\0⁘¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹⁴\0¹¹⁴\0‖¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0り", -- driftmaniaLevel2.tmx bounds
   "\0!¹⁴\0」¹⁶\0「¹⁷\0▶¹⁸\0◀¹\t\0◀¹\t\0◀¹□\0\r¹■\0ᵉ¹▮\0ᶠ¹ᶠ\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹‖\0\t¹‖\0\t¹‖\0\t¹‖\0⁙¹⁴\0³¹⁴\0⁙¹⁴\0³¹⁴\0⁙¹⁴\0³¹⁴\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0゜", -- driftmaniaLevel1.tmx bounds
-  "\0●¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0ュ", -- driftmaniaLevel3.tmx bounds
+  "\0り¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0り", -- driftmaniaLevel3.tmx bounds
 }
 
 local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|a1,0,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
   "|a2,0,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
-  "|b1,4,4,30,192,264,0.125,2900,2800,2375,2015" .. -- driftmaniaLevel2.tmx settings
+  "|b1,4,4,30,192,264,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
   "|b2,4,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|c1,8,4,30,312,480,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
+  "|c1,8,4,30,288,528,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"
@@ -129,7 +135,7 @@ local map_checkpoints_data = {
   parse_table_arr(map_checkpoints_data_header, '|228,228,1,0,72|444,228,1,0,72|228,516,1,0,72'), -- driftmaniaLevelA2.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|172,220,1,1,56|556,284,-1,1,64|276,492,-1,1,64'), -- driftmaniaLevel2.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|212,100,-1,1,40|164,148,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|300,444,0,1,72|340,276,1,0,56|420,276,1,0,72'), -- driftmaniaLevel3.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|276,492,0,1,72|316,324,1,0,56|396,324,1,0,72'), -- driftmaniaLevel3.tmx checkpoints
 }
 local map_jumps_data = {
   {}, -- driftmaniaLevelA1.tmx jumps
@@ -171,6 +177,8 @@ function _init()
   spawn_customization_manager()
   particle_vol_m = spawn_particle_manager_vol()
   particle_water_m = spawn_particle_manager_water()
+
+  set_menu_items()
 end
 
 function _update60()
@@ -207,31 +215,12 @@ function _draw()
   end
 
   cls(3) -- Most grass is drawn as part of cls
-  -- CPU debugging
-  -- 23% CPU for full screen map, 0% for sprite 0
-  --map(7, 12, player.x - 64, player.y - 64, 16, 16)
-  -- 1-2% CPU
-  --rectfill(player.x - 64, player.y - 64, player.x + 64, player.y + 64, 7)
-  -- 25% CPU
-  --for i = 1, 16 do
-  --  for j = 1, 16 do
-  --    spr(21, player.x, player.y)
-  --  end
-  --end
-  --if true then return end
 
   if game_state == 0 then
     -- 7% CPU
     draw_map(map_road_chunks, map_settings.size, 3, true, true, false)
     -- 3% CPU
     draw_map(map_decal_chunks, map_settings.size, 3, true, true, true)
-
-    -- Tutorial. Only used once so special case here
-    if level_index == 1 then
-      rectfill(512, 216, 544, 240, 1)
-      print('drift!', 518, 220, 7)
-      print('hold z!', 516, 232, 7)
-    end
 
     draw_cp_highlights(level_m)
 
@@ -240,6 +229,13 @@ function _draw()
 
     -- 9% CPU
     _trail_manager_draw(trail_m)
+
+    -- Tutorial. Only used once so special case here
+    if level_index == 1 then
+      rectfill_outlined(512, 216, 543, 240, 6, 1)
+      print('drift!', 517, 220, 7)
+      print('hold z!', 515, 232, 7)
+    end
 
     if ghost ~= nil then
       draw_car_shadow(ghost)
@@ -349,14 +345,6 @@ function pd_rotate(x,y,rot,mx,my,w,flip,scale)
     tline(x-hx, py, x+hx, py, sx-ss*halfw, sy+cs*halfw, cs, ss)
     halfw+=1
   end
-end
-
-function draw_shadowed(c1, c2, f)
-  f(-1, 0, c2)
-  f( 1, 0, c2)
-  f( 0,-1, c2)
-  f( 0, 1, c2)
-  f( 0, 0, c1)
 end
 
 function print_shadowed(s, x, y, c)
@@ -1087,7 +1075,6 @@ function _level_manager_update(self)
 
 end
 
--- TODO: Token optimization
 function _level_manager_draw(self)
   if game_state ~= 0 then
     return
@@ -1098,63 +1085,54 @@ function _level_manager_draw(self)
 
   -- intro sequence
   if self.anim_frame <= 180 and self.lap == 1 then
-    local w = 46
-    local h = 18
-    local x = camera_x + 64 - w/2
+    local x = camera_x + 41
     local y = camera_y + 24 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
-    local b = 4
-    local r = 5
-    --rectfill(x+1, y, x+w-1, y+h, 0)
-    --rectfill(x, y+1, x+w, y+h-1, 0)
-    local cr = 8
-    local l = 45
-    local c = self.anim_frame > l*3 and 11 or self.anim_frame > l*2 and 9 or self.anim_frame > l*1 and 8 or 1
-    if self.anim_frame == l then
+    local c = self.anim_frame > 135 and 11 or self.anim_frame > 90 and 9 or self.anim_frame > 45 and 8 or 1
+    if self.anim_frame == 45 then
       sfx(16)
     end
-    draw_shadowed(0, c, function(dx, dy, c)
-      rectfill(dx + x + cr,     dy + y, dx+x+w-cr, dy+y+h, c)
-      circfill(dx + x + cr,     dy + y + cr, cr, c)
-      circfill(dx + x + cr,     dy + y + h - cr, cr, c)
-      circfill(dx + x - cr + w, dy + y + cr, cr, c)
-      circfill(dx + x - cr + w, dy + y + h - cr, cr, c)
-    end)
 
-    circfill(x + b + r,     y + h/2, r, self.anim_frame > l*1 and c or 1)
-    circfill(x + 2*b + 3*r, y + h/2, r, self.anim_frame > l*2 and c or 1)
-    circfill(x + 3*b + 5*r, y + h/2, r, self.anim_frame > l*3 and c or 1)
+    -- Background + perimiter (85 tokens)
+    circfill(x + 9,  y + 9, 10, c)
+    circfill(x + 37, y + 9, 10, c)
+    rectfill_outlined(x + 8, y, x + 38, y + 18, c, 0)
+    circfill(x + 9,  y + 9, 9, 0)
+    circfill(x + 37, y + 9, 9, 0)
 
-    circ(x + b + r,     y + h/2, r, 6)
-    circ(x + 2*b + 3*r, y + h/2, r, 6)
-    circ(x + 3*b + 5*r, y + h/2, r, 6)
+    -- Middle circles
+    for i = 0, 2 do
+      local circle_x = x + 9 + 14*i
+      local circly_y = y + 9
+      circfill(circle_x, circly_y, 5, self.anim_frame > 45*(i+1) and c or 1)
+      circ(circle_x, circly_y, 5, 6)
+    end
 
-    if self.anim_frame >= l*3 then
+    if self.anim_frame >= 135 then
       self.state = 2
     end
   end
 
   -- End sequence
   if self.state == 3 then
-    local w = 64
-    local h = 55
-    local x = camera_x + 64 - w/2
-    local y = camera_y + 64 - h/2 - max(0, (75 - self.anim_frame)*4) -- max(0, (self.anim_frame - 150)*4)
+    local x = camera_x + 5
+    local y = camera_y + 19 - max(0, (75 - self.anim_frame)*4)
 
-    rectfill_outlined(camera_x, y, camera_x + 128, y + h, 12, 1)
+    rectfill_outlined(camera_x, y, camera_x + 128, y + 89, 12, 1)
 
     local data_index = get_lap_time_index(level_index, self.lap)
-    print_shadowed('rACE cOMPLETE', x+6, y+4, 7)
-    print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x, y+14, 7)
+    print_shadowed('rACE\ncOMPLETE', x, y+4, 7)
+    print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x, y+20, 7)
     if self.last_best_time ~= 0 then 
       print_shadowed((self.last_best_time >= self.frame and '-' or '+') 
-        .. frame_to_time_str(abs(self.last_best_time - self.frame)), x-4, y+26,
+        .. frame_to_time_str(abs(self.last_best_time - self.frame)), x-4, y+32,
         self.last_best_time >= self.frame and 11 or 8)
     end
 
-    draw_medals(x + 45, y + 15, get_num_medals(self.frame, map_settings))
+    draw_medals(x + 7, y + 45, get_num_medals(self.frame, map_settings))
+    draw_minimap(x + 33, y)
 
-    self.menu.x = x + 22
-    self.menu.y = y + h - 18
+    self.menu.x = x + 8
+    self.menu.y = y + 70
     self.menu.draw()
   end
 
@@ -1672,6 +1650,13 @@ end
 -- UI
 --------------------
 
+-- Built-in PICO-8 menu
+function set_menu_items()
+  --menuitem(1, 'sfx: ' .. (sfx_enabled and 'on' or 'off'), function() sfx_enabled = not sfx_enabled set_menu_items() return true end)
+  --menuitem(2, 'music: ' .. (music_enabled and 'on' or 'off'), function() music_enabled = not music_enabled set_menu_items() return true end)
+  --menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function() ghost_enabled = not ghost_enabled set_menu_items() return true end)
+end
+
 function new_button(x, y, txt, update)
   local obj = {x=x, y=y, txt=txt}
   obj.update = function(index, input) update(obj, index, input) end
@@ -1874,11 +1859,11 @@ function _level_select_manager_draw(self)
   end
 
   cls(0)
-  rectfill_outlined(0, 5, 128, 123, 12, 1)
+  rectfill_outlined(0, 5, 128, 122, 12, 1)
   print_shadowed('sELECT tRACK', 40, 11, 7)
 
   self.menu.draw()
-  rectfill_outlined(0, 32, 128, 123, 12, 3)
+  rectfill_outlined(0, 33, 128, 122, 12, 3)
 
 
   local medals_to_unlock = map_settings.req_medals - get_total_num_medals()
@@ -1890,7 +1875,7 @@ function _level_select_manager_draw(self)
 
     local data_index = get_lap_time_index(level_index, map_settings.laps)
     local best_time = dget(data_index)
-    rectfill_outlined(0, y - 4, 37, y + 37, 12, 1)
+    rectfill_outlined(0, y - 4, 36, y + 37, 12, 1)
     print_shadowed('bEST', x, y, 7)
     print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
 
@@ -2022,8 +2007,6 @@ function _main_menu_manager_update(self)
   end
   camera()
 
-  --function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
-  --add_particle_vol(particle_vol_m, wheel_x, wheel_y, 2, rnd(1) < 0.5 and 10 or 9, offset_x*5, y*5, rnd(0.5)-0.25, 30, 4)
   if rnd(1) < 0.5 then
     add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6)
   end
