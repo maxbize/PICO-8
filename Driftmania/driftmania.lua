@@ -430,6 +430,8 @@ function create_car(x, y, dir, is_ghost)
     engine_pitch = 0,
     ghost_frame = 1,
     wall_penalty_frames = 0,
+    camera_target_x = x - 64,
+    camera_target_y = y - 64,
   }
 end
 
@@ -438,14 +440,21 @@ function _car_update(self)
   if self.respawn_frames == 0 then
     d_brake, move_fwd = _car_move(self, level_m.state == 2 and btn() or 0)
     if level_m.state ~= 3 then
-      --local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
-      --local lead = mid(dist(self.v_x, self.v_y) * 10, 5, 20)*0
-      --camera(self.x - 64 + fwd_x * lead, self.y - 64 + fwd_y * lead)
+      local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+      local speed = dist(self.v_x, self.v_y)
+      local lead = min(speed * 9.9, 30)
+      local target_x = self.x - 64 + flr(fwd_x * lead)
+      local target_y = self.y - 64 + flr(fwd_y * lead)
+      self.camera_target_x += (target_x - self.camera_target_x) * 0.5
+      self.camera_target_y += (target_y - self.camera_target_y) * 0.5
+      camera(self.camera_target_x, self.camera_target_y)
       camera(self.x - 64, self.y - 64)
     end
   else
     d_brake, move_fwd = _car_move(self, 0)
     self.respawn_frames -= 1
+    self.camera_target_x = 0
+    self.camera_target_y = 0
 
     if self.respawn_frames < 30 then
       -- Ease in/out quadratic curve
@@ -786,7 +795,7 @@ function _car_draw(self)
   --self.angle_fwd = 8/32 -- 0,8,16,24 = correct, 1-7 = 0,1, 9-15 = 1,0, 17-23 = 0,-1, 25-31 = -1,0
   palt(0, false)
   palt(15, true)
-  
+
   -- Water outline
   draw_water_outline(round_nth(self.angle_fwd, 32))
   
@@ -1381,7 +1390,6 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
 
         if draw_above_player and draw_below_player then
           -- draw whole chunk
-          -- TODO: Create table of chunk index -> rectfill color for solid chunks
           if chunk_index == 0 then
             -- pass
           elseif chunk_index <= 4 then
@@ -2013,6 +2021,32 @@ function _main_menu_manager_update(self)
 
   self.menu.update()
 end
+
+-- todo: minimap should be cached in sprite sheet
+--local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
+--function draw_minimap2()
+--  local camera_x = peek2(0x5f28)
+--  local camera_y = peek2(0x5f2a)
+--  local offset = 0--128 - map_settings.size
+--  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
+--  for tile_x = 0, count(map_road_tiles) - 1 do
+--    for tile_y = 0, count(map_road_tiles[0]) - 1 do
+--      local road_tile = map_road_tiles[tile_x][tile_y]
+--      if road_tile >= 1 and road_tile <= 5 then
+--        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 5)
+--      end
+--      local decal_tile = map_decal_tiles[tile_x][tile_y]
+--      if decal_pset_map[decal_tile] ~= nil then
+--        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, decal_pset_map[decal_tile])
+--      end
+--      local prop_tile = map_prop_tiles[tile_x][tile_y]
+--      if prop_tile > 0 then
+--        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 7)
+--      end
+--    end
+--  end
+--  pset(flr(offset + camera_x + player.x/8), flr(offset + camera_y + player.y/8), 7)
+--end
 
 -- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,37,15,38,15,39,15,40,15,41,15,43,7,44,7,45,7,46,7,47,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
