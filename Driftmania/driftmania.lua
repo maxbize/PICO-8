@@ -792,6 +792,7 @@ function boost_particles(self, c)
   add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
 end
 
+local ghost_palette = parse_hash_map('8,2,10,4,6,1,7,6,12,13,14,1,4,1,11,2')
 function _car_draw(self)
   --self.angle_fwd = 8/32 -- 0,8,16,24 = correct, 1-7 = 0,1, 9-15 = 1,0, 17-23 = 0,-1, 25-31 = -1,0
   palt(0, false)
@@ -802,14 +803,9 @@ function _car_draw(self)
   
   -- Palette customization / ghost
   if self.is_ghost then
-    pal(8, 2)
-    pal(10, 4)
-    pal(6, 1)
-    pal(7, 6)
-    pal(12, 13)
-    pal(14, 1)
-    pal(4, 1)
-    pal(11, 2)
+    for c1, c2 in pairs(ghost_palette) do
+      pal(c1, c2)
+    end
   else
     for d in all(customization_m.data) do
       if d.text ~= 'tYPE' then
