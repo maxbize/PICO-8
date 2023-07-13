@@ -31,7 +31,7 @@ local map_jump_frames = nil
 local ghost = nil
 local ghost_recording = {}
 local ghost_playback = {}
-local ghost_best_time = 0
+local ghost_best_time = 0x7fff
 -- Allocate buffers on init (256 KB per buffer)
 for i = 1, 0x7fff do
   add(ghost_recording, -1)
@@ -777,7 +777,7 @@ function _car_move(self, btns)
   end
 
   -- Record ghost
-  if not self.is_ghost then
+  if not self.is_ghost and self.ghost_frame <= 0x7fff then
     ghost_recording[self.ghost_frame] = btns
     self.ghost_frame += 1
   end
@@ -1192,7 +1192,12 @@ function on_checkpoint_crossed(self, cp_index)
     -- Completed the track
     if self.lap == map_settings.laps then
       self.state = 3
-      ghost_playback = ghost_recording
+
+      -- If this is the new best time we have a recording of, save it
+      if player.ghost_frame <= ghost_best_time then
+        ghost_best_time = player.ghost_frame
+        ghost_playback = ghost_recording
+      end
       ghost_recording = {}
       for i = 1, 0x7fff do
         add(ghost_recording, -1)
@@ -1867,6 +1872,11 @@ function spawn_level_select_manager()
       if map_settings.req_medals <= get_total_num_medals() then
         self.menu.index = 1
         game_state = 0 
+        ghost_best_time = 0x7fff
+        ghost_playback = {}
+        for i = 1, 0x7fff do
+          add(ghost_playback, -1)
+        end
       end
     end),
     new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end)
