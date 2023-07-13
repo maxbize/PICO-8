@@ -39,10 +39,9 @@ for i = 1, 0x7fff do
 end
 
 -- Settings
-local ghost_enabled = false
-local sfx_enabled = true
-local music_enabled = true
-local minimap_enabled = true
+cartdata('mbize_driftmania_v1')
+local dynamic_camera_disabled = dget(9) == 1 -- flag is _disabled so that default is on
+local ghost_enabled = dget(10) == 1
 
 --------------------
 -- Token saving convenience methods
@@ -157,10 +156,9 @@ local chunk_size = 3
 
 function _init()
   printh('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-  cartdata('mbize_driftmania_v1')
 
   -- Reset high scores for debugging
-  --for i = 9, 64 do
+  --for i = 11, 64 do
   --  dset(i, 0)
   --end
 
@@ -440,15 +438,18 @@ function _car_update(self)
   if self.respawn_frames == 0 then
     d_brake, move_fwd = _car_move(self, level_m.state == 2 and btn() or 0)
     if level_m.state ~= 3 then
-      local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
-      local speed = dist(self.v_x, self.v_y)
-      local lead = min(speed * 9.9, 30)
-      local target_x = self.x - 64 + flr(fwd_x * lead)
-      local target_y = self.y - 64 + flr(fwd_y * lead)
-      self.camera_target_x += (target_x - self.camera_target_x) * 0.5
-      self.camera_target_y += (target_y - self.camera_target_y) * 0.5
-      camera(self.camera_target_x, self.camera_target_y)
-      camera(self.x - 64, self.y - 64)
+      if dynamic_camera_disabled then
+        camera(self.x - 64, self.y - 64)
+      else
+        local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+        local speed = dist(self.v_x, self.v_y)
+        local lead = min(speed * 9.9, 30)
+        local target_x = self.x - 64 + flr(fwd_x * lead)
+        local target_y = self.y - 64 + flr(fwd_y * lead)
+        self.camera_target_x += (target_x - self.camera_target_x) * 0.5
+        self.camera_target_y += (target_y - self.camera_target_y) * 0.5
+        camera(self.camera_target_x, self.camera_target_y)
+      end
     end
   else
     d_brake, move_fwd = _car_move(self, 0)
@@ -799,29 +800,34 @@ function _car_draw(self)
   -- Water outline
   draw_water_outline(round_nth(self.angle_fwd, 32))
   
-  -- Apply customized palette
-  for d in all(customization_m.data) do
-    if d.text ~= 'tYPE' then
-      local c = d.chosen
-      pal(d.original, c)
-      if d.original == 8 then -- body - set gradient color
-        local gradient_c = gradients[c]
-        pal(2, gradient_c)
-        pal(11, self.boost_frames > 10 and c or gradient_c)
-      elseif d.original == 4 then -- windows - set highlight color
-        pal(12, gradients_rev[c])
+  -- Palette customization / ghost
+  if self.is_ghost then
+    pal(8, 2)
+    pal(10, 4)
+    pal(6, 1)
+    pal(7, 6)
+    pal(12, 13)
+    pal(14, 1)
+    pal(4, 1)
+    pal(11, 2)
+  else
+    for d in all(customization_m.data) do
+      if d.text ~= 'tYPE' then
+        local c = d.chosen
+        pal(d.original, c)
+        if d.original == 8 then -- body - set gradient color
+          local gradient_c = gradients[c]
+          pal(2, gradient_c)
+          pal(11, self.boost_frames > 10 and c or gradient_c)
+        elseif d.original == 4 then -- windows - set highlight color
+          pal(12, gradients_rev[c])
+        end
       end
     end
   end
 
-  -- Ghost palette + flash frames
-  if self.is_ghost then
-    pal(8, 2)
-    pal(10, 4)
-    pal(12, 13)
-    pal(7, 6)
-    pal(6, 1)
-  elseif self.flash_frames > 0 then
+  -- Flash frames
+  if self.flash_frames > 0 then
     for i = 0, 15 do
       pal(i, 7)
     end
@@ -1024,8 +1030,8 @@ function load_level(start)
 
   spawn_level_manager()
   spawn_player()
-  if start and ghost_playback[1] ~= -1 then
-    --spawn_ghost()
+  if start and ghost_playback[1] ~= -1 and ghost_enabled then
+    spawn_ghost()
   end
   spawn_trail_manager()
 
@@ -1053,9 +1059,15 @@ function spawn_level_manager()
 
   local buttons = {
     new_button(0, 0, 'rETRY', function() load_level(true) end),
-    new_button(0, 10, 'qUIT', function() load_level(false) sfx(8, -2) game_state = 2 end),
+    new_button(0, 10, 'qUIT', quit_level),
   }
   level_m.menu = new_menu(50, -10, buttons, 'vert', 120)
+end
+
+function quit_level()
+  load_level(false) 
+  sfx(8, -2) 
+  game_state = 2
 end
 
 function _level_manager_update(self)
@@ -1235,7 +1247,7 @@ function on_checkpoint_crossed(self, cp_index)
 end
 
 function get_lap_time_index(level_idx, lap)
-  local data_index = 8 -- end of car customization
+  local data_index = 10 -- end of car customization + settings
   for i = 1, level_idx - 1 do
     data_index += map_settings_data[i].laps
   end
@@ -1660,9 +1672,19 @@ end
 
 -- Built-in PICO-8 menu
 function set_menu_items()
-  --menuitem(1, 'sfx: ' .. (sfx_enabled and 'on' or 'off'), function() sfx_enabled = not sfx_enabled set_menu_items() return true end)
-  --menuitem(2, 'music: ' .. (music_enabled and 'on' or 'off'), function() music_enabled = not music_enabled set_menu_items() return true end)
-  --menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function() ghost_enabled = not ghost_enabled set_menu_items() return true end)
+  menuitem(1, 'quit level', quit_level)
+  menuitem(2, 'camera: ' .. (dynamic_camera_disabled and 'static' or 'dynamic'), function()
+    dynamic_camera_disabled = not dynamic_camera_disabled
+    dset(9, dynamic_camera_disabled and 1 or 0)
+    set_menu_items()
+    return true
+  end)
+  menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
+    ghost_enabled = not ghost_enabled
+    dset(10, ghost_enabled and 1 or 0)
+    set_menu_items()
+    return true
+  end)
 end
 
 function new_button(x, y, txt, update)
@@ -1826,7 +1848,7 @@ function _customization_manager_save(self)
   end
 
   -- save settings
-  dset(0, 1)
+  dset(0, 1) -- marker that settings are no longer default
   for i = 1, count(customization_m.data) do
     dset(i, customization_m.data[i].chosen)
   end
@@ -2023,6 +2045,7 @@ function _main_menu_manager_update(self)
 end
 
 -- todo: minimap should be cached in sprite sheet
+-- todo: find enough spare tokens to enable this?
 --local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
 --function draw_minimap2()
 --  local camera_x = peek2(0x5f28)
