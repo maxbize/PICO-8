@@ -789,7 +789,7 @@ end
 function boost_particles(self, c)
   local cone_angle = 0.1
   local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
 end
 
 local ghost_palette = parse_hash_map('8,2,10,4,6,1,7,6,12,13,14,1,4,1,11,2')
@@ -1511,7 +1511,7 @@ end
 
 function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
   --self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
-  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z+player.z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
+  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
