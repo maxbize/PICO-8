@@ -1418,7 +1418,7 @@ function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_abov
           if chunk_index == 0 then
             -- pass
           elseif chunk_index <= 4 then
-            rectfill(world_x, world_y, world_x + chunk_size_x8, world_y + chunk_size_x8, solid_chunks[chunk_index])
+            rectfill(world_x, world_y, world_x + chunk_size_x8-1, world_y + chunk_size_x8-1, solid_chunks[chunk_index])
           elseif jump_frames > 0 then
             local height = flr(jump_frames/8)
             pal(15, 2)
