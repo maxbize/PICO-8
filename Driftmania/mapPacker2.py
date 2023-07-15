@@ -291,10 +291,18 @@ def build_jumps(filename, decal_data, n):
 	# Format Lua string
 	# Lua: {[10]={[14]=1},[11]={[14]=1},[20]={[23]=2,[15]=3},[21]={[23]=2,[15]=3}}
 	# Py : {11: {14: 1}, 10: {14: 1}, 21: {15: 2, 23: 3}, 20: {15: 2, 23: 3}}
-	s = str(jump_map)
-	s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
-	s = re.sub(' ', '', s)
-	s += ','
+	# New: 19 |  13, 1, 22, 2 | 20 |  13, 1, 22, 2  
+	if len(jump_map) > 0:
+		s = 'parse_jumps_str("'
+		for jump_x in jump_map:
+			s += f'|{jump_x}|' + ','.join(f'{di[0]},{di[1]}' for di in jump_map[jump_x].items())
+		#s = str(jump_map)
+		#s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
+		#s = re.sub(' ', '', s)
+		#s += ','
+		s += '"),'
+	else:
+		s = '{},'
 	replace_lua_str(filename, 'jumps', s)
 
 # Finds all connected neighboring chunks to assign the same jump_id

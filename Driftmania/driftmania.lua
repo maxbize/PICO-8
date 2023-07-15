@@ -88,6 +88,18 @@ function parse_table_arr(headers, csv)
   return a
 end
 
+-- Jumps is a table<int, table<int, int>>. Usage: jumps[x][y] = jump_id
+-- Ex in:  " 19 |  13, 1, 22, 2 | 20 |  13, 1, 22, 2 "
+-- Ex out: {[19]={[13]=1,[22]=2},[20]={[13]=1,[22]=2}}
+function parse_jumps_str(s)
+  local a = {}
+  local csv_arr = split(s, '|')
+  for i = 2, count(csv_arr), 2 do
+    a[csv_arr[i]] = parse_hash_map(csv_arr[i+1])
+  end
+  return a
+end
+
 --------------------
 -- Data
 --------------------
@@ -138,9 +150,9 @@ local map_checkpoints_data = {
 }
 local map_jumps_data = {
   {}, -- driftmaniaLevelA1.tmx jumps
-  {[16]={[14]=1,[15]=1},[17]={[15]=1}}, -- driftmaniaLevelA2.tmx jumps
-  {[11]={[11]=1},[17]={[12]=2,[13]=2},[18]={[15]=3},[12]={[16]=4,[17]=4}}, -- driftmaniaLevel2.tmx jumps
-  {[19]={[13]=1,[22]=2},[20]={[13]=1,[22]=2}}, -- driftmaniaLevel1.tmx jumps
+  parse_jumps_str("|16|14,1,15,1|17|15,1"), -- driftmaniaLevelA2.tmx jumps
+  parse_jumps_str("|11|11,1|17|12,2,13,2|18|15,3|12|16,4,17,4"), -- driftmaniaLevel2.tmx jumps
+  parse_jumps_str("|19|13,1,22,2|20|13,1,22,2"), -- driftmaniaLevel1.tmx jumps
   {}, -- driftmaniaLevel3.tmx jumps
 }
 local gradients =     split('0,1,1,2,1,13,6,2,4,9,3,1,5,13,14')
