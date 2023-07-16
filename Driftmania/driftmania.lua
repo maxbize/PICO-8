@@ -1060,6 +1060,7 @@ function load_level(start)
 
   spawn_level_manager()
   spawn_player()
+  ghost = nil -- If someone switched ghost enabled -> disabled make sure we clear out the existing one
   if start and ghost_playback[1] ~= -1 and ghost_enabled then
     spawn_ghost()
   end
