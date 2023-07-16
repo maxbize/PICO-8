@@ -1,6 +1,8 @@
 -- driftmania
 -- by @maxbize
 
+-- TODO: Token optimization around duplicated lookups of car state, wheel offsets, etc
+
 --------------------
 -- Global State
 --------------------
@@ -109,6 +111,7 @@ local map_road_data = {
   "\0ヲ⁵¹⁶⁵⁷¹\0◀⁵¹¹²ᵇ³¹²⁷¹\0‖⁸¹¹¹ᵉ¹\0³\t¹¹¹\r¹\0‖⁸¹◀¹▶¹\0⁴⁸¹\r¹\0‖⁸¹¹¹」¹⁶²\n¹\0¹⁸¹\r¹\0¹⁙¹⁶⁴\n¹\0ᵉ■¹ᵇ⁴□¹\0¹⁸¹\r¹\0¹■¹ᵇ²ᶜ¹¹¹\r¹\0‖⁸¹\r¹\0⁴ᶠ¹▮¹\r¹\0‖⁸¹\r¹\0⁴⁘¹‖¹\r¹\0▮⁙¹⁶²\n¹\0¹⁸¹\r¹\0¹⁙¹⁶²「¹¹¹\r¹\0▮⁸¹¹¹¥¹□¹\0¹⁸¹\r¹\0¹■¹ᵇ⁴□¹\0▮⁸¹•¹、¹\0²⁸¹\r¹\0▶⁸¹\r¹\0³⁸¹\r¹\0▶⁸¹◀¹▶¹\0¹⁘¹‖¹\r¹\0▶⁸¹¹¹」¹⁶¹「¹¹¹\r¹\0▶■¹ᵇ⁵□¹\0ナ", -- driftmaniaLevel2.tmx road
   "\0?⁵¹⁶²⁷¹\0¥⁸¹¹³⁷¹\0」⁸¹¹⁴⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁷¹\0「\t¹¹⁵⁶⁸\n¹\0▮\t¹¹⁴ᵇ⁶ᶜ¹¹¹\r¹\0■\t¹¹²ᵉ¹\0⁶ᶠ¹▮¹\r¹\0□⁸¹\r¹\0⁸⁸¹\r¹\0□⁸¹\r¹\0⁸⁸¹\r¹\0□■¹□¹\0⁸⁸¹\r¹\0、⁸¹\r¹\0、⁸¹\r¹\0□⁙¹\n¹\0⁸⁸¹\r¹\0□■¹□¹\0⁸⁸¹\r¹\0•⁘¹‖¹◀¹▶¹\0⁘⁙¹⁶⁵「¹¹²」¹⁶⁵\n¹\0ᵉ■¹ᵇ⁵ᶜ¹¹²¥¹ᵇ³ᶜ¹¹¹\r¹\0⁘ᶠ¹▮¹•¹、¹\0³ᶠ¹▮¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹\r¹\0⁵⁸¹\r¹\0‖⁸¹◀¹▶¹\0³⁘¹‖¹\r¹\0‖⁸¹¹¹」¹⁶³「¹¹¹\r¹\0‖■¹ᵇ⁷□¹\0>", -- driftmaniaLevel1.tmx road
   "\0ト⁵¹⁶²█¹▒¹\0」⁸¹¹¹¥¹¹¹🐱¹▒¹\0「⁸¹•¹、¹\t¹¹¹⬇️¹\0▶⁘¹‖¹\r¹\0²⁸¹\r¹\0□⁘¹░¹⁶³「¹¹¹\r¹\0²⁸¹\r¹\0□✽¹¹¹¥¹ᶜ¹¹³\r¹\0²⁸¹\r¹\0□⁸¹•¹、¹ᶠ¹▮¹¹²\r¹\0²⁸¹\r¹\0□⁸¹\r¹\0²⁸¹¹²\r¹\0²⁸¹◀¹▶¹\0■⁸¹\r¹\0²⁸¹¹²\r¹\0²■¹ᶜ¹」¹⁶²\n¹\0ᵉ⁸¹\r¹\0²⁸¹¹²\r¹\0³ᶠ¹▮¹¹²\r¹\0ᵉ⁸¹\r¹\0²●¹¹²♥¹\0³⁵¹¹¹☉¹ᵇ¹□¹\0ᵉ⁸¹\r¹\0²ᶠ¹웃¹⌂¹、¹\0²⁵¹¹¹⬅️¹😐¹\0▮♪¹¹¹⁷¹\0⁶⁵¹¹¹⬅️¹😐¹\0■🅾️¹◆¹¹¹⁷¹\0⁴⁵¹¹¹⬅️¹😐¹\0⁙🅾️¹◆¹¹¹⁶⁴¹¹⬅️¹😐¹\0‖🅾️¹…¹ᵇ⁴➡️¹😐¹\0ト", -- driftmaniaLevel3.tmx road
+  "\0を⁘¹░¹⁶³⁷¹\0▶⁘¹サ¹¹¹¥¹ᶜ¹¹²⁷¹\0‖⁘¹サ¹¹¹シ¹、¹ス¹¹²\r¹\0⁘⁘¹サ¹¹¹シ¹、¹⁵¹¹¹☉¹¹¹\r¹\0⁙⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹⁸¹\r¹\0□⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹み¹\r¹\0■⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0▮⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0▮⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0▮⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0▮⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0▮⁘¹サ¹¹¹シ¹、¹⁵¹¹¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0■✽¹¹¹シ¹、¹セ¹◆¹⬅️¹😐¹ま¹む¹¹¹ᵉ¹\0□⁸¹¹¹ソ¹\0²🅾️¹😐¹ま¹む¹¹¹ᵉ¹\0⁙\t¹¹¹🐱¹▒¹\0²ま¹む¹¹¹ᵉ¹\0‖\t¹¹¹🐱¹▒¹ま¹む¹¹¹ᵉ¹\0▶\t¹¹¹タ¹チ¹¹¹ᵉ¹\0」\t¹ᵇ²ᵉ¹\0ろ", -- driftmaniaLevelExp1.tmx road
 }
 local map_decals_data = {
   "\0っね¹\0•(¹3¹の¹'¹\0¥(¹\0²(¹\0」。¹I¹\0²(¹\0⁘う¹\0⁴L¹\0⁘★¹C²\0¹う¹\0「3¹r¹\0ᵇ。¹I¹\0¥K²L¹M¹\0⁙★¹\0\nO¹\0■3¹r¹\0、6¹゛¹\0。=¹K²\0゛&¹\0◀s¹\0⁶゜¹'¹\0‖s¹\0⁷(¹\0‖6¹゛¹\0⁵。¹I¹\0◀=¹\0³K²L¹M¹\0゛O¹\0り", -- driftmaniaLevelA1.tmx decals
@@ -116,6 +119,7 @@ local map_decals_data = {
   "\0◝\0▶d¹\0。e¹f¹\0¹g¹\0¥6¹゛¹\0¹h¹\0•=¹K²\0⁵i¹j¹\0³k¹\0「l¹m¹\0¹&¹$¹\0¥g¹\0¹゜¹'¹\0¥h¹\0¹。¹I¹\0⁙n¹o¹\0⁵K²L¹\0⁘p¹q¹\0•3¹r¹\0²(¹\0」s¹\0³(¹\0」6¹゛¹\0¹。¹I¹\0」$¹=¹K¹L¹\0」t¹\0ヒ", -- driftmaniaLevel2.tmx decals
   "\0^。¹゛¹\0、゜¹ ¹゛¹\0¹!¹\0•\"¹#¹\0、$¹\0、%¹\0H&¹\0。゜¹'¹\0。(¹\0。)¹*¹\0、+¹,¹\0□-¹.¹\0⁸/¹0¹\0□1¹2¹\0。3¹\0⁸4¹5¹\0⁙6¹\0⁸7¹8¹\0□-¹9¹:¹\0•;¹⁴¹<¹=¹\0⁷>¹\0□?¹@¹A¹\0⁴B¹\0⁶C²&¹\0▶D¹*¹\0⁴゜¹'¹\0◀+¹,¹\0‖E¹F¹\0⁵/¹0¹\0⁵(¹\0ᶠG¹H¹\0ᶜ(¹\0▶6¹゛¹\0³。¹I¹\0◀J¹\0¹=¹K²\0¹L¹M¹\0◀N¹\0⁷O¹\0>", -- driftmaniaLevel1.tmx decals
   "\0◝\0\0★¹\0、3¹r¹⧗¹\0•s¹\0²(¹\0¥s¹\0「★¹&¹\0•3¹r¹゜¹'¹\0¹⬆️¹ˇ¹\0²ˇ²\0⁙s¹\0³∧¹\0」s¹\0³∧¹\0⁵&¹\0▶❎¹▤¹\0⁴゜¹▥¹あ¹\0、い¹L¹\0•い¹\0、い¹\0、い¹\0「う¹\0³い¹\0」う¹\0ノ", -- driftmaniaLevel3.tmx decals
+  "\0◝\0=D¹ツ¹テ¹\0」ト¹\0¹ナ¹ニ¹\0•O¹\0•D¹ヌ¹\0¹ネ¹ノ¹\0¹D¹ツ¹テ¹\0‖ハ¹ヒ¹\0²フ¹\0¹ナ¹ニ¹\0◀ヘ¹\0⁴ホ¹\0•D¹ヌ¹\0¹M¹\0◀g¹\0³ハ¹ヒ¹\0「マ¹ミ¹\0²ヘ¹\0」ム¹0¹\0◝\0=", -- driftmaniaLevelExp1.tmx decals
 }
 local map_props_data = {
   "\0웃c¹Q⁵^¹\0▶W¹\0⁵W¹\0▶W¹\0⁵W¹\0▶W¹\0²は¹\0²W¹\0▶W¹\0²W¹\0²W¹\0ᵇc¹Qᵇb¹\0²W¹\0²W¹\0ᵇW¹\0ᵉW¹\0²W¹\0ᵇW¹\0ᵉW¹\0²W¹\0ᵇW¹\0²c¹Qᵇb¹\0²W¹\0ᵇW¹\0²W¹\0ᵉW¹\0ᵇW¹\0²W¹\0ᵉW¹\0ᵇW¹\0²W¹\0²~¹Qᵇb¹\0ᵇW¹\0²W¹\0²○¹Q⁵^¹\0■W¹\0²W¹\0⁸W¹\0■W¹\0²W¹\0⁸W¹\0■W¹\0²z¹Q⁵^¹\0²W¹\0■W¹\0²W¹\0⁵W¹\0²W¹\0■W¹\0²a¹Q⁵b¹\0²W¹\0■W¹\0ᵇW¹\0■W¹\0ᵇW¹\0■a¹Qᵇb¹\0け", -- driftmaniaLevelA1.tmx props
@@ -123,6 +127,7 @@ local map_props_data = {
   "\0ソP¹Q⁵R¹\0◀u¹T¹\0⁵U¹V¹\0⁘S¹T¹\0⁷U¹v¹\0⁙W¹\0²X¹w³Y¹\0²W¹\0⁙W¹\0²x¹Q³y¹\0²z¹Q⁶^¹\0ᶜW¹\0⁶W¹\0²W¹\0⁶W¹\0ᶜW¹\0⁶W¹\0²W¹\0⁶W¹\0ᶜa¹Q⁶{¹\0²z¹Q³|¹\0²W¹\0ᵉc¹Q⁴{¹\0²z¹Q³}¹\0²W¹\0ᵉW¹\0⁴W¹\0²W¹\0⁶W¹\0ᵉW¹\0⁴W¹\0²W¹\0⁶W¹\0ᵉW¹\0²~¹Q¹{¹\0²z¹Q⁶b¹\0ᵉW¹\0²W¹\0¹W¹\0²W¹\0‖W¹\0²○¹Q¹}¹\0²W¹\0‖W¹\0⁷W¹\0‖W¹\0⁷W¹\0‖a¹Q⁷b¹\0り", -- driftmaniaLevel2.tmx props
   "\0!P¹Q²R¹\0」S¹T¹\0²U¹V¹\0「W¹\0¹X¹Y¹\0¹U¹V¹\0▶W¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀[¹Y¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀\\¹Y¹\0¹U¹Z¹Y¹\0¹U¹V¹\0◀\\¹Y¹\0¹U¹Z¹Y¹\0¹U¹]¹Q⁸^¹\0\r\\¹Y¹\0¹U¹Z¹Y¹\0\nW¹\0ᵉ\\¹Y¹\0¹U¹Z¹Y¹\0\tW¹\0ᶠ\\¹Y¹\0¹U¹_¹Q⁶^¹\0²W¹\0▮`¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²W¹\0⁶W¹\0²W¹\0▮W¹\0²a¹Q⁶b¹\0²a¹Q⁶^¹\0\tW¹\0⁙W¹\0\tW¹\0⁙W¹\0\ta¹Q\t^¹\0²c¹Q³^¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²W¹\0³W¹\0²W¹\0⁙W¹\0²a¹Q³b¹\0²W¹\0⁙W¹\0\tW¹\0⁙W¹\0\tW¹\0⁙a¹Q\tb¹\0゜", -- driftmaniaLevel1.tmx props
   "\0りP¹Q³^¹\0「S¹T¹\0³a¹^¹\0▶W¹\0⁵a¹^¹\0◀W¹\0²え¹Y¹\0²W¹\0■X¹お¹Q²か¹き¹\0²W¹`¹\0²W¹\0▮X¹く¹\0⁴け¹こ¹\0¹W²\0²W¹\0▮さ¹\0⁵し¹す¹\0¹W²\0²W¹\0▮W¹\0²~¹|¹\0¹し¹す¹\0¹W²\0²W¹\0▮W¹\0²W²\0¹し¹す¹\0¹W²\0²○¹Q³^¹\0ᶜW¹\0²W²\0¹し¹す¹\0¹W²\0⁶W¹\0ᶜW¹\0²W²\0¹せ¹そ¹\0¹W¹○¹Q¹た¹ち¹つ¹\0²W¹\0ᶜW¹\0²W¹て¹\0⁴と¹\0¹u¹T¹\0⁴W¹\0ᶜW¹\0²て¹U¹V¹\0²u¹T¹u¹T¹\0²c¹Q²b¹\0ᶜW¹\0²U¹V¹U¹]¹な¹T¹u¹T¹\0²c¹b¹\0ᶠa¹^¹\0²U¹]¹Q²な¹T¹\0²c¹b¹\0■a¹^¹\0⁸c¹b¹\0⁙a¹^¹\0⁶c¹b¹\0‖a¹Q⁶b¹\0り", -- driftmaniaLevel3.tmx props
+  "\0そX¹お¹Q³R¹\0▶X¹く¹\0⁴U¹V¹\0‖X¹く¹\0⁶U¹v¹\0⁙X¹く¹\0³メ¹\0⁴W¹\0□X¹く¹\0³u¹T¹\0⁴W¹\0■X¹く¹\0³u¹T¹\0²モ¹\0²W¹\0▮X¹く¹\0³u¹T¹\0²c¹b¹\0²W¹\0ᶠX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹カ¹\0ᵉX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹く¹\0ᵉX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹く¹\0ᵉX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹く¹\0ᵉX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹く¹\0ᵉX¹く¹\0³u¹T¹\0²c¹b¹\0²X¹く¹\0ᶠさ¹\0³ヤ¹ユ¹\0²c¹b¹\0²X¹く¹\0▮W¹\0⁴a¹^¹c¹b¹\0²X¹く¹\0■[¹Y¹\0⁴a¹b¹\0²X¹く¹\0⁙\\¹Y¹\0⁶X¹く¹\0‖\\¹Y¹\0⁴X¹く¹\0▶\\¹Y¹\0²X¹く¹\0」ヨ¹Q²ラ¹\0す", -- driftmaniaLevelExp1.tmx props
 }
 local map_bounds_data = {
   "\0웃¹⁷\0▶¹⁷\0▶¹⁷\0▶¹⁷\0▶¹⁷\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹⁙\0ᵇ¹\r\0■¹\r\0■¹\r\0■¹\r\0■¹⁴\0⁵¹⁴\0■¹\r\0■¹\r\0■¹\r\0■¹\r\0け", -- driftmaniaLevelA1.tmx bounds
@@ -130,14 +135,16 @@ local map_bounds_data = {
   "\0ソ¹⁷\0◀¹\t\0⁘¹ᵇ\0⁙¹ᵇ\0⁙¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹□\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹▮\0ᵉ¹⁴\0¹¹⁴\0‖¹\t\0‖¹\t\0‖¹\t\0‖¹\t\0り", -- driftmaniaLevel2.tmx bounds
   "\0!¹⁴\0」¹⁶\0「¹⁷\0▶¹⁸\0◀¹\t\0◀¹\t\0◀¹□\0\r¹■\0ᵉ¹▮\0ᶠ¹ᶠ\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹⁴\0⁶¹⁴\0▮¹‖\0\t¹‖\0\t¹‖\0\t¹‖\0⁙¹⁴\0³¹⁴\0⁙¹⁴\0³¹⁴\0⁙¹⁴\0³¹⁴\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0⁙¹ᵇ\0゜", -- driftmaniaLevel1.tmx bounds
   "\0り¹⁵\0「¹⁷\0▶¹⁸\0◀¹⁸\0■¹\r\0▮¹ᵉ\0▮¹ᵉ\0▮¹ᵉ\0▮¹□\0ᶜ¹□\0ᶜ¹□\0ᶜ¹\n\0¹¹⁷\0ᶜ¹□\0ᶜ¹ᶠ\0ᶠ¹ᵉ\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0り", -- driftmaniaLevel3.tmx bounds
+  "\0そ¹⁶\0▶¹⁸\0‖¹\n\0⁙¹ᵇ\0□¹ᶜ\0■¹\r\0▮¹ᵉ\0ᶠ¹ᶠ\0ᵉ¹ᶠ\0ᵉ¹ᶠ\0ᵉ¹ᶠ\0ᵉ¹ᶠ\0ᵉ¹ᶠ\0ᶠ¹ᵉ\0▮¹\r\0■¹ᶜ\0⁙¹\n\0‖¹⁸\0▶¹⁶\0」¹⁴\0す", -- driftmaniaLevelExp1.tmx bounds
 }
 
 local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|a1,0,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
   "|a2,0,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
-  "|b1,4,4,30,200,256,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
+  "|b1,4,4,30,192,248,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
   "|b2,4,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
   "|c1,8,4,30,288,528,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
+  "|a2,0,3,30,400,344,0.125,2500,2000,1740,1650" .. -- driftmaniaLevelExp1.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"
@@ -147,6 +154,7 @@ local map_checkpoints_data = {
   parse_table_arr(map_checkpoints_data_header, '|178,210,1,1,56|557,283,-1,1,68|277,491,-1,1,68'), -- driftmaniaLevel2.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|213,99,-1,1,44|165,147,-1,1,44|606,606,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|276,493,0,1,71|317,324,1,0,53|397,324,1,0,69'), -- driftmaniaLevel3.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|390,310,1,1,52|334,262,1,1,52|438,366,1,1,52'), -- driftmaniaLevelExp1.tmx checkpoints
 }
 local map_jumps_data = {
   {}, -- driftmaniaLevelA1.tmx jumps
@@ -154,6 +162,7 @@ local map_jumps_data = {
   parse_jumps_str("|11|11,1|17|12,2,13,2|18|15,3|12|16,4,17,4"), -- driftmaniaLevel2.tmx jumps
   parse_jumps_str("|19|13,1,22,2|20|13,1,22,2"), -- driftmaniaLevel1.tmx jumps
   {}, -- driftmaniaLevel3.tmx jumps
+  parse_jumps_str("|17|10,1,11,1,17,4|20|13,2,14,2|13|14,3,18,5|14|14,3|16|17,4|12|18,5"), -- driftmaniaLevelExp1.tmx jumps
 }
 local gradients =     split('0,1,1,2,1,13,6,2,4,9,3,1,5,13,14')
 local gradients_rev = split('12,8,11,9,13,14,7,7,10,7,7,7,14,15,7')
@@ -448,6 +457,8 @@ function create_car(x, y, dir, is_ghost)
     wall_penalty_frames = 0,
     camera_target_x = x - 64,
     camera_target_y = y - 64,
+    cp_crossed = {},
+    next_checkpoint = 2,
   }
 end
 
@@ -471,7 +482,6 @@ function _car_update(self)
     end
   else
     d_brake, move_fwd = _car_move(self, 0)
-    self.respawn_frames -= 1
     self.camera_target_x = 0
     self.camera_target_y = 0
 
@@ -483,18 +493,6 @@ function _car_update(self)
       local cam_x = self.respawn_start_x + (self.last_checkpoint_x - self.respawn_start_x) * lerp_t
       local cam_y = self.respawn_start_y + (self.last_checkpoint_y - self.respawn_start_y) * lerp_t
       camera(cam_x - 64, cam_y - 64)
-    end
-
-    if self.respawn_frames < 20 then
-      self.x = self.last_checkpoint_x
-      self.y = self.last_checkpoint_y
-      self.angle_fwd = self.last_checkpoint_angle
-      self.v_x = 0
-      self.v_y = 0
-      self.x_remainder = 0
-      self.y_remainder = 0
-      self.dirt_frames = split('0,0,0,0')
-      self.boost_frames = 0
     end
   end
 
@@ -530,15 +528,6 @@ function _car_update(self)
 
   if d_brake then
     sfx(17, 1, 0, 0)
-  end
-
-  -- Check bounds
-  local chunk_x = flr(self.x / 24)
-  local chunk_y = flr(self.y / 24)
-  if self.respawn_frames == 0 and self.z == 0 and map_bounds_chunks[chunk_x][chunk_y] == 0 then
-    self.respawn_frames = 60
-    self.respawn_start_x = self.x
-    self.respawn_start_y = self.y
   end
 
   -- Move camera
@@ -794,6 +783,32 @@ function _car_move(self, btns)
     end
   end
 
+  -- Check bounds
+  local chunk_x = flr(self.x / 24)
+  local chunk_y = flr(self.y / 24)
+  if self.respawn_frames == 0 and self.z == 0 and map_bounds_chunks[chunk_x][chunk_y] == 0 then
+    self.respawn_frames = 60
+    self.respawn_start_x = self.x
+    self.respawn_start_y = self.y
+  end
+
+  -- Reset car at end of OOB animation
+  if self.respawn_frames > 0 then
+    self.respawn_frames -= 1
+    if self.respawn_frames < 20 then
+      self.x = self.last_checkpoint_x
+      self.y = self.last_checkpoint_y
+      self.angle_fwd = self.last_checkpoint_angle
+      self.v_x = 0
+      self.v_y = 0
+      self.x_remainder = 0
+      self.y_remainder = 0
+      self.dirt_frames = split('0,0,0,0')
+      self.boost_frames = 0
+    end
+  end
+
+
   -- Record ghost
   if not self.is_ghost and self.ghost_frame <= 0x7fff then
     ghost_recording[self.ghost_frame] = btns
@@ -905,15 +920,13 @@ function _on_player_moved(self, x, y, z, angle)
     local check_x = x + offset.x
     local check_y = y + offset.y
     check_jump(self, check_x, check_y, z)
-    if not self.is_ghost then
-      local checkpoint = collides_checkpoint_at(check_x, check_y)
-      if checkpoint ~= nil then
-        local new_cp = on_checkpoint_crossed(level_m, checkpoint)
-        if new_cp then
-          self.last_checkpoint_x = x
-          self.last_checkpoint_y = y
-          self.last_checkpoint_angle = angle
-        end
+    local checkpoint = collides_checkpoint_at(check_x, check_y)
+    if checkpoint ~= nil then
+      local new_cp = on_checkpoint_crossed(level_m, self, checkpoint)
+      if new_cp then
+        self.last_checkpoint_x = x
+        self.last_checkpoint_y = y
+        self.last_checkpoint_angle = angle
       end
     end
   end
@@ -1061,13 +1074,11 @@ function spawn_level_manager()
   level_m = {
     update = _level_manager_update,
     draw = _level_manager_draw,
-    next_checkpoint = 2,
     lap = 1,
     frame = 1,
     anim_frame = 0,
     cp_cache = {}, -- table[x][y] -> cp index
     cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
-    cp_crossed = {}, -- table[cp_index] -> true/false
     state = 1, -- 1=intro, 2=playing, 3=ending
     last_best = 0, -- Previous best time for the track that just finished
     lap_frames = {}, -- list of frames for this attempt of the track
@@ -1189,74 +1200,81 @@ function frame_to_time_str(frames)
   return min .. ':' .. (#sec == 1 and '0' or '') .. sec .. '.' .. (#sub_sec == 1 and '0' or '') .. sub_sec
 end
 
-function on_checkpoint_crossed(self, cp_index)
+function on_checkpoint_crossed(self, car, cp_index)
   -- Check if this checkpoint was valid to cross next
-  if cp_index == 1 and self.next_checkpoint ~= 1 then
+  if cp_index == 1 and car.next_checkpoint ~= 1 then
       return false
-  elseif cp_index > 1 and self.cp_crossed[cp_index] then
+  elseif cp_index > 1 and car.cp_crossed[cp_index] then
       return false
   end
-  self.cp_crossed[cp_index] = true
-  self.cp_sprites[cp_index][1].frames = 30
+  car.cp_crossed[cp_index] = true
+  if not car.is_ghost then
+    self.cp_sprites[cp_index][1].frames = 30
+  end
 
   -- Completed a lap
-  if self.next_checkpoint == 1 then
-    -- Save/Load best time for this lap
-    local data_index = get_lap_time_index(level_index, self.lap)
-    self.last_best_time = dget(data_index)
-    add(self.lap_frames, self.frame)
-
-    self.anim_frame = 1
-    for i = 1, count(self.cp_crossed) do
-      self.cp_crossed[i] = false
+  if car.next_checkpoint == 1 then
+    -- Reset crossed checkpoints
+    for i = 1, count(map_checkpoints) do
+      car.cp_crossed[i] = false
     end
-    -- Completed the track
-    if self.lap == map_settings.laps then
-      self.state = 3
 
-      -- If this is the new best time we have a recording of, save it
-      if player.ghost_frame <= ghost_best_time then
-        ghost_best_time = player.ghost_frame
-        ghost_playback = ghost_recording
-      end
-      ghost_recording = {}
-      for i = 1, 0x7fff do
-        add(ghost_recording, -1)
-      end
+    if not car.is_ghost then
+      -- Save/Load best time for this lap
+      local data_index = get_lap_time_index(level_index, self.lap)
+      self.last_best_time = dget(data_index)
+      add(self.lap_frames, self.frame)
 
-      -- If this is a new record update ALL lap times
-      if self.last_best_time == 0 or self.last_best_time > self.frame then
-        local start_index = get_lap_time_index(level_index, 0)
-        for i = 1, map_settings.laps do
-          dset(start_index + i, self.lap_frames[i])
+      self.anim_frame = 1
+
+      -- Completed the track
+      if self.lap == map_settings.laps then
+        self.state = 3
+
+        -- If this is the new best time we have a recording of, save it
+        if player.ghost_frame <= ghost_best_time then
+          ghost_best_time = player.ghost_frame
+          ghost_playback = ghost_recording
         end
+        ghost_recording = {}
+        for i = 1, 0x7fff do
+          add(ghost_recording, -1)
+        end
+
+        -- If this is a new record update ALL lap times
+        if self.last_best_time == 0 or self.last_best_time > self.frame then
+          local start_index = get_lap_time_index(level_index, 0)
+          for i = 1, map_settings.laps do
+            dset(start_index + i, self.lap_frames[i])
+          end
+        end
+
+      else
+        -- Display checkpoint time and delta
+        add(objects, {
+          time = self.frame,
+          best_time = self.last_best_time,
+          frames = 60,
+          update = function(self)
+            self.frames -= 1
+            if self.frames == 0 then
+              del(objects, self)
+            end
+          end,
+          draw = function(self)
+            local camera_x = peek2(0x5f28)
+            local camera_y = peek2(0x5f2a)
+            print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
+            if self.best_time ~= 0 then
+              print_shadowed((self.best_time >= self.time and '-' or '+') 
+                .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
+                self.best_time >= self.time and 11 or 8)
+            end
+          end,
+        })
+
+        self.lap += 1
       end
-
-    else
-      -- Display checkpoint time and delta
-      add(objects, {
-        time = self.frame,
-        best_time = self.last_best_time,
-        frames = 60,
-        update = function(self)
-          self.frames -= 1
-          if self.frames == 0 then
-            del(objects, self)
-          end
-        end,
-        draw = function(self)
-          local camera_x = peek2(0x5f28)
-          local camera_y = peek2(0x5f2a)
-          print_shadowed(frame_to_time_str(self.time), camera_x + 50, camera_y + 32, 7)
-          if self.best_time ~= 0 then
-            print_shadowed((self.best_time >= self.time and '-' or '+') 
-              .. frame_to_time_str(abs(self.best_time - self.time)), camera_x + 46, camera_y + 38,
-              self.best_time >= self.time and 11 or 8)
-          end
-        end,
-      })
-
-      self.lap += 1
     end
     sfx(15, -1, 0, 10)
   else
@@ -1264,7 +1282,7 @@ function on_checkpoint_crossed(self, cp_index)
   end
 
   -- Advance checkpoint marker
-  self.next_checkpoint = (self.next_checkpoint % count(self.cp_crossed)) + 1
+  car.next_checkpoint = (car.next_checkpoint % count(map_checkpoints)) + 1
   return true
 end
 
@@ -1277,14 +1295,13 @@ function get_lap_time_index(level_idx, lap)
   return data_index
 end
 
+-- todo: token optimization? Could parse a big string for all this, but it would be a lot of chars...
 function cache_checkpoints(self, checkpoints)
   self.cp_cache = {} -- table[x][y] -> cp index
   self.cp_sprites = {} -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
-  self.cp_crossed = {} -- table[cp_index] -> true/false
 
-  for i = 1, #checkpoints do
+  for i = 1, count(checkpoints) do
     add(self.cp_sprites, {})
-    add(self.cp_crossed, false)
     local cp = checkpoints[i]
     local x = cp.x
     local y = cp.y
@@ -1314,7 +1331,7 @@ end
 function draw_cp_highlights(self)
   pal(4, 9)
   pal(3, 11)
-  for i, crossed in pairs(self.cp_crossed) do
+  for i, crossed in pairs(player.cp_crossed) do
     local cp_data = self.cp_sprites[i]
     if crossed or cp_data[1].frames % 10 > 3 then
       for data in all(cp_data) do
