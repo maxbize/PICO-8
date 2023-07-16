@@ -916,9 +916,10 @@ end
 -- Called whenever the player occupies a new position. Can be called multiple times per frame
 function _on_player_moved(self, x, y, z, angle)
   self.water_wheels = 0
-  for offset in all(bbox_cache[round_nth(angle,32)]) do
-    local check_x = x + offset.x
-    local check_y = y + offset.y
+  for i, offset in pairs(self.wheel_offsets) do
+    local check_x = flr(x) + offset.x
+    local check_y = flr(y) + offset.y
+
     check_jump(self, check_x, check_y, z)
     local checkpoint = collides_checkpoint_at(check_x, check_y)
     if checkpoint ~= nil then
@@ -929,10 +930,7 @@ function _on_player_moved(self, x, y, z, angle)
         self.last_checkpoint_angle = angle
       end
     end
-  end
-  for i, offset in pairs(self.wheel_offsets) do
-    local check_x = flr(x) + offset.x
-    local check_y = flr(y) + offset.y
+
     local collides_water = collides_water_at(check_x, check_y, z)
     if i % 2 == 0 then -- front wheels
       if collides_water then
