@@ -113,7 +113,7 @@ local map_road_data = {
 local map_decals_data = {
   "\0っね¹\0•(¹3¹の¹'¹\0¥(¹\0²(¹\0」。¹I¹\0²(¹\0⁘う¹\0⁴L¹\0⁘★¹C²\0¹う¹\0「3¹r¹\0ᵇ。¹I¹\0¥K²L¹M¹\0⁙★¹\0\nO¹\0■3¹r¹\0、6¹゛¹\0。=¹K²\0゛&¹\0◀s¹\0⁶゜¹'¹\0‖s¹\0⁷(¹\0‖6¹゛¹\0⁵。¹I¹\0◀=¹\0³K²L¹M¹\0゛O¹\0り", -- driftmaniaLevelA1.tmx decals
   "\0◝\0」を²\0⁷ˇ²\0➡️ん¹*¹\0、っ¹ゃ¹\0」ゅ¹ょ¹\0。ア¹\0?イ¹ウ¹\0、エ¹オ¹\0⁘ˇ²\0。s¹\0。s¹\0。6¹゛¹\0⁵。¹I¹\0◀=¹\0³K²L¹\0⬇️", -- driftmaniaLevelA2.tmx decals
-  "\0◝\0◀d¹\0゛e¹f¹\0¹g¹\0¥6¹゛¹\0¹h¹\0•=¹K²\0⁵i¹j¹\0³k¹\0「l¹m¹\0¹&¹$¹\0¥g¹\0¹゜¹'¹\0¥h¹\0¹。¹I¹\0⁙n¹o¹\0⁵K²L¹\0⁘p¹q¹\0•3¹r¹\0²(¹\0」s¹\0³(¹\0」6¹゛¹\0¹。¹I¹\0」$¹=¹K¹L¹\0」t¹\0ヒ", -- driftmaniaLevel2.tmx decals
+  "\0◝\0▶d¹\0。e¹f¹\0¹g¹\0¥6¹゛¹\0¹h¹\0•=¹K²\0⁵i¹j¹\0³k¹\0「l¹m¹\0¹&¹$¹\0¥g¹\0¹゜¹'¹\0¥h¹\0¹。¹I¹\0⁙n¹o¹\0⁵K²L¹\0⁘p¹q¹\0•3¹r¹\0²(¹\0」s¹\0³(¹\0」6¹゛¹\0¹。¹I¹\0」$¹=¹K¹L¹\0」t¹\0ヒ", -- driftmaniaLevel2.tmx decals
   "\0^。¹゛¹\0、゜¹ ¹゛¹\0¹!¹\0•\"¹#¹\0、$¹\0、%¹\0H&¹\0。゜¹'¹\0。(¹\0。)¹*¹\0、+¹,¹\0□-¹.¹\0⁸/¹0¹\0□1¹2¹\0。3¹\0⁸4¹5¹\0⁙6¹\0⁸7¹8¹\0□-¹9¹:¹\0•;¹⁴¹<¹=¹\0⁷>¹\0□?¹@¹A¹\0⁴B¹\0⁶C²&¹\0▶D¹*¹\0⁴゜¹'¹\0◀+¹,¹\0‖E¹F¹\0⁵/¹0¹\0⁵(¹\0ᶠG¹H¹\0ᶜ(¹\0▶6¹゛¹\0³。¹I¹\0◀J¹\0¹=¹K²\0¹L¹M¹\0◀N¹\0⁷O¹\0>", -- driftmaniaLevel1.tmx decals
   "\0◝\0\0★¹\0、3¹r¹⧗¹\0•s¹\0²(¹\0¥s¹\0「★¹&¹\0•3¹r¹゜¹'¹\0¹⬆️¹ˇ¹\0²ˇ²\0⁙s¹\0³∧¹\0」s¹\0³∧¹\0⁵&¹\0▶❎¹▤¹\0⁴゜¹▥¹あ¹\0、い¹L¹\0•い¹\0、い¹\0、い¹\0「う¹\0³い¹\0」う¹\0ノ", -- driftmaniaLevel3.tmx decals
 }
@@ -135,18 +135,18 @@ local map_bounds_data = {
 local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|a1,0,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
   "|a2,0,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
-  "|b1,4,4,30,192,264,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
+  "|b1,4,4,30,200,256,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
   "|b2,4,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
   "|c1,8,4,30,288,528,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"
 local map_checkpoints_data = {
-  parse_table_arr(map_checkpoints_data_header, '|300,228,0,1,72|484,292,1,1,72|340,508,1,1,72'), -- driftmaniaLevelA1.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|228,228,1,0,72|444,228,1,0,72|228,516,1,0,72'), -- driftmaniaLevelA2.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|172,220,1,1,56|556,284,-1,1,64|276,492,-1,1,64'), -- driftmaniaLevel2.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|212,100,-1,1,40|164,148,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|276,492,0,1,72|316,324,1,0,56|396,324,1,0,72'), -- driftmaniaLevel3.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|300,229,0,1,71|486,294,1,1,72|342,510,1,1,72'), -- driftmaniaLevelA1.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|229,228,1,0,69|445,228,1,0,69|229,516,1,0,69'), -- driftmaniaLevelA2.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|178,210,1,1,56|557,283,-1,1,68|277,491,-1,1,68'), -- driftmaniaLevel2.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|213,99,-1,1,44|165,147,-1,1,44|606,606,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|276,493,0,1,71|317,324,1,0,53|397,324,1,0,69'), -- driftmaniaLevel3.tmx checkpoints
 }
 local map_jumps_data = {
   {}, -- driftmaniaLevelA1.tmx jumps
@@ -296,6 +296,12 @@ function _draw()
   --print_shadowed('\^t\^woPEN bETA', player.x - 35, player.y - 55, 7)
   --print_shadowed('\^t\^wpLAY nOW!', player.x - 35, player.y + 45, 7)
 
+  --for cp in all(map_checkpoints) do
+  --  line(cp.x, cp.y, cp.x + cp.dx * cp.l, cp.y + cp.dy * cp.l, 12)
+  --end
+  --for offset in all(bbox_cache[round_nth(player.angle_fwd,32)]) do
+  --  pset(player.x + offset.x, player.y + offset.y, 8)
+  --end
 end
 
 --------------------

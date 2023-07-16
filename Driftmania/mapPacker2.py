@@ -224,6 +224,52 @@ def walk_line(data, sprites, x, y, delta_x, delta_y):
 	line.append((x, y))
 	return line
 
+# Given a line (list of (x,y) tuples) generate the line properties x, y, dx, dy, l
+def get_line_props(line, props_data):
+	# Get the gfx definition
+	with codecs.open(sys.argv[2], 'r', 'utf-8') as f:
+		p8_lines = f.readlines()
+	for i, p8_line in enumerate(p8_lines):
+		if '__gfx__' in p8_line:
+			gfx_lines = p8_lines[i+1:i+81]
+			break
+	# gfx lookups equivalent to sget(y, x)
+	gfx = [[int(c, 16) for c in gfx_line[:-1]] for gfx_line in gfx_lines]
+
+	# Get dx/dy (direction is sprite 0 -> sprite n)
+	p1 = line[0]
+	p2 = line[1]
+	dx = p2[0] - p1[0]
+	dy = p2[1] - p1[1]
+
+	# Walk backwards from sprite 1 -> sprite 0 and find starting x/y
+	# +4 to get to center of sprite, which contains a checkpoint line on all sprites
+	start_x = p2[0]*8 + 4
+	start_y = p2[1]*8 + 4
+	while not collides_wall_at(start_x, start_y, gfx, props_data):
+		start_x -= dx
+		start_y -= dy
+
+	# Walk forwards from start to find length
+	l = 1
+	end_x = start_x + dx
+	end_y = start_y + dy
+	while not collides_wall_at(end_x, end_y, gfx, props_data):
+		l += 1
+		end_x += dx
+		end_y += dy
+
+	return start_x, start_y, dx, dy, l
+
+# Duplicate of collides_part_at in lua code
+def collides_wall_at(x, y, gfx, props_data):
+	sprite_index = props_data[math.floor(y/8)][math.floor(x/8)]
+	if sprite_index in wall_sprites:
+		sprite_x = (sprite_index % 16) * 8 + x % 8
+		sprite_y = math.floor(sprite_index / 16) * 8 + y % 8
+		return gfx[sprite_y][sprite_x] == 6
+	return False
+
 # DFS search on each checkpoint tile to build a list of checkpoints
 # Note: assumes all checkpoints are homogenous straight lines!
 green_checkpoint_sprites = [10, 11, 27, 28]
@@ -261,12 +307,18 @@ def build_checkpoints(filename, data_map):
 
 	# Write the lua code
 	s = ''
+	#shorten = 6 # How many pixels to shorten the line on either side
 	for line in checkpoints:
-		p1 = line[0]
-		p2 = line[1]
-		delta_x = p2[0] - p1[0]
-		delta_y = p2[1] - p1[1]
-		s += f'|{p1[0]*8+4},{p1[1]*8+4},{delta_x},{delta_y},{(len(line)-1)*8}'
+		#p1 = line[0]
+		#p2 = line[1]
+		#dx = p2[0] - p1[0]
+		#dy = p2[1] - p1[1]
+		#x = p1[0]*8 + abs(dx)*shorten
+		#y = p1[1]*8 + abs(dy)*shorten
+		#l = len(line)*8 - shorten*2
+		#s += f'|{p1[0]*8+4},{p1[1]*8+4},{dx},{dy},{(len(line)-1)*8}'
+		x, y, dx, dy, l = get_line_props(line, props_data)
+		s += f'|{x},{y},{dx},{dy},{l}'
 
 	#print(s)
   	#parse_table_arr(map_checkpoints_data_header, '|236,124,-1,1,40|188,172,-1,1,40|604,604,1,1,72'), -- driftmaniaLevel1.tmx checkpoints
@@ -289,17 +341,11 @@ def build_jumps(filename, decal_data, n):
 			jump_id += 1
 
 	# Format Lua string
-	# Lua: {[10]={[14]=1},[11]={[14]=1},[20]={[23]=2,[15]=3},[21]={[23]=2,[15]=3}}
-	# Py : {11: {14: 1}, 10: {14: 1}, 21: {15: 2, 23: 3}, 20: {15: 2, 23: 3}}
-	# New: 19 |  13, 1, 22, 2 | 20 |  13, 1, 22, 2  
+	# Ex: 19 |  13, 1, 22, 2 | 20 |  13, 1, 22, 2  
 	if len(jump_map) > 0:
 		s = 'parse_jumps_str("'
 		for jump_x in jump_map:
 			s += f'|{jump_x}|' + ','.join(f'{di[0]},{di[1]}' for di in jump_map[jump_x].items())
-		#s = str(jump_map)
-		#s = re.sub(r'([0-9]+):\s *', r'[\1]=', s)
-		#s = re.sub(' ', '', s)
-		#s += ','
 		s += '"),'
 	else:
 		s = '{},'
