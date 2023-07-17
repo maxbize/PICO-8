@@ -605,7 +605,7 @@ function _car_move(self, btns)
     mod_brake = 0.25
   end
   if boost_wheels >= 1 then
-    if self.boost_frames <= 87 then
+    if self.boost_frames <= 87 and not self.is_ghost then
       self.flash_frames = 5
       pause_frames = -2
       sfx(13)
@@ -778,7 +778,7 @@ function _car_move(self, btns)
   end
   if z_blocked then
     self.v_z = 0
-    if self.z == 0 then
+    if self.z == 0 and not self.is_ghost then
       sfx(9)
     end
   end
@@ -958,8 +958,10 @@ function check_jump(self, x, y, z)
     map_jump_frames[map_jumps[flr(x/24)][flr(y/24)]] = 30
     self.v_z = 2
     self.z = 1
-    pause_frames = -2
-    sfx(11)
+    if not self.is_ghost then
+      pause_frames = -2
+      sfx(11)
+    end
   end
 end
 
@@ -975,7 +977,7 @@ function _player_collides_at(self, x, y, z, angle, penalize)
       if penalize and z < wall_height then
         self.wall_penalty_frames = 20
         -- Really annoying to have the car crash effects on level end when it goes off screen
-        if level_m.state ~= 3 then
+        if level_m.state ~= 3 and not self.is_ghost then
           sfx(10)
         end
       end
@@ -1274,9 +1276,9 @@ function on_checkpoint_crossed(self, car, cp_index)
 
         self.lap += 1
       end
+      sfx(15, -1, 0, 10)
     end
-    sfx(15, -1, 0, 10)
-  else
+  elseif not car.is_ghost then
     sfx(14, -1, 0, 3)
   end
 
