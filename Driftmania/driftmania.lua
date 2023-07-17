@@ -1136,7 +1136,7 @@ function _level_manager_draw(self)
   local camera_y = peek2(0x5f2a)
 
   -- intro sequence
-  if self.anim_frame <= 180 and self.lap == 1 then
+  if self.anim_frame <= 180 and self.lap == 1 and self.state ~= 3 then
     local x = camera_x + 41
     local y = camera_y + 24 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
     local c = self.anim_frame > 135 and 11 or self.anim_frame > 90 and 9 or self.anim_frame > 45 and 8 or 1
