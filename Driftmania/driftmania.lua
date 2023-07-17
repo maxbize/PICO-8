@@ -810,7 +810,7 @@ function _car_move(self, btns)
 
 
   -- Record ghost
-  if not self.is_ghost and self.ghost_frame <= 0x7fff then
+  if not self.is_ghost and self.ghost_frame < 0x7fff then
     ghost_recording[self.ghost_frame] = btns
     self.ghost_frame += 1
   end
