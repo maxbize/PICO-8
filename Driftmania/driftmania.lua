@@ -482,17 +482,19 @@ function _car_update(self)
     end
   else
     d_brake, move_fwd = _car_move(self, 0)
-    self.camera_target_x = 0
-    self.camera_target_y = 0
+    
+    
 
     if self.respawn_frames < 30 then
       -- Ease in/out quadratic curve
       local lerp_t = mid(0, 1, (30 - self.respawn_frames) / 20)
       lerp_t = lerp_t < 0.5 and 2 * lerp_t ^ 2 or 1 - (-2 * lerp_t + 2) ^ 2 / 2
 
-      local cam_x = self.respawn_start_x + (self.last_checkpoint_x - self.respawn_start_x) * lerp_t
-      local cam_y = self.respawn_start_y + (self.last_checkpoint_y - self.respawn_start_y) * lerp_t
-      camera(cam_x - 64, cam_y - 64)
+      local cam_x = self.respawn_start_x + (self.last_checkpoint_x - self.respawn_start_x) * lerp_t - 64
+      local cam_y = self.respawn_start_y + (self.last_checkpoint_y - self.respawn_start_y) * lerp_t - 64
+      self.camera_target_x = cam_x
+      self.camera_target_y = cam_y
+      camera(cam_x, cam_y)
     end
   end
 
