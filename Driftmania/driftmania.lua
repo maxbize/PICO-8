@@ -740,25 +740,7 @@ function _car_move(self, btns)
   end
 
   -- Velocity rotation
-  -- TODO: Cleanup ;)
-  local a = self.angle_fwd - angle_vel
-  if abs(a) < self.turn_rate_vel * mod_turn * 1.1 then
-    angle_vel = self.angle_fwd
-  else
-    if a < 0 then
-      a += 1
-    end
-    if a < 0.5 then
-      angle_vel += self.turn_rate_vel * abs(vel_dot_right) * mod_turn
-    else
-      angle_vel -= self.turn_rate_vel * abs(vel_dot_right) * mod_turn
-    end
-    if angle_vel < 0 then
-      angle_vel += 1
-    elseif angle_vel > 1 then
-      angle_vel -= 1
-    end
-  end
+  angle_vel += self.turn_rate_vel * abs(vel_dot_right) * mod_turn * ((self.angle_fwd - angle_vel) % 1 < 0.5 and 1 or -1)
   self.v_x, self.v_y = angle_vector(angle_vel, dist(self.v_x, self.v_y))
 
   -- Gravity
