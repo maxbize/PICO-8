@@ -542,7 +542,7 @@ function _ghost_update(self)
     _car_move(self, btns)
     self.ghost_frame += 1
   else
-    del(objects, self)
+    _car_move(self, 0)
   end
 end
 
