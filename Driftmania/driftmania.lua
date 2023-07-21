@@ -1739,7 +1739,7 @@ function spawn_customization_manager()
     update = _customization_manager_update,
     draw = _customization_manager_draw,
     car = {
-      x = 92,
+      x = 91,
       y = 68,
       z = 0,
       boost_frames = 0,
@@ -1748,15 +1748,15 @@ function spawn_customization_manager()
       water_wheels = 0,
       scale = 2
     },
-    data = parse_table_arr('text,original,chosen',[[
-|tYPE,0,0
-|bODY,8,8
-|sTRIPE,10,10
-|wINDOWS,4,1
-|wHEELS,0,0
-|uNDERGLOW,14,1
-|hEADLIGHTS,7,7
-|bUMPER,6,6
+    data = parse_table_arr('text,original,chosen,target_angle',[[
+|tYPE,0,0,0.875
+|bODY,8,8,0
+|sTRIPE,10,10,0.125
+|wINDOWS,4,1,0.625
+|wHEELS,0,0,0.375
+|uNDERGLOW,14,1,0.5
+|hEADLIGHTS,7,7,0.875
+|bUMPER,6,6,0.625
 ]]),
   }
 
@@ -1780,28 +1780,19 @@ function _customization_manager_draw(self)
     return
   end
 
-  local border = 11
   cls(0)
-  rectfill_outlined(0, border, 128, 128 - border, 12, 1)
+  rectfill_outlined(0, 11, 128, 117, 12, 1)
   print_shadowed('gARAGE', 54, 18, 7)
-  rectfill_outlined(61, 33, 121, 95, 12, 5)
+  rectfill_outlined(61, 33, 121, 95, 12, 13)
 
---  local ow = 22
---  local oh = 18
---  clip(0, 68, 128, 64)
---  oval(92-ow, 68-oh+3, 92+ow, 68+oh+3, 13)
---  oval(92-ow, 68-oh+2, 92+ow, 68+oh+2, 13)
---  oval(92-ow, 68-oh+1, 92+ow, 68+oh+1, 13)
---  clip()
---  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 6)
---  local xc = sin(self.car.angle_fwd) * ow
---  local yc = cos(self.car.angle_fwd) * oh
---  local bc = 8
---  clip(92 + xc - bc, 68 - yc - bc, bc*2, bc*2)
---  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
---  clip(92 - xc - bc, 68 + yc - bc, bc*2, bc*2)
---  oval(92-ow, 68-oh+0, 92+ow, 68+oh+0, 8)
---  clip()
+  local c = self.data[2].chosen
+  ovalfill(69, 50, 113, 86, 5)
+  oval    (69, 50, 113, 86, 6)
+  for i = -1, 1, 2 do
+    clip(83 + sin(time() * 0.25) * 22 * i, 60 - cos(time() * 0.25) * 18 * i, 16, 16)
+    oval(69, 50, 113, 86, c)
+  end
+  clip()
 
   _car_draw(self.car)
   self.menu.draw()
@@ -1813,7 +1804,19 @@ function _customization_manager_update(self)
   end
 
   camera()
-  self.car.angle_fwd += 0.003
+  --self.car.angle_fwd += 0.003
+  local a = self.data[min(self.menu.index, 8)].target_angle
+  local b = self.car.angle_fwd
+
+  if abs(a-b) > 0.5 then
+    if a > b then
+      b += 1
+    else
+      a += 1
+    end
+  end
+
+  self.car.angle_fwd = (self.car.angle_fwd + (a - b) * .25) % 1
   --self.car.angle_fwd = 0.5
 
   self.menu.update()
