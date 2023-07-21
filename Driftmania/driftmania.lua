@@ -300,16 +300,14 @@ function _draw()
 
     -- 1% CPU (idle)
     _particle_manager_vol_draw_fg(particle_vol_m)
+
+    _level_manager_draw(level_m)
   end
-
-
 
   -- 0% CPU
   for obj in all(objects) do
     obj.draw(obj)
   end
-
-  _level_manager_draw(level_m)
 
   --_player_debug_draw(player)
   --print(stat(0), player.x, player.y - 20, 0)
@@ -1087,10 +1085,6 @@ function _level_manager_update(self)
 end
 
 function _level_manager_draw(self)
-  if game_state ~= 0 then
-    return
-  end
-
   -- intro sequence
   if self.anim_frame <= 180 and self.lap == 1 and self.state ~= 3 then
     local x = camera_x + 41
@@ -1359,10 +1353,6 @@ end
 local solid_chunks = split('5,10,3,12')
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player, has_jumps)
-  if game_state ~= 0 then
-    return
-  end
-
   -- Find the map index of the top-left map segment
   --local draw_distance = 6 -- ceil(16/chunk_size)
 
