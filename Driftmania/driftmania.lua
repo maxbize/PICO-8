@@ -1,5 +1,5 @@
 -- driftmania
--- by @maxbize
+-- by max bize
 
 -- TODO: Token optimization around duplicated lookups of car state, wheel offsets, etc
 
@@ -646,7 +646,7 @@ function _car_move(self, btns)
   self.flash_frames = max(self.flash_frames - 1, 0)
   if self.boost_frames > 0 then
     if rnd(boost_duration) < self.boost_frames then
-      boost_particles(self, 10)
+      boost_particles(self)
     end
     self.boost_frames -= 1
     mod_max_vel *= 1 + (0.5 * self.boost_frames / boost_duration)
@@ -779,7 +779,7 @@ function _car_move(self, btns)
   return d_brake, move_fwd
 end
 
-function boost_particles(self, c)
+function boost_particles(self)
   local cone_angle = 0.1
   local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
   add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
@@ -804,11 +804,11 @@ function _car_draw(self)
       if d.text ~= 'tYPE' then
         local c = d.chosen
         pal(d.original, c)
-        if d.original == 8 then -- body - set gradient color
+        if d.text == 'bODY' then -- body - set gradient color
           local gradient_c = gradients[c]
           pal(2, gradient_c)
           pal(11, self.boost_frames > 10 and c or gradient_c)
-        elseif d.original == 4 then -- windows - set highlight color
+        elseif d.text == 'wINDOWS' then -- windows - set highlight color
           pal(12, gradients_rev[c])
         end
       end
