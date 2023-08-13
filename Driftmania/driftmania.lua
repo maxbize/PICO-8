@@ -200,6 +200,9 @@ function _init()
   -- Disable btnp repeat
   poke(0x5f5c, 255)
 
+  -- Enable full keyboard (for R to restart level)
+  poke(0x5f2d,1)
+
   init_outline_cache(outline_cache, 30.5)
   init_outline_cache(bbox_cache, 28.5)
 
@@ -526,11 +529,11 @@ function _car_move(self, btns)
   -- Input
   local move_side = 0
   local move_fwd = 0
-  if btns & 0x1 > 0 then move_side += 1 end
-  if btns & 0x2 > 0 then move_side -= 1 end
-  if btns & 0x4 > 0 then move_fwd  += 1 end
-  if btns & 0x8 > 0 then move_fwd  -= 1 end
-  local d_brake = btns & 0x10 > 0
+  if btns & 0x01 > 0 then move_side += 1 end
+  if btns & 0x02 > 0 then move_side -= 1 end
+  if btns & 0x14 > 0 then move_fwd  += 1 end -- Allow Up or O
+  if btns & 0x08 > 0 then move_fwd  -= 1 end
+  local d_brake = btns & 0x20 > 0
 
   -- Misc data
   local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
@@ -1064,7 +1067,7 @@ function _level_manager_update(self)
   end
 
   -- Restart level
-  if btnp(5) then
+  if stat(28, 21) then
     load_level(true)
   end
 
@@ -1643,14 +1646,15 @@ end
 
 -- Built-in PICO-8 menu
 function set_menu_items()
-  menuitem(1, 'quit level', quit_level)
-  menuitem(2, 'camera: ' .. (dynamic_camera_disabled and 'static' or 'dynamic'), function()
+  menuitem(1, 'restart level', function() load_level(true) end)
+  menuitem(2, 'quit level', quit_level)
+  menuitem(3, 'camera: ' .. (dynamic_camera_disabled and 'static' or 'dynamic'), function()
     dynamic_camera_disabled = not dynamic_camera_disabled
     dset(9, dynamic_camera_disabled and 1 or 0)
     set_menu_items()
     return true
   end)
-  menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
+  menuitem(4, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
     ghost_enabled = not ghost_enabled
     dset(10, ghost_enabled and 1 or 0)
     set_menu_items()
@@ -2005,7 +2009,7 @@ function _main_menu_manager_draw(self)
   line(35, 32, 92, 32, 7)
   print_shadowed('cREATED bY', 3, 107, 6)
   print_shadowed('mAX bIZE', 7, 115, 6)
-  print_shadowed('V 0.6.0', 98, 115, 6)
+  print_shadowed('V 0.6.1', 98, 115, 6)
 
   self.menu.draw()
 end
