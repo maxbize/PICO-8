@@ -743,6 +743,7 @@ function _car_move(self, btns)
     self.v_z = 0
     if self.z == 0 and not self.is_ghost then
       sfx(9)
+      smoke_particles(self, 10)
     end
   end
 
@@ -785,7 +786,13 @@ end
 function boost_particles(self)
   local cone_angle = 0.1
   local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4, true)
+end
+
+function smoke_particles(self, n)
+  for i = 1, n do
+    add_particle_vol(particle_vol_m, self.x, self.y, 0, rnd(1) < 0.5 and 6 or 7, rnd2(1.5), rnd2(1.5), 0, 30, 4, false)
+  end
 end
 
 local ghost_palette = parse_hash_map('8,2,10,4,6,1,7,6,12,13,14,1,4,1,11,2')
@@ -942,6 +949,7 @@ function _player_collides_at(self, x, y, z, angle, penalize)
         -- Really annoying to have the car crash effects on level end when it goes off screen
         if level_m.state ~= 3 and not self.is_ghost then
           sfx(10)
+          smoke_particles(self, rnd(2)+1)
         end
       end
       return true, check_x, check_y
@@ -1479,15 +1487,16 @@ function spawn_particle_manager_vol()
   }
 
   for i = 1, particle_m.max_points do
-    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, t_start=0, r=0, d=1})
+    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, t_start=0, r=0, d=1, relative=0})
   end
 
   return particle_m
 end
 
-function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r)
+function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r, relative)
+  relative = relative and 1 or 0
   --self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
-  self.points[self.points_i] = {x=x-player.x, y=y-player.y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
+  self.points[self.points_i] = {x=x-player.x*relative, y=y-player.y*relative, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85, relative=relative}
   self.points_i = (self.points_i % self.max_points) + 1
 end
 
@@ -1517,7 +1526,7 @@ function _particle_manager_vol_draw_bg(self)
   -- Shadow pass
   for p in all(self.points) do
     if p.t > 0 then
-      circfill(p.x+player.x, p.y+player.y, p.r + 1, 1)
+      circfill(p.x+player.x*p.relative, p.y+player.y*p.relative, p.r + 1, 1)
     end
   end  
 end
@@ -1531,7 +1540,7 @@ function _particle_manager_vol_draw_fg(self)
       --local y = mid(camera_y + p.r, p.y-p.z, camera_y +128-p.r)
       --circfill(x, y, p.r + 1, gradients[gradients[p.c]])
       --circfill(p.x, p.y-p.z, p.r + 1, gradients[gradients[p.c]])
-      circfill(p.x+player.x, p.y-p.z+player.y, p.r + 1, gradients[gradients[p.c]])
+      circfill(p.x+player.x*p.relative, p.y-p.z+player.y*p.relative, p.r + 1, gradients[gradients[p.c]])
     end
   end
 
@@ -1546,7 +1555,7 @@ function _particle_manager_vol_draw_fg(self)
       --clip(0, 0, 128, p.y - camera_y) -- clip bottom
       --circfill(x, y, p.r, c)
       --circfill(p.x, p.y-p.z, p.r, c)
-      circfill(p.x+player.x, p.y-p.z+player.y, p.r, c)
+      circfill(p.x+player.x*p.relative, p.y-p.z+player.y*p.relative, p.r, c)
       --clip(0, p.y - camera_y, 128, 128) -- clip top
       --if p.z <= p.r then
       --  ovalfill(p.x - p.r + u, p.y - p.r/2, p.x + p.r - u, p.y + p.r/2 - u, c)
@@ -2021,7 +2030,7 @@ function _main_menu_manager_update(self)
   camera()
 
   if rnd(1) < 0.5 then
-    add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6)
+    add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6, true)
   end
 
   self.menu.update()
