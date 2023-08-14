@@ -156,12 +156,12 @@ local map_bounds_data = {
 
 local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|a1,0,3,30,312,264,0.5,2880,2340,2100,1980" .. -- driftmaniaLevelA1.tmx settings
-  "|a2,0,3,30,264,240,0.25,2500,2000,1740,1650" .. -- driftmaniaLevelA2.tmx settings
-  "|b1,4,4,30,192,248,0.125,3100,2700,2375,2015" .. -- driftmaniaLevel2.tmx settings
-  "|b2,4,3,30,192,136,0.375,4100,2600,2300,2220" .. -- driftmaniaLevel1.tmx settings
-  "|b3,0,3,30,344,408,0.625,2500,2000,1740,1650" .. -- driftmaniaLevelB3.tmx settings
-  "|c1,8,4,30,288,528,0.5,3170,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
-  "|b3,0,3,30,344,408,0.625,2500,2000,1740,1650" .. -- driftmaniaLevelExp1.tmx settings
+  "|a2,0,3,30,264,240,0.25,2520,1980,1740,1650" .. -- driftmaniaLevelA2.tmx settings
+  "|b1,4,4,30,192,248,0.125,3120,2700,2376,2016" .. -- driftmaniaLevel2.tmx settings
+  "|b2,4,3,30,192,136,0.375,4080,2598,2298,2214" .. -- driftmaniaLevel1.tmx settings
+  "|b3,0,3,30,344,408,0.625,2520,1980,1740,1650" .. -- driftmaniaLevelB3.tmx settings
+  "|c1,8,4,30,288,528,0.5,3180,2670,2370,2250" .. -- driftmaniaLevel3.tmx settings
+  "|b3,0,3,30,344,408,0.625,2520,1980,1740,1650" .. -- driftmaniaLevelExp1.tmx settings
   ""
 )
 local map_checkpoints_data_header = "x,y,dx,dy,l"

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="90" height="90" tilewidth="8" tileheight="8" infinite="0" nextlayerid="5" nextobjectid="1">
  <properties>
-  <property name="bronze" type="int" value="2880"/>
-  <property name="gold" type="int" value="2100"/>
+  <property name="bronze" type="float" value="48"/>
+  <property name="gold" type="float" value="35"/>
   <property name="laps" type="int" value="3"/>
   <property name="name" value="a1 - sNAKE"/>
-  <property name="plat" type="int" value="1980"/>
+  <property name="plat" type="float" value="33"/>
   <property name="req_medals" type="int" value="0"/>
-  <property name="silver" type="int" value="2340"/>
+  <property name="silver" type="float" value="39"/>
  </properties>
  <tileset firstgid="1" source="driftmaniaTiles.tsx"/>
  <tileset firstgid="257" source="markers.tsx"/>

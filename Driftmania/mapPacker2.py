@@ -452,9 +452,16 @@ def build_settings(filename, data_map, props, n):
 	spawn_dir = (markers_data[spawn_y][spawn_x] - 256) / 8 # Sprite index divided by 8
 	#settings = f'{{laps={laps},size={size},spawn_x={spawn_x*8},spawn_y={spawn_y*8},spawn_dir={spawn_dir}}}'
 	name = props["name"].split()[0] # TODO: Add support for longer names in UI
-	settings = f'"|{name},{props["req_medals"]},{props["laps"]},{size},{spawn_x*8},{spawn_y*8},{spawn_dir},{props["bronze"]},{props["silver"]},{props["gold"]},{props["plat"]}" ..'
+	bronze = to_frames(props["bronze"])
+	silver = to_frames(props["silver"])
+	gold   = to_frames(props["gold"])
+	plat   = to_frames(props["plat"])
+	settings = f'"|{name},{props["req_medals"]},{props["laps"]},{size},{spawn_x*8},{spawn_y*8},{spawn_dir},{bronze},{silver},{gold},{plat}" ..'
 
 	replace_lua_str(filename, 'settings', settings)
+
+def to_frames(time):
+	return math.ceil(float(time)*60)
 
 def process_file(filename):
 	# Grab the raw data
