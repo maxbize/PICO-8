@@ -229,10 +229,15 @@ def get_line_props(line, props_data):
 	# Get the gfx definition
 	with codecs.open(sys.argv[2], 'r', 'utf-8') as f:
 		p8_lines = f.readlines()
+	start = 0
+	end = 0
 	for i, p8_line in enumerate(p8_lines):
 		if '__gfx__' in p8_line:
-			gfx_lines = p8_lines[i+1:i+81]
-			break
+			start = i+1
+		if '__label__' in p8_line:
+			end = i
+	gfx_lines = p8_lines[start:end]
+
 	# gfx lookups equivalent to sget(y, x)
 	gfx = [[int(c, 16) for c in gfx_line[:-1]] for gfx_line in gfx_lines]
 
