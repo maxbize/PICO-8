@@ -127,6 +127,7 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 	return map_str_comp
 
 def replace_lua_str(filename, data_type, s):
+	filename = filename.split('\\')[-1]
 	marker = f'{filename} {data_type}'
 	with codecs.open(sys.argv[1], 'r', 'utf-8') as f:
 		lines = f.readlines()

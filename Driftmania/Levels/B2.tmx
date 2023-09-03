@@ -9,8 +9,8 @@
   <property name="req_medals" type="int" value="4"/>
   <property name="silver" type="float" value="43.3"/>
  </properties>
- <tileset firstgid="1" source="driftmaniaTiles.tsx"/>
- <tileset firstgid="257" source="markers.tsx"/>
+ <tileset firstgid="1" source="../driftmaniaTiles.tsx"/>
+ <tileset firstgid="257" source="../markers.tsx"/>
  <layer id="1" name="Road" width="90" height="90">
   <data encoding="csv">
 27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,

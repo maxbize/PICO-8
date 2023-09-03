@@ -4,13 +4,13 @@
   <property name="bronze" type="float" value="42"/>
   <property name="gold" type="float" value="29"/>
   <property name="laps" type="int" value="3"/>
-  <property name="name" value="a4"/>
+  <property name="name" value="a3"/>
   <property name="plat" type="float" value="27.5"/>
   <property name="req_medals" type="int" value="0"/>
   <property name="silver" type="float" value="33"/>
  </properties>
- <tileset firstgid="1" source="driftmaniaTiles.tsx"/>
- <tileset firstgid="257" source="markers.tsx"/>
+ <tileset firstgid="1" source="../driftmaniaTiles.tsx"/>
+ <tileset firstgid="257" source="../markers.tsx"/>
  <layer id="1" name="Road" width="90" height="90">
   <data encoding="csv">
 27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,
