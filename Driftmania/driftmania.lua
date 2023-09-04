@@ -137,7 +137,7 @@ local map_decals_data = {
   "\0◝\0=W¹^¹_¹\0」`¹\0¹a¹b¹\0•■¹\0•W¹c¹\0⁴W¹^¹_¹\0‖d¹e¹\0⁴a¹b¹\0◀f¹\0⁴g¹\0「h¹\0²W¹c¹\0¹▮¹\0◀0¹.¹-¹\0¹d¹e¹\0「i¹j¹\0²f¹\0」k¹G¹\0◝\0=", -- B3.tmx decals
   "\0◝\0/l¹」²m¹\0▮「²\0⁘\r²‖¹\0。▶¹⁷¹\0、⁸¹\t¹\0、ᵇ¹▮¹\0•ᶜ¹\r²■¹\0」⁵¹ᵉ¹\0、◀¹\0。◀¹\0。□¹⁙¹\0。⁘¹\0○n¹\0。%¹\0。%¹\0。o¹\0B", -- C1.tmx decals
   "\0◝\0\0ᶜ¹\0、⁵¹ᵉ¹p¹\0•◀¹\0²⁴¹\0¥◀¹\0「ᶜ¹‖¹\0•⁵¹ᵉ¹▶¹⁷¹\0¹q¹」¹\0²」²\0⁙◀¹\0³r¹\0」◀¹\0³r¹\0⁵‖¹\0▶s¹t¹\0⁴▶¹u¹v¹\0、w¹ᵇ¹\0•w¹\0、w¹\0、w¹\0「\n¹\0³w¹\0」\n¹\0ノ", -- D1.tmx decals
-  "\0◝\0/l¹」²m¹\0▮「²\0⁘\r²‖¹\0。▶¹⁷¹\0、⁸¹\t¹\0、ᵇ¹▮¹\0•ᶜ¹\r²■¹\0」⁵¹ᵉ¹\0、◀¹\0。◀¹\0。□¹⁙¹\0。⁘¹\0○n¹\0。%¹\0。%¹\0。o¹\0B", -- WIP1.tmx decals
+  "\0▤x¹\0゜y¹N¹z¹{¹\0」|¹}¹²²~¹\0「○¹█¹²³~¹\0▶▒¹🐱¹²⁴⬇️¹\0▶░¹²⁴✽¹\0ᶠ「²\0⁷●¹²³♥¹☉¹\0⁷\r²‖¹\0ᵉ웃¹⌂¹²³⬅️¹O¹\0⁸▶¹⁷¹\0\r|¹😐¹²⁴Q¹\0⁸⁸¹\t¹\0\r♪¹🅾️¹◆¹²³Q¹\0⁸ᵇ¹▮¹\0ᶠ…¹⌂¹²²➡️¹\0⁷ᶜ¹\r²■¹\0ᶠS¹★¹⧗¹⬆️¹\0⁶⁵¹ᵉ¹\0、◀¹\0ᶜˇ¹∧¹❎¹\0ᵉ◀¹\0ᵇ▤¹▥¹²²\0ᵉ□¹⁙¹\0\tあ¹²⁴\0ᶠ⁘¹\0\t●¹²⁴\0」い¹²⁴\0⁙▤¹z¹う¹え¹\0²い¹²⁴\0■ˇ¹お¹²³か¹き¹\0¹く¹²⁴\0■け¹²⁵♥¹z¹²⁵\0■♪¹こ¹²ᵇ\0□さ¹し¹²\n\0⁘H¹こ¹²⁴T¹²¹す¹せ¹\0‖さ¹そ¹た¹🅾️¹ち¹\0¹…¹⬆️¹\0゜", -- WIP1.tmx decals
 }
 local map_props_data = {
   "\0웃¹¹²⁵³¹\0▶⁴¹\0⁵⁴¹\0▶⁴¹\0⁵⁴¹\0▶⁴¹\0²⁵¹\0²⁴¹\0▶⁴¹\0²⁴¹\0²⁴¹\0ᵇ¹¹²ᵇ⁶¹\0²⁴¹\0²⁴¹\0ᵇ⁴¹\0ᵉ⁴¹\0²⁴¹\0ᵇ⁴¹\0ᵉ⁴¹\0²⁴¹\0ᵇ⁴¹\0²¹¹²ᵇ⁶¹\0²⁴¹\0ᵇ⁴¹\0²⁴¹\0ᵉ⁴¹\0ᵇ⁴¹\0²⁴¹\0ᵉ⁴¹\0ᵇ⁴¹\0²⁴¹\0²⁷¹²ᵇ⁶¹\0ᵇ⁴¹\0²⁴¹\0²⁸¹²⁵³¹\0■⁴¹\0²⁴¹\0⁸⁴¹\0■⁴¹\0²⁴¹\0⁸⁴¹\0■⁴¹\0²\t¹²⁵³¹\0²⁴¹\0■⁴¹\0²⁴¹\0⁵⁴¹\0²⁴¹\0■⁴¹\0²\n¹²⁵⁶¹\0²⁴¹\0■⁴¹\0ᵇ⁴¹\0■⁴¹\0ᵇ⁴¹\0■\n¹²ᵇ⁶¹\0け", -- A1.tmx props
@@ -169,7 +169,7 @@ local map_settings_data = parse_table_arr("name,req_medals,laps,size,spawn_x,spa
   "|b1,4,4,30,192,248,0.125,3120,2700,2376,2016" .. -- B1.tmx settings
   "|b2,4,3,30,192,136,0.375,4080,2598,2298,2214" .. -- B2.tmx settings
   "|b3,0,3,30,344,408,0.625,2520,1980,1740,1650" .. -- B3.tmx settings
-  "|wip1,0,2,30,552,264,0.25,2700,2100,1800,1740" .. -- C1.tmx settings
+  "|c1,0,2,30,552,264,0.25,2700,2100,1800,1740" .. -- C1.tmx settings
   "|d1,8,4,30,288,528,0.5,3180,2670,2370,2250" .. -- D1.tmx settings
   "|wip1,0,2,30,552,264,0.25,2700,2100,1800,1740" .. -- WIP1.tmx settings
   ""
@@ -184,7 +184,7 @@ local map_checkpoints_data = {
   parse_table_arr(map_checkpoints_data_header, '|310,390,1,1,52|334,262,1,1,52|438,366,1,1,52'), -- B3.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|517,252,1,0,69|61,252,1,0,69|394,322,1,1,68|564,589,0,1,71'), -- C1.tmx checkpoints
   parse_table_arr(map_checkpoints_data_header, '|276,493,0,1,71|317,324,1,0,53|397,324,1,0,69'), -- D1.tmx checkpoints
-  parse_table_arr(map_checkpoints_data_header, '|517,252,1,0,69|61,252,1,0,69|394,322,1,1,68|564,589,0,1,71'), -- WIP1.tmx checkpoints
+  parse_table_arr(map_checkpoints_data_header, '|517,252,1,0,69|394,322,1,1,68'), -- WIP1.tmx checkpoints
 }
 local map_jumps_data = {
   {}, -- A1.tmx jumps
@@ -448,8 +448,8 @@ end
 --------------------
 function create_car(x, y, dir, is_ghost)
   -- Car creation is split into static and dynamic parts to save tokens
-  local car = parse_table('z,x_remainder,y_remainder,z_remainder,v_x,v_y,v_z,turn_rate_fwd,turn_rate_vel,accel,brake,max_speed_fwd,max_speed_rev,f_friction,f_corrective,boost_frames,flash_frames,water_wheels,scale,respawn_frames,respawn_start_x,respawn_start_y,engine_pitch,ghost_frame,wall_penalty_frames,next_checkpoint',
-    '0,0,0,0,0,0,0,0.0060,0.0050,0.075,0.05,2.2,0.5,0.02,0.1,0,0,0,1,0,0,0,0,1,0,2')
+  local car = parse_table('z,x_remainder,y_remainder,z_remainder,v_x,v_y,v_z,turn_rate_fwd,turn_rate_vel,accel,brake,max_speed_fwd,max_speed_rev,f_friction,f_corrective,boost_frames,flash_frames,water_wheels,water_frames,scale,respawn_frames,respawn_start_x,respawn_start_y,engine_pitch,ghost_frame,wall_penalty_frames,next_checkpoint',
+    '0,0,0,0,0,0,0,0.0060,0.0050,0.075,0.05,2.2,0.5,0.02,0.1,0,0,0,0,1,0,0,0,0,1,0,2')
 
   car.x = x
   car.y = y
@@ -594,7 +594,6 @@ function _car_move(self, btns)
   -- Apply the wheel modifiers
   local mod_turn = 1
   local mod_corrective = 1
-  local mod_max_vel = 1
   local mod_friction = 1
   local mod_accel = 1
   local mod_brake = 1
@@ -628,6 +627,8 @@ function _car_move(self, btns)
     mod_corrective = 2
     d_brake = false -- no d-brake in water
   end
+  self.water_frames = mid(0, 15, self.water_frames + (self.water_wheels >= 2 and 1 or -1))
+  local mod_max_vel = 1 - self.water_frames / 75 -- / 15 * 0.2
 
   -- Note: allowing air control close to ground feels better
   if self.z > 6 and self.boost_frames == 0 then
@@ -1045,10 +1046,10 @@ function load_level(start)
   map_jumps = map_jumps_data[level_index]
   map_jump_frames = split('0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
 
-  -- TODO: Automate
+  -- Note: offsets automated by mapPacker
   map_road_chunks, map_road_tiles = load_map(map_road_data[level_index], 0, map_settings.size)
-  map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], 76, map_settings.size)
-  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 76+120, map_settings.size)
+  map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], 76, map_settings.size) -- global decals_offset
+  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 247, map_settings.size) -- global props_offset
   map_bounds_chunks = load_map(map_bounds_data[level_index], 0, map_settings.size)
 
   spawn_level_manager()
@@ -1383,8 +1384,8 @@ local sprite_sorts = {}
 for __i, __spr_index in pairs(split('43,44,45,46,47,59,60,61,62')) do
   sprite_sorts[__spr_index] = sprite_sorts_raw[__i]
 end
--- Table of chunk index -> color. Color 0 == nothing
-local solid_chunks = parse_hash_map('0,0,1,5,2,3,76,0,77,10,78,12,196,0') -- split('5,10,3,12') TODO: automate
+-- Table of chunk index -> color. Color 0 == nothing. Note: automated by mapPacker
+  local solid_chunks = parse_hash_map('0,0,1,5,2,3,76,0,77,10,78,12,247,0') -- global solid_chunks
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player, has_jumps)
   -- Find the map index of the top-left map segment
