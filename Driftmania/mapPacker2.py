@@ -536,11 +536,11 @@ def process_file(filename):
 	build_jumps(filename, data_map['Decals'], chunk_size)
 	build_bounds(filename, data_map, chunk_size)
 	build_settings(filename, data_map, properties, chunk_size)
-	build_globals()
 
 
 for filename in sys.argv[3:]:
 	process_file(filename)
+build_globals()
 
 bin_s = ''
 for char in p8scii:
