@@ -154,7 +154,7 @@ def replace_lua_str(filename, data_type, s):
 		if marker in line:
 			new_line = f"  {s} -- {marker}\r\n" # Windows will force \r so make sure to use it in comparison
 			if line != new_line:
-				lines[i] = f"  {s} -- {marker}\n"
+				lines[i] = new_line
 				modified = True
 			break
 	if modified:
@@ -490,6 +490,19 @@ def build_settings(filename, data_map, props, n):
 def to_frames(time):
 	return math.ceil(float(time)*60)
 
+def build_globals():
+	# Offsets for start of chunks in __map__
+	decals_offset = len(chunks['Road'])
+	decals_offset_str = f'map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], {decals_offset}, map_settings.size)'
+	replace_lua_str('global', 'decals_offset', decals_offset_str)
+	props_offset = decals_offset + len(chunks['Decals'])
+	props_offset_str = f'map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], {props_offset}, map_settings.size)'
+	replace_lua_str('global', 'props_offset', props_offset_str)
+
+	# Solid chunk mapping
+	mapping = f'0,0,1,5,2,3,{decals_offset},0,{decals_offset+1},10,{decals_offset+2},12,{props_offset},0'
+	replace_lua_str('global', 'solid_chunks', f"local solid_chunks = parse_hash_map('{mapping}')")
+
 def process_file(filename):
 	# Grab the raw data
 	root = ET.parse(filename).getroot()
@@ -523,6 +536,7 @@ def process_file(filename):
 	build_jumps(filename, data_map['Decals'], chunk_size)
 	build_bounds(filename, data_map, chunk_size)
 	build_settings(filename, data_map, properties, chunk_size)
+	build_globals()
 
 
 for filename in sys.argv[3:]:
