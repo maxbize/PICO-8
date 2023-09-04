@@ -82,6 +82,10 @@ def write_map(chunk_layers, n):
 	#print(''.join(p8_map_str))
 	#print()
 
+# Rotate bits to get more characters in the non UTF range
+def rotate_val(val):
+	return int(val, 16) # todo if I run out of chars / compressed space :)
+
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
 # Note: chr/ord stores 7 bits per character (valid range 16-255), hex stores 4 bits per character
 # Note: "flag" refers to a single bit flag specifying if the next value will be an index (0) or count (1)
@@ -102,25 +106,21 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 	max_count = 255
 	map_str_comp = ""
 	i = 0
-	val = map_hex[i:i+2]
+	val = rotate_val(map_hex[i:i+2])
 	count = 0
 	total_count = 0
 	while i < len(map_hex):
-		next_val = map_hex[i:i+2]
+		next_val = rotate_val(map_hex[i:i+2])
 		i += 2
 		if val == next_val:
 			count += 1
 		if val != next_val or count == max_count or i >= len(map_hex):
-			val_int = int(val, 16)
+			val_int = val
 			# Build out the map string depending on the compression level
 			if compression_level == 1:
-				map_str_comp += f'{val}{count:0{2}x}'
+				exit('no longer supported')
 			elif compression_level == 2:
-				if count == 1:
-					map_str_comp += f'{val}'
-				else:
-					val_int |= 1<<7 # Flag is 8th bit
-					map_str_comp += f'{val_int:0{2}x}{count:0{2}x}'
+				exit('no longer supported')
 			elif compression_level == 3:
 				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
 					map_str_comp += f'\\000\\000{p8scii[count]}'
@@ -145,16 +145,21 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 	return map_str_comp
 
 def replace_lua_str(filename, data_type, s):
+	modified = False
 	filename = filename.split('\\')[-1]
 	marker = f'{filename} {data_type}'
 	with codecs.open(sys.argv[1], 'r', 'utf-8') as f:
 		lines = f.readlines()
 	for i, line in enumerate(lines):
 		if marker in line:
-			lines[i] = f"  {s} -- {marker}\n"
+			new_line = f"  {s} -- {marker}\r\n" # Windows will force \r so make sure to use it in comparison
+			if line != new_line:
+				lines[i] = f"  {s} -- {marker}\n"
+				modified = True
 			break
-	with codecs.open(sys.argv[1], 'w', 'utf-8') as f:
-		f.writelines(lines)
+	if modified:
+		with codecs.open(sys.argv[1], 'w', 'utf-8') as f:
+			f.writelines(lines)
 
 def build_map(filename, data_map, n, pad_x, pad_y):
 	for name in data_map:
