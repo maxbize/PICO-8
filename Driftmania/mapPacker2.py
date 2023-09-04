@@ -18,15 +18,14 @@ sys.stdout.reconfigure(encoding='utf-8')
 p8scii = ["\\0", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "\\t", "\\n", "ᵇ", "ᶜ", "\\r", "ᵉ", "ᶠ", "▮", "■", "□", "⁙", "⁘", "‖", "◀", "▶", "「", "」", "¥", "•", "、", "。", "゛", "゜", " ", "!", "\\\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\\\", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~", "○", "█", "▒", "🐱", "⬇️", "░", "✽", "●", "♥", "☉", "웃", "⌂", "⬅️", "😐", "♪", "🅾️", "◆", "…", "➡️", "★", "⧗", "⬆️", "ˇ", "∧", "❎", "▤", "▥", "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と", "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ", "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り", "る", "れ", "ろ", "わ", "を", "ん", "っ", "ゃ", "ゅ", "ょ", "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ヲ", "ン", "ッ", "ャ", "ュ", "ョ", "◜", "◝"]
 
 # Chunk state is global so that chunks are shared across maps
-chunks = {} # string of index,index,.. -> chunk index
+chunks = {'Road': {}, 'Props': {}, 'Decals': {}} # string of index,index,.. -> chunk index
 chunk_counts = {} # Helps keep track if there's some chunks that have low use and should be altered
 # Seed the first chunks with solid colors
-for idx in [0, 1, 21, 26, 64]:
+for name, idx in [('Road', 0), ('Road', 1), ('Road', 26), ('Props', 0), ('Decals', 0), ('Decals', 21), ('Decals', 64)]:
 	chunk_size = 3
 	chunk = ''.join([f'{idx:003}' for _ in range(chunk_size**2)])
-	chunks[chunk] = len(chunks)
+	chunks[name][chunk] = len(chunks[name])
 	chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
-
 
 # Get index,index,.. of chunk size n*n starting at x,y
 def get_chunk(data, x, y, n):
@@ -40,18 +39,31 @@ def get_chunk(data, x, y, n):
 	return chunk
 
 # Write into the __map__ of the .p8 file. Each line is one row of hex indices
-# Manually copy into .p8 for now ;)
-def write_map(chunks, n):
-	chunks_by_index = {chunks[k]: k for k in chunks}
+def write_map(chunk_layers, n):
 	chunks_per_row = math.floor(128 / n) # Map is 128 tiles wide
-	num_rows = math.ceil(len(chunks) / chunks_per_row)
+	num_chunks = sum([len(chunk_layer) for chunk_layer in chunk_layers.values()])
+	num_rows = math.ceil(num_chunks / chunks_per_row)
 	p8_map = [[0 for _ in range(128)] for row in range(num_rows * n)]
-	for i in range(len(chunks)):
+	for i in range(num_chunks):
+
+		# Update the current chunk map
+		if i == 0:
+			chunks_by_index = {chunk_layers['Road'][k]: k for k in chunk_layers['Road']}
+			j = 0
+		elif i == len(chunk_layers['Road']):
+			chunks_by_index = {chunk_layers['Decals'][k]: k for k in chunk_layers['Decals']}
+			j = 0
+		elif i == len(chunk_layers['Road']) + len(chunk_layers['Decals']):
+			chunks_by_index = {chunk_layers['Props'][k]: k for k in chunk_layers['Props']}
+			j = 0
+
 		for x in range(n):
 			for y in range(n):
 				start_index = (x + y * n) * 3 # 3 chars per int
-				val = int(chunks_by_index[i][start_index:start_index+3])
+				val = int(chunks_by_index[j][start_index:start_index+3])
 				p8_map[math.floor(i / chunks_per_row) * n + y][(i % chunks_per_row) * n + x] = val
+
+		j += 1
 
 	# Convert map to string
 	p8_map_str = [f"{''.join([f'{val:0{2}x}' for val in row])}\n" for row in p8_map]
@@ -77,14 +89,15 @@ def write_map(chunks, n):
 #  0: uncompressed
 #  1: 8 bit index, 8 bit count as hex (4 chars per token)
 #  2: 7 bit index + 1 bit count flag, 8 bit count as hex (2-4 chars per token). Requires <= 2**7 chunks
-#  3: 8 bit index, 8 bit count as unicode (2 chars per token). Requires <= 2**8 chunks
-#  4: 7 bit index + 1 bit count flag, 8 bit count as unicode (1-2 chars per token). Requires <= 2**7 chunks
+#  3: 16 bit index, 8 bit count as unicode (3 chars per token). Requires <= 2**16 chunks
+#  4: 8 bit index, 8 bit count as unicode (2 chars per token). Requires <= 2**8 chunks
+#  5: 7 bit index + 1 bit count flag, 8 bit count as unicode (1-2 chars per token). Requires <= 2**7 chunks
 # TODO: None of the compressions have been tested ;) There's probably bugs
 # TODO: If the num_chunks is per layer, and sprites aren't shared between layers, you could use higher compression
 def compress_map_str(map_hex, num_chunks, compression_level):
 	if compression_level == 0:
 		return map_hex
-	if ([0, 2**8, 2**7, 2**8, 2**7])[compression_level] < num_chunks:
+	if ([0, 2**8, 2**7, 2**16, 2**8, 2**7])[compression_level] < num_chunks:
 		raise Exception(f'Cannot use compression level {compression_level} - too many chunks ({num_chunks})')
 	max_count = 255
 	map_str_comp = ""
@@ -110,10 +123,15 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 					map_str_comp += f'{val_int:0{2}x}{count:0{2}x}'
 			elif compression_level == 3:
 				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
+					map_str_comp += f'\\000\\000{p8scii[count]}'
+				else:
+					map_str_comp += f'{p8scii[val_int >> 8]}{p8scii[val_int & 0xff]}{p8scii[count]}'
+			elif compression_level == 4:
+				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
 					map_str_comp += f'\\000{p8scii[count]}'
 				else:
 					map_str_comp += f'{p8scii[val_int]}{p8scii[count]}'
-			elif compression_level == 4:
+			elif compression_level == 5:
 				if count == 1:
 					map_str_comp += f'{p8scii[val_int]}'
 				else:
@@ -143,8 +161,9 @@ def build_map(filename, data_map, n, pad_x, pad_y):
 		if name.lower() == 'markers':
 			continue
 
+		layer_chunks = chunks[name]
 		data = data_map[name]
-		map_hex = ""  # The map tile values. 8 bits per tile
+		map_hex = ""  # The map tile values. 16 bits per tile
 		num_rows = len(data)
 		num_cols = len(data[0])
 
@@ -152,17 +171,17 @@ def build_map(filename, data_map, n, pad_x, pad_y):
 		for y in range(math.ceil(num_rows / n)):
 			for x in range(math.ceil(num_cols / n)):
 				chunk = get_chunk(data, x * n - pad_x, y * n - pad_y, n)
-				if chunk not in chunks:
-					chunks[chunk] = len(chunks)
+				if chunk not in layer_chunks:
+					layer_chunks[chunk] = len(layer_chunks)
 				chunk_counts[chunk] = chunk_counts.get(chunk, 0) + 1
-				map_hex += f'{chunks[chunk]:0{2}x}' # 0{2} == pad to two digits
-		num_chunks = len(chunks)
+				map_hex += f'{layer_chunks[chunk]:0{2}x}' # 0{4} == pad to four digits
+		num_chunks = len(layer_chunks)
 
 		# TODO: Re-index chunks by count. Helps to find chunks that are rarely used
 
 		# Compress the string. First byte is index, second byte is count
 		#print(f'\n>>{filename} {name}:\n{map_hex}\n')
-		map_str_comp = compress_map_str(map_hex, num_chunks, 3)
+		map_str_comp = compress_map_str(map_hex, num_chunks, 4)
 
 		#print(f'\n{name} map_data (raw):\n{map_hex}')
 		#print(f'\n{name} map_data (compressed):\n{map_str_comp}')
@@ -170,11 +189,13 @@ def build_map(filename, data_map, n, pad_x, pad_y):
 
 	#if n == 6 and pad_x == 0 and pad_y == 0:
 	write_map(chunks, n)
+	num_chunks = sum([len(chunk_layer) for chunk_layer in chunks.values()])
+	num_chunks_per_layer = {k: len(chunks[k]) for k in chunks}
 	print()
 	print(f'For n = {n}, pad_x = {pad_x}, pad_y = {pad_y}')
 	print(f'Map string length (raw): {len(map_hex)}')
 	print(f'Map string length (comp): {len(map_str_comp)}')
-	print(f'Number of chunks: {num_chunks}')
+	print(f'Number of chunks: {num_chunks} - {num_chunks_per_layer}')
 	print(f'Chunk space on map: {num_chunks * n * n} (out of {128*32})')
 	print()
 
@@ -407,7 +428,7 @@ def build_bounds(filename, data_map, n):
 		for col in bounds_map[row]:
 			s += f'{bounds_map[row][col]:0{2}x}' # 0{2} == pad to two digits
 
-	bounds_str_comp = compress_map_str(s, num_chunks, 3)
+	bounds_str_comp = compress_map_str(s, num_chunks, 4)
 
 	replace_lua_str(filename, 'bounds', f'"{bounds_str_comp}",')
 
