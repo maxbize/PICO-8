@@ -5,6 +5,7 @@ TODO: So much code cleanup ;)
 '''
 
 import codecs
+import glob
 import math
 import re
 import sys
@@ -539,7 +540,11 @@ def process_file(filename):
 
 
 for filename in sys.argv[3:]:
-	process_file(filename)
+	if '*' in filename:
+		for glob_file in glob.glob(filename):
+			process_file(glob_file)
+	else:
+		process_file(filename)
 build_globals()
 
 bin_s = ''
