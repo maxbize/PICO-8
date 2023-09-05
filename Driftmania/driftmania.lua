@@ -137,7 +137,7 @@ local map_decals_data = {
   "\0◝\0=W¹^¹_¹\0」`¹\0¹a¹b¹\0•■¹\0•W¹c¹\0⁴W¹^¹_¹\0‖d¹e¹\0⁴a¹b¹\0◀f¹\0⁴g¹\0「h¹\0²W¹c¹\0¹▮¹\0◀0¹.¹-¹\0¹d¹e¹\0「i¹j¹\0²f¹\0」k¹G¹\0◝\0=", -- B3.tmx decals
   "\0◝\0/l¹」²m¹\0▮「²\0⁘\r²‖¹\0。▶¹⁷¹\0、⁸¹\t¹\0、ᵇ¹▮¹\0•ᶜ¹\r²■¹\0」⁵¹ᵉ¹\0、◀¹\0。◀¹\0。□¹⁙¹\0。⁘¹\0○n¹\0。%¹\0。%¹\0。o¹\0B", -- C1.tmx decals
   "\0◝\0\0ᶜ¹\0、⁵¹ᵉ¹p¹\0•◀¹\0²⁴¹\0¥◀¹\0「ᶜ¹‖¹\0•⁵¹ᵉ¹▶¹⁷¹\0¹q¹」¹\0²」²\0⁙◀¹\0³r¹\0」◀¹\0³r¹\0⁵‖¹\0▶s¹t¹\0⁴▶¹u¹v¹\0、w¹ᵇ¹\0•w¹\0、w¹\0、w¹\0「\n¹\0³w¹\0」\n¹\0ノ", -- D1.tmx decals
-  "\0▤x¹\0゜y¹N¹z¹{¹\0」|¹}¹²²~¹\0「○¹█¹²³~¹\0▶▒¹🐱¹²⁴⬇️¹\0▶░¹²⁴✽¹\0ᶠ「²\0⁷●¹²³♥¹☉¹\0⁷\r²‖¹\0ᵉ웃¹⌂¹²³⬅️¹O¹\0⁸▶¹⁷¹\0\r|¹😐¹²⁴Q¹\0⁸⁸¹\t¹\0\r♪¹🅾️¹◆¹²³Q¹\0⁸ᵇ¹▮¹\0ᶠ…¹⌂¹²²➡️¹\0⁷ᶜ¹\r²■¹\0ᶠS¹★¹⧗¹⬆️¹\0⁶⁵¹ᵉ¹\0、◀¹\0ᶜˇ¹∧¹❎¹\0ᵉ◀¹\0ᵇ▤¹▥¹²²\0ᵉ□¹⁙¹\0\tあ¹²⁴\0ᶠ⁘¹\0\t●¹²⁴\0」い¹²⁴\0⁙▤¹z¹う¹え¹\0²い¹²⁴\0■ˇ¹お¹²³か¹き¹\0¹く¹²⁴\0■け¹²⁵♥¹z¹²⁵\0■♪¹こ¹²ᵇ\0□さ¹し¹²\n\0⁘H¹こ¹²⁴T¹²¹す¹せ¹\0‖さ¹そ¹た¹🅾️¹ち¹\0¹…¹⬆️¹\0゜", -- WIP1.tmx decals
+  "\0◝\0C「²\0⁘\r²‖¹\0。▶¹⁷¹\0、⁸¹\t¹\0、ᵇ¹▮¹\0•ᶜ¹\r²■¹\0」⁵¹ᵉ¹\0、◀¹\0。◀¹\0。□¹⁙¹\0。⁘¹\0◝\0。", -- WIP1.tmx decals
 }
 local map_props_data = {
   "\0웃¹¹²⁵³¹\0▶⁴¹\0⁵⁴¹\0▶⁴¹\0⁵⁴¹\0▶⁴¹\0²⁵¹\0²⁴¹\0▶⁴¹\0²⁴¹\0²⁴¹\0ᵇ¹¹²ᵇ⁶¹\0²⁴¹\0²⁴¹\0ᵇ⁴¹\0ᵉ⁴¹\0²⁴¹\0ᵇ⁴¹\0ᵉ⁴¹\0²⁴¹\0ᵇ⁴¹\0²¹¹²ᵇ⁶¹\0²⁴¹\0ᵇ⁴¹\0²⁴¹\0ᵉ⁴¹\0ᵇ⁴¹\0²⁴¹\0ᵉ⁴¹\0ᵇ⁴¹\0²⁴¹\0²⁷¹²ᵇ⁶¹\0ᵇ⁴¹\0²⁴¹\0²⁸¹²⁵³¹\0■⁴¹\0²⁴¹\0⁸⁴¹\0■⁴¹\0²⁴¹\0⁸⁴¹\0■⁴¹\0²\t¹²⁵³¹\0²⁴¹\0■⁴¹\0²⁴¹\0⁵⁴¹\0²⁴¹\0■⁴¹\0²\n¹²⁵⁶¹\0²⁴¹\0■⁴¹\0ᵇ⁴¹\0■⁴¹\0ᵇ⁴¹\0■\n¹²ᵇ⁶¹\0け", -- A1.tmx props
@@ -1049,7 +1049,7 @@ function load_level(start)
   -- Note: offsets automated by mapPacker
   map_road_chunks, map_road_tiles = load_map(map_road_data[level_index], 0, map_settings.size)
   map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], 76, map_settings.size) -- global decals_offset
-  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 247, map_settings.size) -- global props_offset
+  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 196, map_settings.size) -- global props_offset
   map_bounds_chunks = load_map(map_bounds_data[level_index], 0, map_settings.size)
 
   spawn_level_manager()
@@ -1385,7 +1385,7 @@ for __i, __spr_index in pairs(split('43,44,45,46,47,59,60,61,62')) do
   sprite_sorts[__spr_index] = sprite_sorts_raw[__i]
 end
 -- Table of chunk index -> color. Color 0 == nothing. Note: automated by mapPacker
-  local solid_chunks = parse_hash_map('0,0,1,5,2,3,76,0,77,10,78,12,247,0') -- global solid_chunks
+  local solid_chunks = parse_hash_map('0,0,1,5,2,3,76,0,77,10,78,12,196,0') -- global solid_chunks
 -- Sorting takes 24% CPU
 function draw_map(map_chunks, map_size, chunk_size, draw_below_player, draw_above_player, has_jumps)
   -- Find the map index of the top-left map segment
@@ -2000,7 +2000,8 @@ end
 function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', function() game_state = 2 end),
-    new_button(0, 10, 'gARAGE', function() game_state = 1 end)
+    new_button(0, 10, 'gARAGE', function() game_state = 1 end),
+    new_button(-48, 33, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
   }
 
   add(objects, {
@@ -2041,7 +2042,6 @@ function _main_menu_manager_draw(self)
   --line(25, 30, 102, 30, 7)
   line(35, 32, 92, 32, 7)
   print_shadowed('cREATED bY', 3, 107, 6)
-  print_shadowed('mAX bIZE', 7, 115, 6)
   print_shadowed('V 0.6.1', 98, 115, 6)
 
   self.menu.draw()
