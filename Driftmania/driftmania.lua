@@ -231,8 +231,8 @@ function _init()
   -- Enable full keyboard (for R to restart level)
   poke(0x5f2d,1)
 
-  init_outline_cache(outline_cache, 30.5)
-  init_outline_cache(bbox_cache, 28.5)
+  init_outline_cache(outline_cache, 112)
+  init_outline_cache(bbox_cache, 109)
 
   load_level(false)
 
@@ -864,7 +864,7 @@ function _car_draw(self)
   -- Costs 6% of CPU budget
   --self.scale = 1 + self.z / 40
   for i = self.water_wheels < 2 and 0 or 1, 4 do
-    pd_rotate(self.x,self.y-self.z-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd),127,30.5 - i*2,2,true,self.scale)
+    pd_rotate(self.x,self.y-self.z-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd),127 - i*3,63.5,2,true,self.scale)
     --break
   end
   pal()
@@ -880,7 +880,7 @@ function draw_car_shadow(self)
   if collides_jump_at(self.x, self.y, 0) then
     height = flr(map_jump_frames[map_jumps[flr(self.x/chunk_size_x8)][flr(self.y/chunk_size_x8)]] / 8)
   end
-  pd_rotate(self.x,self.y-height,round_nth(self.angle_fwd),127,30.5,2,true,self.scale)
+  pd_rotate(self.x,self.y-height,round_nth(self.angle_fwd),127,63.5,2,true,self.scale)
   palt()
   pal()
 end
@@ -1652,13 +1652,13 @@ function _particle_manager_water_draw(self)
 end
 
 
-function init_outline_cache(t, y)
+function init_outline_cache(t, x)
   camera(-64,-64)
   for i = 0, 32 do
     cls()
     local rot = i/32
     t[rot] = {}
-    pd_rotate(0,0,i/32,123,y,2,true,1)
+    pd_rotate(0,0,i/32,x,63.5,2,true,1)
     for x = -15, 15 do
       for y = -15, 15 do
         local c = pget(x, y)
@@ -1861,8 +1861,8 @@ function _customization_manager_save(self)
   -- sync car to map
   for i = 0, 4 do
     local type = self.data[1].chosen
-    mset(126, 30 - i * 2, 70 + i * 2 + 16 * type)
-    mset(127, 30 - i * 2, 71 + i * 2 + 16 * type)
+    mset(126 - i * 3, 63, 70 + i * 2 + 16 * type)
+    mset(127 - i * 3, 63, 71 + i * 2 + 16 * type)
   end
 
   -- save settings
