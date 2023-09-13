@@ -227,6 +227,17 @@ local chunk_size = 3
 local chunk_size_x8 = 24
 local chunks_per_row = 42 -- flr(128/chunk_size)
 
+-- Hardcoded wheel offsets to get them pixel perfect :D
+local wheel_offsets_raw = split('-4,-3,3,2,-4,2,3,-3,-5,-2,3,2,-4,3,2,-3,-5,-1,3,1,-3,4,1,-3,-5,0,4,0,-2,4,1,-4,-5,1,3,0,-1,5,0,-3,-4,2,4,-1,0,5,-1,-3,-4,3,3,-2,1,5,-1,-3,-3,4,3,-2,2,5,-2,-3,-3,4,2,-3,2,4,-3,-3,-2,5,2,-3,3,4,-3,-2,-1,5,1,-3,4,3,-3,-2,0,5,0,-4,4,2,-4,-1,1,5,0,-3,5,1,-3,0,2,4,-1,-4,5,0,-4,0,3,4,-1,-3,5,-1,-3,2,4,3,-2,-3,5,-2,-3,2,4,3,-3,-2,4,-2,-3,3,5,2,-3,-2,4,-3,-2,3,5,1,-3,-1,3,-4,-1,3,5,0,-4,0,2,-4,-1,4,5,-1,-3,0,1,-5,0,3,4,-2,-4,1,0,-5,0,4,4,-3,-3,2,-1,-5,1,3,3,-4,-3,2,-2,-5,2,3,3,-4,-2,3,-2,-4,3,3,2,-5,-2,3,-3,-4,3,2,1,-5,-1,3,-4,-3,3,2,0,-5,0,4,-4,-2,4,1,-1,-5,0,3,-5,-1,3,0,-2,-4,1,4,-5,0,4,0,-3,-4,2,3,-5,1,3,-1,-4,-3,2,3,-5,2,3,-2,-4,-3,3,2,-4,2,3,-3')
+local wheel_offsets_cache = {}
+for wheel_offset_i = 1, count(wheel_offsets_raw), 8 do
+  local offsets = {}
+  for wheel_offset_j = 0, 7, 2 do
+    add(offsets, {x=wheel_offsets_raw[wheel_offset_i+wheel_offset_j], y=wheel_offsets_raw[wheel_offset_i+wheel_offset_j+1]})
+  end
+  wheel_offsets_cache[(wheel_offset_i-1)/256] = offsets
+end
+
 --------------------
 -- Built-in Methods
 --------------------
@@ -369,9 +380,18 @@ function _draw()
   --for cp in all(map_checkpoints) do
   --  line(cp.x, cp.y, cp.x + cp.dx * cp.l, cp.y + cp.dy * cp.l, 12)
   --end
+
   --for offset in all(bbox_cache[round_nth(player.angle_fwd)]) do
   --  pset(player.x + offset.x, player.y + offset.y, 8)
   --end
+
+  --if not btn(5) then
+  --  for offset in all(player.wheel_offsets) do
+  --    pset(player.x + offset.x, player.y + offset.y, 9)
+  --    print(player.angle_fwd*32, player.x, player.y - 15, 7)
+  --  end
+  --end
+
 end
 
 --------------------
@@ -699,15 +719,7 @@ function _car_move(self, btns)
   end
 
   -- Update wheel offsets
-  local wheel_idx = 1
-  for i = -1, 1, 2 do
-    for j = -1, 1, 2 do
-      local wheel_x = round(cos(self.angle_fwd + 0.1 * i) * 5 * j)
-      local wheel_y = round(sin(self.angle_fwd + 0.1 * i) * 4 * j)
-      self.wheel_offsets[wheel_idx] = {x=wheel_x, y=wheel_y}
-      wheel_idx += 1
-    end
-  end
+  self.wheel_offsets = wheel_offsets_cache[round_nth(self.angle_fwd)]  
 
   -- If we can't turn because of colliding nudge the car a little
   local collides, collides_x, collides_y = _player_collides_at(self, self.x, self.y, self.z, self.angle_fwd)
@@ -840,7 +852,6 @@ end
 
 local ghost_palette = parse_hash_map('8,2,10,4,6,1,7,6,12,13,14,1,4,1,11,2')
 function _car_draw(self)
-  --self.angle_fwd = 8/32 -- 0,8,16,24 = correct, 1-7 = 0,1, 9-15 = 1,0, 17-23 = 0,-1, 25-31 = -1,0
   palt(0, false)
   palt(15, true)
 
@@ -879,7 +890,7 @@ function _car_draw(self)
   --self.scale = 1 + self.z / 40
   for i = self.water_wheels < 2 and 0 or 1, 4 do
     pd_rotate(self.x,self.y-self.z-i*self.scale+(self.water_wheels<2 and 0 or 1),round_nth(self.angle_fwd),127 - i*3,63.5,2,true,self.scale)
-    --break
+    --if btn(5) then break end
   end
   pal()
 end
