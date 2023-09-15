@@ -850,7 +850,6 @@ function smoke_particles(self, n)
   end
 end
 
-local ghost_palette = parse_hash_map('8,2,10,4,6,1,7,6,12,13,14,1,4,1,11,2')
 function _car_draw(self)
   palt(0, false)
   palt(15, true)
@@ -859,22 +858,16 @@ function _car_draw(self)
   draw_water_outline(round_nth(self.angle_fwd))
   
   -- Palette customization / ghost
-  if self.is_ghost then
-    for c1, c2 in pairs(ghost_palette) do
-      pal(c1, c2)
-    end
-  else
-    for d in all(customization_m.data) do
-      if d.text ~= 'tYPE' then
-        local c = d.chosen
-        pal(d.original, c)
-        if d.text == 'bODY' then -- body - set gradient color
-          local gradient_c = gradients[c]
-          pal(2, gradient_c)
-          pal(11, self.boost_frames > 10 and c or gradient_c)
-        elseif d.text == 'wINDOWS' then -- windows - set highlight color
-          pal(12, gradients_rev[c])
-        end
+  for d in all(customization_m.data) do
+    if d.text ~= 'tYPE' then
+      local c = self.is_ghost and gradients[d.chosen] or d.chosen
+      pal(d.original, c)
+      if d.text == 'bODY' then -- body - set gradient color
+        local gradient_c = gradients[c]
+        pal(2, gradient_c)
+        pal(11, self.boost_frames > 10 and c or gradient_c)
+      elseif d.text == 'wINDOWS' then -- windows - set highlight color
+        pal(12, gradients_rev[c])
       end
     end
   end
