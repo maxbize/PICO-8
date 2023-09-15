@@ -861,9 +861,12 @@ function _car_draw(self)
   for d in all(customization_m.data) do
     if d.text ~= 'tYPE' then
       local c = self.is_ghost and gradients[d.chosen] or d.chosen
+      if c >= 16 then -- Easter Egg for those with all medals
+        c += flr(time() * 10)
+      end
       pal(d.original, c)
       if d.text == 'bODY' then -- body - set gradient color
-        local gradient_c = gradients[c]
+        local gradient_c = gradients[c%16]
         pal(2, gradient_c)
         pal(11, self.boost_frames > 10 and c or gradient_c)
       elseif d.text == 'wINDOWS' then -- windows - set highlight color
@@ -1782,7 +1785,8 @@ end
 function btn_customization(self, index, input)
   if input ~= 0 then
     local opt = customization_m.data[index]
-    opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or 16)
+    local num_colors = get_total_num_medals() == count(map_road_data) * 4 and 32 or 16 -- Allow extra colors if user unlocked all medals
+    opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
   end
 end
 
