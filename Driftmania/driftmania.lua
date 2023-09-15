@@ -1088,7 +1088,7 @@ function load_level(start)
   player = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, false)
   ghost = nil -- If someone switched ghost enabled -> disabled make sure we clear out the existing one
   if start and ghost_playback[1] ~= -1 and ghost_enabled then
-    ghost = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, false)
+    ghost = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, true)
     ghost.buffer = ghost_playback
   end
   spawn_trail_manager()
