@@ -66,8 +66,23 @@ def write_map(chunk_layers, n):
 
 		j += 1
 
-	# Convert map to string
-	p8_map_str = [f"{''.join([f'{val:0{2}x}' for val in row])}\n" for row in p8_map]
+
+
+	# Convert top 32 map lines to string
+	# Lines 0-31 can get written directly into __map__
+	p8_map_str = [f"{''.join([f'{val:0{2}x}' for val in row])}\n" for row in p8_map[:32]]
+
+	# Convert bottom 32 map lines to string
+	# Lines 32-63 need to go into the shared space in __gfx__
+	# Format for __gfx__:
+		# Each token is 2 hex chars: bottom 4 bits _then_ top 4 bits
+		# 128 chars per line -> 64 tokens
+		# Line 32 -> x=0..63, y=32 on map
+		# Line 33 -> x=64..127, y=32 on map
+	p8_gfx_str = []
+	for row in p8_map[32:]:
+		p8_gfx_str.append(f"{''.join([f'{val:0{2}x}'[::-1] for val in row[:64]])}\n")
+		p8_gfx_str.append(f"{''.join([f'{val:0{2}x}'[::-1] for val in row[64:]])}\n")
 
 	# Write the __map__ into the .p8 file itself
 	with codecs.open(sys.argv[2], 'r', 'utf-8') as f:
@@ -75,13 +90,10 @@ def write_map(chunk_layers, n):
 	for i, line in enumerate(lines):
 		if '__map__' in line:
 			lines[i+1:i+1+len(p8_map_str)] = p8_map_str
-			break
+		if '__gfx__' in line:
+			lines[i+1+64:i+1+64+len(p8_gfx_str)] = p8_gfx_str
 	with codecs.open(sys.argv[2], 'w', 'utf-8') as f:
 		f.writelines(lines)
-
-	#print('\n__map__')
-	#print(''.join(p8_map_str))
-	#print()
 
 # Rotate bits to get more characters in the non UTF range
 def rotate_val(val):
@@ -547,7 +559,3 @@ for filename in sys.argv[3:]:
 		process_file(filename)
 build_globals()
 
-bin_s = ''
-for char in p8scii:
-	bin_s += char
-replace_lua_str('bin_test', 'bin_test', f'local bintst = "{bin_s}"')
