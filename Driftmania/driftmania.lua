@@ -709,7 +709,7 @@ function _car_move(self, btns)
     self.wall_penalty_frames -= 1
     if self.boost_frames == 0 then
       mod_accel = 0.2
-      mod_max_vel = 0.8
+      mod_max_vel *= 0.8
     end
   end
 
