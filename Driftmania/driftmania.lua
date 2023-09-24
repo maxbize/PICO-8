@@ -855,7 +855,7 @@ end
 function boost_particles(self)
   local cone_angle = 0.1
   local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, 30, 4, true)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, self.is_ghost and 2 or 30, 4, true)
 end
 
 function smoke_particles(self, n)
