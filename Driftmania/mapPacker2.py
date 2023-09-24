@@ -97,7 +97,8 @@ def write_map(chunk_layers, n):
 
 # Rotate bits to get more characters in the non UTF range
 def rotate_val(val):
-	return int(val, 16) # todo if I run out of chars / compressed space :)
+	return val
+	return (val + 1) % 0xff  # todo if I run out of chars / compressed space :)
 
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
 # Note: chr/ord stores 7 bits per character (valid range 16-255), hex stores 4 bits per character
@@ -119,37 +120,38 @@ def compress_map_str(map_hex, num_chunks, compression_level):
 	max_count = 255
 	map_str_comp = ""
 	i = 0
-	val = rotate_val(map_hex[i:i+2])
+	val = rotate_val(int(map_hex[i:i+2], 16))
 	count = 0
 	total_count = 0
 	while i < len(map_hex):
-		next_val = rotate_val(map_hex[i:i+2])
+		next_val = rotate_val(int(map_hex[i:i+2], 16))
 		i += 2
 		if val == next_val:
 			count += 1
 		if val != next_val or count == max_count or i >= len(map_hex):
 			val_int = val
+			count_rot = rotate_val(count)
 			# Build out the map string depending on the compression level
 			if compression_level == 1:
 				exit('no longer supported')
 			elif compression_level == 2:
 				exit('no longer supported')
 			elif compression_level == 3:
-				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
-					map_str_comp += f'\\000\\000{p8scii[count]}'
+				if val_int == 0 and p8scii[count_rot] in [str(c) for c in range(10)]:
+					map_str_comp += f'\\000\\000{p8scii[count_rot]}'
 				else:
-					map_str_comp += f'{p8scii[val_int >> 8]}{p8scii[val_int & 0xff]}{p8scii[count]}'
+					map_str_comp += f'{p8scii[val_int >> 8]}{p8scii[val_int & 0xff]}{p8scii[count_rot]}'
 			elif compression_level == 4:
-				if val_int == 0 and p8scii[count] in [str(c) for c in range(10)]:
-					map_str_comp += f'\\000{p8scii[count]}'
+				if val_int == 0 and p8scii[count_rot] in [str(c) for c in range(10)]:
+					map_str_comp += f'\\000{p8scii[count_rot]}'
 				else:
-					map_str_comp += f'{p8scii[val_int]}{p8scii[count]}'
+					map_str_comp += f'{p8scii[val_int]}{p8scii[count_rot]}'
 			elif compression_level == 5:
 				if count == 1:
 					map_str_comp += f'{p8scii[val_int]}'
 				else:
 					val_int |= 1<<7 # Flag is 8th bit
-					map_str_comp += f'{p8scii[val_int]}{p8scii[count]}'
+					map_str_comp += f'{p8scii[val_int]}{p8scii[count_rot]}'
 			val = next_val
 			total_count += count
 			count = 1 if count < max_count else 0
@@ -319,7 +321,7 @@ def collides_wall_at(x, y, gfx, props_data):
 # Note: assumes all checkpoints are homogenous straight lines!
 green_checkpoint_sprites = [10, 11, 27, 28]
 brown_checkpoint_sprites = [12, 13, 14, 15]
-wall_sprites = [29, 31, 42, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62]
+wall_sprites = [29, 31, 42, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62, 63]
 def build_checkpoints(filename, data_map):
 	# Setup
 	props_data = data_map['Props']
@@ -432,9 +434,11 @@ def build_bounds(filename, data_map, n):
 	decal_data = data_map['Decals']
 	props_data = data_map['Props']
 	num_chunks = math.floor(len(decal_data) / n)
+	has_jumps = len(find_all_sprites(decal_data, jump_sprites)) > 0
 
-	# Seed map with 0 (out of bounds)
-	bounds_map = {y: {x: 0 for x in range(num_chunks)} for y in range(num_chunks)}
+	# Seed map (0 == out of bounds, 1 == in bounds)
+	seed = 0 if has_jumps else 1
+	bounds_map = {y: {x: seed for x in range(num_chunks)} for y in range(num_chunks)}
 
 	# Find all in-bound sprites and fan out
 	for pos in find_all_sprites(decal_data, in_bound_sprites):
