@@ -1023,7 +1023,7 @@ function _player_collides_at(self, x, y, z, angle, penalize)
 end
 
 -- Checks if the given position on the map overlaps a wall
-local wall_collision_sprites = parse_hash_set('29,31,42,43,44,45,46,47,58,59,60,61,62')
+local wall_collision_sprites = parse_hash_set('29,31,42,43,44,45,46,47,58,59,60,61,62,63')
 function collides_wall_at(x, y, z)
   return collides_part_at(x, y, z, wall_height, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
@@ -2128,7 +2128,7 @@ end
 --end
 
 -- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
-local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,29,7,31,7,37,15,38,15,39,15,40,15,41,15,42,7,43,7,44,7,45,7,46,7,47,7,58,7,59,7,60,7,61,7,62,7,64,12,67,12,68,12,83,12,84,12")
+local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,29,7,31,7,37,15,38,15,39,15,40,15,41,15,42,7,43,7,44,7,45,7,46,7,47,7,58,7,59,7,60,7,61,7,62,7,63,7,64,12,67,12,68,12,83,12,84,12")
 function draw_minimap(x, y)
   for chunk_x = 0, count(map_road_chunks) do
     for chunk_y = 0, count(map_road_chunks) do
