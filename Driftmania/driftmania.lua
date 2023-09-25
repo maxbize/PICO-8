@@ -1779,7 +1779,7 @@ function _menu_update(self)
 
   -- update active button
   local button = self.buttons[self.index]
-  local input = (btnp(4) and 1 or 0) - (btnp(5) and 1 or 0)
+  local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
   if input ~= 0 then
     sfx(14, -1, 16, 1)
     button.update(self.index, input)
