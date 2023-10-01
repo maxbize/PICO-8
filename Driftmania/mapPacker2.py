@@ -95,10 +95,9 @@ def write_map(chunk_layers, n):
 	with codecs.open(sys.argv[2], 'w', 'utf-8') as f:
 		f.writelines(lines)
 
-# Rotate bits to get more characters in the non UTF range
+# Rotate value to get more characters in the ASCII range
 def rotate_val(val):
-	return val
-	return (val + 1) % 0xff  # todo if I run out of chars / compressed space :)
+	return (val + 48) % 256
 
 # Compress string from chunks to tokens. Each token encodes chunk index, chunk count
 # Note: chr/ord stores 7 bits per character (valid range 16-255), hex stores 4 bits per character
