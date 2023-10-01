@@ -1561,7 +1561,8 @@ function spawn_particle_manager_vol()
   }
 
   for i = 1, particle_m.max_points do
-    add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, t_start=0, r=0, d=1, relative=0})
+    --add(particle_m.points, {x=0, y=0, z=0, c=0, v_x=0, v_y=0, v_z=0, t=0, t_start=0, r=0, d=1, relative=0})
+    add(particle_m.points, {t=0})
   end
 
   return particle_m
@@ -1650,7 +1651,8 @@ function spawn_particle_manager_water()
   }
 
   for i = 1, particle_m.max_points do
-    add(particle_m.points, {x=0, y=0, c=0, v_x=0, v_y=0, t=0})
+    --add(particle_m.points, {x=0, y=0, c=0, v_x=0, v_y=0, t=0})
+    add(particle_m.points, {t=0})
   end
 
   return particle_m
