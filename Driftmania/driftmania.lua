@@ -1424,13 +1424,14 @@ local sprite_sorts_raw = parse_table_arr(--[[member]]'y_intercept,slope',[[
 |11,-1
 |3,0
 |3,0
+|3,0
 |-4,1
 |3,0
 |3,-1,
 |0,1]])
 -- Table of [sprite_index] = {y_intercept=y_int, slope=s}
 local sprite_sorts = {}
-for __i, __spr_index in pairs(split('43,44,45,46,47,59,60,61,62')) do
+for __i, __spr_index in pairs(split('43,44,45,46,47,58,59,60,61,62')) do
   sprite_sorts[__spr_index] = sprite_sorts_raw[__i]
 end
 -- Table of chunk index -> color. Color 0 == nothing. Note: automated by mapPacker
