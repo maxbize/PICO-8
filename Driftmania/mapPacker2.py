@@ -95,7 +95,7 @@ def write_map(chunk_layers, n):
 	with codecs.open(sys.argv[2], 'w', 'utf-8') as f:
 		f.writelines(lines)
 
-# Rotate value to get more characters in the ASCII range
+# Rotate value to get more characters in the ASCII range (better cart compression)
 def rotate_val(val):
 	return (val + 48) % 256
 
