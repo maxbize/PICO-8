@@ -1222,7 +1222,7 @@ function _level_manager_draw(self)
   end
 
   -- Level UI
-  local kph = tostr(flr(dist(player.v_x, player.v_y) * 71.01))
+  local kph = tostr(flr(dist(player.v_x, player.v_y) * 64.55))
   print_shadowed('\*' .. (3 - #kph) .. ' ' .. kph .. ' kph', camera_x + 98, camera_y + 114, 7)
   print_shadowed('lAP ' .. self.lap .. '/' .. map_settings.laps, camera_x + 98, camera_y + 121, 7)
 
