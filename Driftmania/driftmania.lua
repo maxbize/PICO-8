@@ -348,7 +348,7 @@ function _draw()
     if level_index == 1 then
       rectfill_outlined(512, 216, 543, 240, 6, 1)
       print('drift!', 517, 220, 7)
-      print('hold z!', 515, 232, 7)
+      print('hold x!', 515, 232, 7)
     end
 
     if ghost ~= nil then
