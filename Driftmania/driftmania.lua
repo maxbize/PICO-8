@@ -885,7 +885,7 @@ function _car_draw(self)
   palt(15, true)
 
   -- Water outline
-  draw_water_outline(round_nth(self.angle_fwd))
+  draw_water_outline(round_nth(self.angle_fwd), self.x, self.y, self.z)
   
   -- Palette customization / ghost
   for d in all(customization_m.data) do
@@ -1723,11 +1723,11 @@ function init_outline_cache(t, x)
   end
 end
 
-function draw_water_outline(rot)
+function draw_water_outline(rot, car_x, car_y, car_z)
   for offset in all(outline_cache[rot]) do
-    local x = player.x+offset.x
-    local y = player.y+offset.y
-    if collides_water_at(x, y, player.z) then
+    local x = car_x + offset.x
+    local y = car_y + offset.y
+    if collides_water_at(x, y, car_z) then
       pset(x, y, 7)
     end
   end
