@@ -762,8 +762,9 @@ function _car_move(self, btns)
   -- Acceleration, friction, breaking. Note: mid is to stop over-correction
   if self.boost_frames > 0 then
     -- Force move forward when boosting
-    self.v_x += fwd_x * self.accel * mod_accel
-    self.v_y += fwd_y * self.accel * mod_accel
+    local mid_x, mid_y = normalized(v_x_normalized + fwd_x, v_y_normalized + fwd_y)
+    self.v_x += (d_brake and mid_x or fwd_x) * self.accel * mod_accel
+    self.v_y += (d_brake and mid_y or fwd_y) * self.accel * mod_accel
   elseif d_brake then
     local f_stop = (move_fwd > 0 and self.f_friction * 0.25
                 or (move_fwd == 0 and self.f_friction * 1.5
