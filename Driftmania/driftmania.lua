@@ -881,8 +881,7 @@ function smoke_particles(self, n)
 end
 
 function _car_draw(self)
-  palt(0, false)
-  palt(15, true)
+  palt(0b0000000000000001)
 
   -- Water outline
   draw_water_outline(round_nth(self.angle_fwd), self.x, self.y, self.z)
@@ -923,8 +922,7 @@ end
 
 function draw_car_shadow(self)
   -- Shadow / Underglow
-  palt(15, true)
-  palt(0, false)
+  palt(0b0000000000000001)
   pal(14, 1)
   pal(0, 1)
   local height = 0
@@ -1479,9 +1477,7 @@ function draw_map(map_chunks, map_size, draw_below_player, draw_above_player, ha
             local height = flr(jump_frames/8)
             pal(15, 2)
             map(tile_x, tile_y, world_x, world_y, chunk_size, chunk_size)
-            palt(7, true)
-            palt(8, true)
-            palt(12, true)
+            palt(0b1000000110001000)
             for i = 1, height - 1 do
               map(tile_x, tile_y, world_x, world_y - i, chunk_size, chunk_size)
             end
@@ -2062,16 +2058,16 @@ function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', function() game_state = 2 end),
     new_button(0, 10, 'gARAGE', function() game_state = 1 end),
-    new_button(-44, 33, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
+    new_button(-44, 30, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
   }
 
   add(objects, {
     update = _main_menu_manager_update,
     draw = _main_menu_manager_draw,
-    menu = new_menu(55, 82, buttons, 'vert', 1),
+    menu = new_menu(55, 85, buttons, 'vert', 1),
     car = {
       x = 90,
-      y = 60,
+      y = 65,
       z = 0,
       boost_frames = 0,
       flash_frames = 0,
@@ -2093,17 +2089,22 @@ function _main_menu_manager_draw(self)
   rectfill_outlined(0, self.car.y - 22, 128, self.car.y + 13, 6, 5)
   rect(-1, self.car.y - 22, 128, self.car.y + 13, 6)
 
+  palt(0b0000000000000001)
+  sspr(0, 88, 119, 33, 4, 7)
+  palt()
+  print_shadowed('cREATED bY', 3, 107, 6)
+  print_shadowed('V 0.8.0', 98, 115, 6)
+
+  --local rect_x = flr(200 - (time() * 200) % 400)
+  --map(124, 44, rect_x, self.car.y - 11)
+  --if rect_x == self.car.x then
+  --  self.car.flash_frames = 5
+  --end
 
   _particle_manager_vol_draw_bg(particle_vol_m)
   _particle_manager_vol_draw_fg(particle_vol_m)
 
   _car_draw(self.car)
-
-  print_shadowed('\^t\^wdriftmania', 25, 18, 7)
-  --line(25, 30, 102, 30, 7)
-  line(35, 32, 92, 32, 7)
-  print_shadowed('cREATED bY', 3, 107, 6)
-  print_shadowed('V 0.6.1', 98, 115, 6)
 
   self.menu.draw()
 end
@@ -2113,6 +2114,10 @@ function _main_menu_manager_update(self)
     return
   end
   camera()
+
+  -- Note: cannot start <6 due to NPE in collides_water_at
+  --self.car.x = 90 + flr(cos(time() * 0.3) * 3.9)
+  --self.car.flash_frames = max(0, self.car.flash_frames - 1)
 
   if rnd(1) < 0.5 then
     add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6, true)
