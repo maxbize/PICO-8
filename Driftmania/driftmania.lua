@@ -297,6 +297,13 @@ function _init()
   particle_water_m = spawn_particle_manager_water()
 
   set_menu_items()
+
+  -- Re-submit best times for achievement tracking
+  for level_index, map_settings in pairs(map_settings_data) do
+    local data_index = get_lap_time_index(level_index, map_settings.laps)
+    local best_time = dget(data_index)
+    post_time_to_gpio(level_index, best_time)
+  end
 end
 
 function _update60()
@@ -1291,6 +1298,14 @@ function on_checkpoint_crossed(self, car, cp_index)
           end
         end
 
+        -- Always post time for leaderboard
+        post_time_to_gpio(level_index, self.frame)
+
+        -- Race Against Ghost achievement
+        if ghost ~= nil then
+          poke(0x5fff, 1)
+        end
+
       else
         -- Display checkpoint time and delta
         add(objects, {
@@ -1324,6 +1339,10 @@ function on_checkpoint_crossed(self, car, cp_index)
   -- Advance checkpoint marker
   car.next_checkpoint = (car.next_checkpoint % count(map_checkpoints)) + 1
   return true
+end
+
+function post_time_to_gpio(level, frames)
+  poke4(0x5f80 + level * 4, flr(frames/60) + (frames % 60 / 60 * 100 >> 16))
 end
 
 function get_lap_time_index(level_idx, lap)
@@ -1815,6 +1834,8 @@ function btn_customization(self, index, input)
     local opt = customization_m.data[index]
     local num_colors = get_total_num_medals() == count(map_road_data) * 4 and 32 or 16 -- Allow extra colors if user unlocked all medals
     opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
+    -- Customization achievement
+    poke(0x5ffe, 1)
   end
 end
 
@@ -2058,13 +2079,13 @@ function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', function() game_state = 2 end),
     new_button(0, 10, 'gARAGE', function() game_state = 1 end),
-    new_button(-44, 30, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
+    new_button(-49, 30, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
   }
 
   add(objects, {
     update = _main_menu_manager_update,
     draw = _main_menu_manager_draw,
-    menu = new_menu(55, 85, buttons, 'vert', 1),
+    menu = new_menu(60, 85, buttons, 'vert', 1),
     car = {
       x = 90,
       y = 65,
