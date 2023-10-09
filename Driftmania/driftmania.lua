@@ -2079,7 +2079,7 @@ function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', function() game_state = 2 end),
     new_button(0, 10, 'gARAGE', function() game_state = 1 end),
-    new_button(-49, 30, 'mAX bIZE', function() end) -- No-op for now. Send to twitter or website later via gpio / js
+    new_button(-49, 30, 'mAX bIZE', function() poke(0x5ffd) end) -- GPIO signal to open external link
   }
 
   add(objects, {
