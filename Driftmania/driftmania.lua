@@ -1996,20 +1996,31 @@ function _level_select_manager_draw(self)
 
 
   local medals_to_unlock = map_settings.req_medals - get_total_num_medals()
-  local x = 3
-  local y = 61
 
   if medals_to_unlock <= 0 then
     draw_minimap(83 - map_settings.size*chunk_size/2, 33)
 
     local data_index = get_lap_time_index(level_index, map_settings.laps)
     local best_time = dget(data_index)
-    rectfill_outlined(0, y - 4, 36, y + 37, 12, 1)
-    print_shadowed('bEST', x, y, 7)
-    print_shadowed(frame_to_time_str(best_time), x, y+8, 7)
+    rectfill_outlined(0, 48, 36, 106, 12, 1)
+    print_shadowed('bEST', 3, 52, 7)
+    print_shadowed(frame_to_time_str(best_time), 3, 60, 7)
 
     if best_time > 0 then
-      draw_medals(x + 7, y + 18, get_num_medals(best_time, map_settings))
+      local num_medals = get_num_medals(best_time, map_settings)
+      draw_medals(10, 70, num_medals)
+
+      -- Display time requirement for next medal
+      -- Plat medal times are secret
+      if num_medals < 3 then
+        print_shadowed('nEXT mDL', 3, 90, 6)
+        local next_medal_frames =
+          map_settings.bronze < best_time and map_settings.bronze 
+          or map_settings.silver < best_time and map_settings.silver 
+          or map_settings.gold
+        print_shadowed(frame_to_time_str(next_medal_frames), 3, 98, 6)
+
+      end
     end
   else
     -- need 4 more medals
@@ -2017,11 +2028,11 @@ function _level_select_manager_draw(self)
     rectfill_outlined(0, 57, 128,  98, 12, 1)
     --spr(32, 39, y+5)
     --spr(32, 80, y+5)
-    spr(32, 9, y+13)
-    spr(32, 110, y+13)
-    print_shadowed('lOCKED!', 50, y+8, 7)
+    spr(32, 9, 65)
+    spr(32, 110, 65)
+    print_shadowed('lOCKED!', 50, 60, 7)
     local medals_str = medals_to_unlock == 1 and ' MORE MEDAL' or ' MORE MEDALS'
-    print_shadowed('nEED ' .. medals_to_unlock .. medals_str, 28, y+16, 7)
+    print_shadowed('nEED ' .. medals_to_unlock .. medals_str, 28, 68, 7)
   end
 end
 
@@ -2052,12 +2063,12 @@ function draw_medals(x, y, n)
 end
 
 function get_num_medals(time, settings)
-  local num_medals = 0
-  if time <= settings.bronze then num_medals += 1 end
-  if time <= settings.silver then num_medals += 1 end
-  if time <= settings.gold then num_medals += 1 end
-  if time <= settings.plat then num_medals += 1 end
-  return num_medals
+  return 
+       time < settings.plat and 4
+    or time < settings.gold and 3
+    or time < settings.silver and 2
+    or time < settings.bronze and 1
+    or 0
 end
 
 function get_total_num_medals()
