@@ -342,9 +342,10 @@ function _draw()
     pause_frames = -pause_frames
   end
 
-  cls(3) -- Most grass is drawn as part of cls
-
   if game_state == 0 then
+    -- Most grass is drawn as part of cls
+    cls(3)
+
     -- 7% CPU
     draw_map(map_road_chunks, map_settings.size, true, true, false)
     -- 3% CPU
@@ -394,6 +395,8 @@ function _draw()
     _particle_manager_vol_draw_fg(particle_vol_m)
 
     _level_manager_draw(level_m)
+  else
+    cls(0)
   end
 
   -- 0% CPU
@@ -1660,7 +1663,7 @@ function _particle_manager_vol_draw_fg(self)
       --end
     end
   end
-  clip()
+  --clip()
 end
 
 
@@ -1723,7 +1726,6 @@ end
 function init_outline_cache(t, x)
   camera(-64,-64)
   for i = 0, 32 do
-    cls()
     local rot = i/32
     t[rot] = {}
     pd_rotate(0,0,i/32,x,63.5,2,true,1)
@@ -1735,6 +1737,7 @@ function init_outline_cache(t, x)
         end
       end
     end
+    cls()
   end
 end
 
@@ -1885,7 +1888,6 @@ function _customization_manager_draw(self)
     return
   end
 
-  cls(0)
   rectfill_outlined(0, 11, 128, 117, 12, 1)
   print_shadowed('gARAGE', 54, 18, 7)
   rectfill_outlined(61, 33, 121, 95, 12, 13)
@@ -1982,7 +1984,6 @@ function _level_select_manager_draw(self)
     return
   end
 
-  cls(0)
   rectfill_outlined(0, 5, 128, 122, 12, 1)
   print_shadowed('sELECT tRACK', 40, 11, 7)
 
@@ -2104,11 +2105,9 @@ function _main_menu_manager_draw(self)
     return
   end
 
-  local border = 5
-  cls(0)
-  rectfill_outlined(0, border, 128, 128 - border, 12, 1)
-  rectfill_outlined(0, self.car.y - 22, 128, self.car.y + 13, 6, 5)
-  rect(-1, self.car.y - 22, 128, self.car.y + 13, 6)
+  rectfill_outlined(0, 5, 128, 123, 12, 1)
+  rectfill_outlined(0, 43, 128, 78, 6, 5)
+  rect(-1, 43, 128, 78, 6)
 
   palt(0b0000000000000001)
   sspr(0, 88, 119, 33, 4, 7)
