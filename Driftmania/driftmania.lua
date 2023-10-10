@@ -2161,7 +2161,7 @@ function _main_menu_manager_update(self)
 
   self.car.x = min(90, self.time * 100) + flr(cos(self.time * 0.3) * 3.9)
   self.car.y = 65 + cos(self.time * 0.25)
-  self.time = (self.time + 0.016666) % 0x7fff
+  self.time = (self.time + 0.016666) % 327 -- flr(0x7fff/100) so that we don't overflow car.x
 
   if rnd(1) < 0.5 then
     add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6, true)
