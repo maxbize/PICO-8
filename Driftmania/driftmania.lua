@@ -44,7 +44,7 @@ for i = 1, 0x7fff do
 end
 
 -- Settings
-cartdata('mbize_driftmania_v1')
+cartdata('mbdriftmania1')
 local dynamic_camera_disabled = dget(9) == 1 -- flag is _disabled so that default is on
 local ghost_enabled = dget(10) == 1
 
@@ -65,7 +65,7 @@ end
 function parse_hash_map(csv)
   local t = {}
   local csv_arr = split(csv)
-  for i = 1, count(csv_arr), 2 do
+  for i = 1, #csv_arr, 2 do
     t[csv_arr[i]] = csv_arr[i+1]
   end
   return t
@@ -76,7 +76,7 @@ function parse_table(headers, csv)
   local t = {}
   local headers_arr = split(headers)
   local csv_arr = split(csv)
-  for i = 1, count(headers_arr) do
+  for i = 1, #headers_arr do
     t[headers_arr[i]] = csv_arr[i]
   end
   return t
@@ -87,7 +87,7 @@ end
 function parse_table_arr(headers, csv)
   local a = {}
   local csv_arr = split(csv, '|')
-  for i = 2, count(csv_arr) do
+  for i = 2, #csv_arr do
     add(a, parse_table(headers, csv_arr[i]))
   end
   return a
@@ -99,7 +99,7 @@ end
 function parse_jumps_str(s)
   local a = {}
   local csv_arr = split(s, '|')
-  for i = 2, count(csv_arr), 2 do
+  for i = 2, #csv_arr, 2 do
     a[csv_arr[i]] = parse_hash_map(csv_arr[i+1])
   end
   return a
@@ -109,7 +109,7 @@ end
 --function parse_multi(s, func, arg1, arg2)
 --  local a = {}
 --  local csv_arr = split(s, '$')
---  for i = 2, count(csv_arr) do
+--  for i = 2, #csv_arr do
 --    add(a, func(csv_arr[i], arg1, arg2))
 --  end
 --  return a
@@ -251,7 +251,7 @@ local gradients =     split('0,1,1,2,1,13,6,2,4,9,3,1,5,13,14')
 local gradients_rev = split('12,8,11,9,13,14,7,7,10,7,7,7,14,15,7')
 local outline_cache = {}
 local bbox_cache = {}
-local wall_height = 3
+-- local wall_height = 3 - hardcoded to save compressed space
 local chunk_size = 3
 local chunk_size_x8 = 24
 local chunks_per_row = 42 -- flr(128/chunk_size)
@@ -259,7 +259,7 @@ local chunks_per_row = 42 -- flr(128/chunk_size)
 -- Hardcoded wheel offsets to get them pixel perfect :D
 local wheel_offsets_raw = split('-4,-3,3,2,-4,2,3,-3,-5,-2,3,2,-4,3,2,-3,-5,-1,3,1,-3,4,1,-3,-5,0,4,0,-2,4,1,-4,-5,1,3,0,-1,5,0,-3,-4,2,4,-1,0,5,-1,-3,-4,3,3,-2,1,5,-1,-3,-3,4,3,-2,2,5,-2,-3,-3,4,2,-3,2,4,-3,-3,-2,5,2,-3,3,4,-3,-2,-1,5,1,-3,4,3,-3,-2,0,5,0,-4,4,2,-4,-1,1,5,0,-3,5,1,-3,0,2,4,-1,-4,5,0,-4,0,3,4,-1,-3,5,-1,-3,2,4,3,-2,-3,5,-2,-3,2,4,3,-3,-2,4,-2,-3,3,5,2,-3,-2,4,-3,-2,3,5,1,-3,-1,3,-4,-1,3,5,0,-4,0,2,-4,-1,4,5,-1,-3,0,1,-5,0,3,4,-2,-4,1,0,-5,0,4,4,-3,-3,2,-1,-5,1,3,3,-4,-3,2,-2,-5,2,3,3,-4,-2,3,-2,-4,3,3,2,-5,-2,3,-3,-4,3,2,1,-5,-1,3,-4,-3,3,2,0,-5,0,4,-4,-2,4,1,-1,-5,0,3,-5,-1,3,0,-2,-4,1,4,-5,0,4,0,-3,-4,2,3,-5,1,3,-1,-4,-3,2,3,-5,2,3,-2,-4,-3,3,2,-4,2,3,-3')
 local wheel_offsets_cache = {}
-for wheel_offset_i = 1, count(wheel_offsets_raw), 8 do
+for wheel_offset_i = 1, #wheel_offsets_raw, 8 do
   local offsets = {}
   for wheel_offset_j = 0, 7, 2 do
     add(offsets, {x=wheel_offsets_raw[wheel_offset_i+wheel_offset_j], y=wheel_offsets_raw[wheel_offset_i+wheel_offset_j+1]})
@@ -375,7 +375,7 @@ function _draw()
     _particle_manager_vol_draw_bg(particle_vol_m)
 
     -- 11% CPU
-    draw_map(map_prop_chunks, map_settings.size, player.z > wall_height, true, false)
+    draw_map(map_prop_chunks, map_settings.size, player.z > 3, true, false)
 
     --draw_map(map_bounds_chunks, map_settings.size, true, true, true)
 
@@ -387,7 +387,7 @@ function _draw()
     _car_draw(player)
   
     -- 12% CPU
-    if player.z <= wall_height then
+    if player.z <= 3 then
       draw_map(map_prop_chunks, map_settings.size, true, false, false)
     end
 
@@ -1032,7 +1032,7 @@ function _player_collides_at(self, x, y, z, angle, penalize)
     local check_y = flr(y) + offset.y
     if collides_wall_at(check_x, check_y, z) then
       -- No penalty when on top of wall ;)
-      if penalize and z < wall_height then
+      if penalize and z < 3 then
         self.wall_penalty_frames = 20
         -- Really annoying to have the car crash effects on level end when it goes off screen
         if level_m.state ~= 3 and not self.is_ghost then
@@ -1049,7 +1049,7 @@ end
 -- Checks if the given position on the map overlaps a wall
 local wall_collision_sprites = parse_hash_set('29,31,42,43,44,45,46,47,58,59,60,61,62,63')
 function collides_wall_at(x, y, z)
-  return collides_part_at(x, y, z, wall_height, map_prop_tiles, {}, wall_collision_sprites, 6)
+  return collides_part_at(x, y, z, 3, map_prop_tiles, {}, wall_collision_sprites, 6)
 end
 
 local grass_sprites_full = parse_hash_set('0,26')
@@ -1271,7 +1271,7 @@ function on_checkpoint_crossed(self, car, cp_index)
   -- Completed a lap
   if car.next_checkpoint == 1 then
     -- Reset crossed checkpoints
-    for i = 1, count(map_checkpoints) do
+    for i = 1, #map_checkpoints do
       car.cp_crossed[i] = false
     end
 
@@ -1344,7 +1344,7 @@ function on_checkpoint_crossed(self, car, cp_index)
   end
 
   -- Advance checkpoint marker
-  car.next_checkpoint = (car.next_checkpoint % count(map_checkpoints)) + 1
+  car.next_checkpoint = (car.next_checkpoint % #map_checkpoints) + 1
   return true
 end
 
@@ -1366,7 +1366,7 @@ function cache_checkpoints(self, checkpoints)
   self.cp_cache = {} -- table[x][y] -> cp index
   self.cp_sprites = {} -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
 
-  for i = 1, count(checkpoints) do
+  for i = 1, #checkpoints do
     add(self.cp_sprites, {})
     local cp = checkpoints[i]
     local x = cp.x
@@ -1422,7 +1422,7 @@ function load_map(data, data_offset, map_size)
 
   -- Parse data
   local data_decomp = decomp_str(data, data_offset)
-  local num_chunks = count(data_decomp)
+  local num_chunks = #data_decomp
   for i = 0, num_chunks - 1 do
     -- The actual chunk index
     local chunk_index = data_decomp[i+1]
@@ -1811,10 +1811,10 @@ function _menu_update(self)
 
   -- up/down & left/right
   if btnp(self.type == 'vert' and 3 or 1) then
-    self.index = (self.index % count(self.buttons)) + 1
+    self.index = (self.index % #self.buttons) + 1
     sfx(14, -1, 8, 1)
   elseif btnp(self.type == 'vert' and 2 or 0) then
-    self.index = self.index == 1 and count(self.buttons) or self.index - 1
+    self.index = self.index == 1 and #self.buttons or self.index - 1
     sfx(14, -1, 8, 1)
   end
 
@@ -1829,7 +1829,7 @@ function _menu_update(self)
 end
 
 function _menu_draw(self)
-  for i = 1, count(self.buttons) do
+  for i = 1, #self.buttons do
     local b = self.buttons[i]
     print_shadowed(b.txt, self.x + b.x + (i == self.index and 1 or 0), self.y + b.y, i == self.index and self.idle_frames == 0 and 7 or 6)
   end
@@ -1839,7 +1839,7 @@ end
 function btn_customization(self, index, input)
   if input ~= 0 then
     local opt = customization_m.data[index]
-    local num_colors = get_total_num_medals() == count(map_road_data) * 4 and 32 or 16 -- Allow extra colors if user unlocked all medals
+    local num_colors = get_total_num_medals() == #map_road_data * 4 and 32 or 16 -- Allow extra colors if user unlocked all medals
     opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
     -- Customization achievement
     poke(0x5ffe, 1)
@@ -1873,7 +1873,7 @@ function spawn_customization_manager()
   }
 
   local buttons = {}
-  for i = 1, count(customization_m.data) do
+  for i = 1, #customization_m.data do
     local d = customization_m.data[i]
     if dget(0) ~= 0 then
       d.chosen = dget(i)
@@ -1895,6 +1895,8 @@ function _customization_manager_draw(self)
   rectfill_outlined(0, 11, 128, 117, 12, 1)
   print_shadowed('gARAGE', 54, 18, 7)
   rectfill_outlined(61, 33, 121, 95, 12, 13)
+
+  color_dot(80, 20)
 
   local c = self.data[2].chosen
   ovalfill(69, 50, 113, 86, 5)
@@ -1944,7 +1946,7 @@ function _customization_manager_save(self)
 
   -- save settings
   dset(0, 1) -- marker that settings are no longer default
-  for i = 1, count(customization_m.data) do
+  for i = 1, #customization_m.data do
     dset(i, customization_m.data[i].chosen)
   end
 end
@@ -1955,7 +1957,7 @@ function spawn_level_select_manager()
       -- 1-index hell :(
       local max_level = 1
       local total_medals = get_total_num_medals()
-      while map_settings_data[max_level].req_medals <= total_medals and max_level < count(map_settings_data) do
+      while map_settings_data[max_level].req_medals <= total_medals and max_level < #map_settings_data do
         max_level += 1
       end
       level_index = ((level_index - 1 + input) % max_level) + 1
@@ -2054,7 +2056,7 @@ function draw_medals(x, y, n)
   for i = 1, n do
     pal()
     local medal_p = medal_pal[i]
-    for j = 1, count(medal_p), 2 do
+    for j = 1, #medal_p, 2 do
       pal(medal_p[j], medal_p[j+1])
     end
     sspr(0, 48, 16, 16, x + dx*(i-1), y + dy*(i-1))
@@ -2073,7 +2075,7 @@ end
 
 function get_total_num_medals()
   local num_medals = 0
-  for i = 1, count(map_settings_data) do
+  for i = 1, #map_settings_data do
     local best_time = dget(get_lap_time_index(i, map_settings_data[i].laps))
     if best_time > 0 then
       num_medals += get_num_medals(best_time, map_settings_data[i])
@@ -2136,9 +2138,18 @@ function _main_menu_manager_draw(self)
   _particle_manager_vol_draw_bg(particle_vol_m)
   _particle_manager_vol_draw_fg(particle_vol_m)
 
+  color_dot(86, 97)
+
   _car_draw(self.car)
 
   self.menu.draw()
+end
+
+-- Color-changing rect to indicate easter egg
+function color_dot(x, y)
+  if get_total_num_medals() == #map_road_data * 4 then
+    rect(x, y, x+1, y+1, time()*10)
+  end
 end
 
 function _main_menu_manager_update(self)
@@ -2165,8 +2176,8 @@ end
 --function draw_minimap2()
 --  local offset = 0--128 - map_settings.size
 --  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
---  for tile_x = 0, count(map_road_tiles) - 1 do
---    for tile_y = 0, count(map_road_tiles[0]) - 1 do
+--  for tile_x = 0, #map_road_tiles - 1 do
+--    for tile_y = 0, #map_road_tiles[0] - 1 do
 --      local road_tile = map_road_tiles[tile_x][tile_y]
 --      if road_tile >= 1 and road_tile <= 5 then
 --        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 5)
@@ -2187,8 +2198,8 @@ end
 -- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,29,7,31,7,37,15,38,15,39,15,40,15,41,15,42,7,43,7,44,7,45,7,46,7,47,7,58,7,59,7,60,7,61,7,62,7,63,7,64,12,67,12,68,12,83,12,84,12")
 function draw_minimap(x, y)
-  for chunk_x = 0, count(map_road_chunks) do
-    for chunk_y = 0, count(map_road_chunks) do
+  for chunk_x = 0, #map_road_chunks do
+    for chunk_y = 0, #map_road_chunks do
 
       -- Duplicated logic is purposely inlined to reduce CPU cost while redrawing every frame
       if solid_chunks[map_road_chunks[chunk_x][chunk_y]] ~= 0 then
