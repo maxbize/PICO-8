@@ -2030,11 +2030,11 @@ function _level_select_manager_draw(self)
     rectfill_outlined(0, 57, 128,  98, 12, 1)
     --spr(32, 39, y+5)
     --spr(32, 80, y+5)
-    spr(32, 9, 65)
-    spr(32, 110, 65)
-    print_shadowed('lOCKED!', 50, 60, 7)
+    spr(32, 9, 74)
+    spr(32, 110, 74)
+    print_shadowed('lOCKED!', 50, 71, 7)
     local medals_str = medals_to_unlock == 1 and ' MORE MEDAL' or ' MORE MEDALS'
-    print_shadowed('nEED ' .. medals_to_unlock .. medals_str, 28, 68, 7)
+    print_shadowed('nEED ' .. medals_to_unlock .. medals_str, 28, 79, 7)
   end
 end
 
