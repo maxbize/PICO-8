@@ -732,9 +732,9 @@ function _car_move(self, btns)
   -- Penalty for hitting a wall
   if self.wall_penalty_frames > 0 then
     self.wall_penalty_frames -= 1
+    mod_max_vel *= 0.8
     if self.boost_frames == 0 then
       mod_accel = 0.2
-      mod_max_vel *= 0.8
     end
   end
 
