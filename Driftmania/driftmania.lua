@@ -1729,6 +1729,7 @@ end
 
 function init_outline_cache(t, x)
   camera(-64,-64)
+  cls()
   for i = 0, 32 do
     local rot = i/32
     t[rot] = {}
