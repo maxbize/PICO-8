@@ -643,9 +643,6 @@ function _car_move(self, btns)
   local vel_dot_fwd = dot(fwd_x, fwd_y, v_x_normalized, v_y_normalized)
   local speed = dist(self.v_x, self.v_y)
 
-  -- Jump checked on move and at start of each frame in case we're stopped
-  check_jump(self, self.x, self.y, self.z)
-
   -- Get the wheel modifiers (boost, road, grass, etc)
   local grass_wheels = 0
   local boost_wheels = 0
@@ -944,7 +941,6 @@ function draw_car_shadow(self)
   pal()
 end
 
-
 -- Modified from https://maddymakesgames.com/articles/celeste_and_towerfall_physics/index.html
 -- Returns final x, y pos and whether the move was blocked
 function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
@@ -964,7 +960,16 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
         y += sign * y_mask
         z += sign * z_mask
         move -= sign
-        _on_player_moved(self, x, y, z, self.angle_fwd)
+        if _on_player_moved(self, x, y, z, self.angle_fwd) then
+          -- handle jumped
+          map_jump_frames[map_jumps[flr(x/chunk_size_x8)][flr(y/chunk_size_x8)]] = 30
+          self.v_z = 2 -- Hack! Modifying velocity in colision / movement code
+          z = 2
+          if not self.is_ghost then
+            pause_frames = -3
+            sfx(11)
+          end
+        end
       end
     end
   end
@@ -972,13 +977,16 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
 end
 
 -- Called whenever the player occupies a new position. Can be called multiple times per frame
+-- Returns true if the player is on a jump. Processing defered to do all wheel checks + properly handle impact
 function _on_player_moved(self, x, y, z, angle)
   self.water_wheels = 0
-  for i, offset in pairs(self.wheel_offsets) do
-    local check_x = flr(x) + offset.x
-    local check_y = flr(y) + offset.y
+  local jumped = false
 
-    check_jump(self, check_x, check_y, z)
+  for i, offset in pairs(self.wheel_offsets) do
+    local check_x = x + offset.x
+    local check_y = y + offset.y
+
+    jumped = jumped or collides_jump_at(check_x, check_y, z)
     local checkpoint = collides_checkpoint_at(check_x, check_y)
     if checkpoint ~= nil then
       local new_cp = on_checkpoint_crossed(level_m, self, checkpoint)
@@ -1009,18 +1017,8 @@ function _on_player_moved(self, x, y, z, angle)
       add_trail_point(trail_m, check_x, check_y, 0)
     end
   end
-end
 
-function check_jump(self, x, y, z)
-  if collides_jump_at(x, y, z) then
-    map_jump_frames[map_jumps[flr(x/chunk_size_x8)][flr(y/chunk_size_x8)]] = 30
-    self.v_z = 2
-    self.z = 1
-    if not self.is_ghost then
-      pause_frames = -2
-      sfx(11)
-    end
-  end
+  return jumped
 end
 
 function _player_collides_at(self, x, y, z, angle, penalize)
