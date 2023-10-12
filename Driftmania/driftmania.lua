@@ -1252,7 +1252,7 @@ function frame_to_time_str(frames)
   -- mm:ss.mm. Max time 546.13 sec
   local min = '0' .. tostr(flr(frames/3600))
   local sec = tostr(flr(frames/60%60))
-  local sub_sec = tostr(flr(frames%60/60*100))
+  local sub_sec = tostr(flr(frames%60*100/60))
   return min .. ':' .. (#sec == 1 and '0' or '') .. sec .. '.' .. (#sub_sec == 1 and '0' or '') .. sub_sec
 end
 
