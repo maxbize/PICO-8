@@ -962,7 +962,6 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
         move -= sign
         if _on_player_moved(self, x, y, z, self.angle_fwd) then
           -- handle jumped
-          map_jump_frames[map_jumps[flr(x/chunk_size_x8)][flr(y/chunk_size_x8)]] = 30
           self.v_z = 2 -- Hack! Modifying velocity in colision / movement code
           z = 2
           if not self.is_ghost then
@@ -986,7 +985,10 @@ function _on_player_moved(self, x, y, z, angle)
     local check_x = x + offset.x
     local check_y = y + offset.y
 
-    jumped = jumped or collides_jump_at(check_x, check_y, z)
+    if collides_jump_at(check_x, check_y, z) then
+      map_jump_frames[map_jumps[flr(check_x/chunk_size_x8)][flr(check_y/chunk_size_x8)]] = 30
+      jumped = true
+    end
     local checkpoint = collides_checkpoint_at(check_x, check_y)
     if checkpoint ~= nil then
       local new_cp = on_checkpoint_crossed(level_m, self, checkpoint)
