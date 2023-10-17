@@ -253,7 +253,7 @@ local outline_cache = {}
 local bbox_cache = {}
 -- local wall_height = 3 - hardcoded to save compressed space
 local chunk_size = 3
-local chunk_size_x8 = 24
+-- local chunk_size_x8 = 24 - hardcoded to save compressed space
 local chunks_per_row = 42 -- flr(128/chunk_size)
 
 -- Hardcoded wheel offsets to get them pixel perfect :D
@@ -840,8 +840,8 @@ function _car_move(self, btns)
   end
 
   -- Check bounds
-  local chunk_x = flr(self.x / chunk_size_x8)
-  local chunk_y = flr(self.y / chunk_size_x8)
+  local chunk_x = flr(self.x / 24)
+  local chunk_y = flr(self.y / 24)
   if self.respawn_frames == 0 and self.z == 0 and map_bounds_chunks[chunk_x][chunk_y] == 0 then
     self.respawn_frames = 60
     self.respawn_start_x = self.x
@@ -934,7 +934,7 @@ function draw_car_shadow(self)
   pal(0, 1)
   local height = 0
   if collides_jump_at(self.x, self.y, 0) then
-    height = flr(map_jump_frames[map_jumps[flr(self.x/chunk_size_x8)][flr(self.y/chunk_size_x8)]] / 8)
+    height = flr(map_jump_frames[map_jumps[flr(self.x/24)][flr(self.y/24)]] / 8)
   end
   pd_rotate(self.x,self.y-height,round_nth(self.angle_fwd),127,63.5,2,true,self.scale)
   palt()
@@ -986,7 +986,7 @@ function _on_player_moved(self, x, y, z, angle)
     local check_y = y + offset.y
 
     if collides_jump_at(check_x, check_y, z) then
-      map_jump_frames[map_jumps[flr(check_x/chunk_size_x8)][flr(check_y/chunk_size_x8)]] = 30
+      map_jump_frames[map_jumps[flr(check_x/24)][flr(check_y/24)]] = 30
       jumped = true
     end
     local checkpoint = collides_checkpoint_at(check_x, check_y)
@@ -1141,8 +1141,8 @@ function spawn_level_manager()
     lap = 1,
     frame = 1,
     anim_frame = 0,
-    cp_cache = {}, -- table[x][y] -> cp index
-    cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
+    --cp_cache = {}, -- table[x][y] -> cp index
+    --cp_sprites = {}, -- table[cp_index] -> list of x, y, sprite to draw after crossing checkpoint
     state = 1, -- 1=intro, 2=playing, 3=ending
     last_best = 0, -- Previous best time for the track that just finished
     lap_frames = {}, -- list of frames for this attempt of the track
@@ -1475,8 +1475,8 @@ function draw_map(map_chunks, map_size, draw_below_player, draw_above_player, ha
 
   for i = 0, 6 do
     for j = 0, 6 do
-      local chunk_x = mid(flr(camera_x / chunk_size_x8) + i, 0, map_size - 1)
-      local chunk_y = mid(flr(camera_y / chunk_size_x8) + j, 0, map_size - 1)
+      local chunk_x = mid(flr(camera_x / 24) + i, 0, map_size - 1)
+      local chunk_y = mid(flr(camera_y / 24) + j, 0, map_size - 1)
 
       local jump_frames = 0
       if has_jumps and map_jumps[chunk_x] ~= nil and map_jumps[chunk_x][chunk_y] ~= nil then
@@ -1490,15 +1490,15 @@ function draw_map(map_chunks, map_size, draw_below_player, draw_above_player, ha
         local tile_y = flr(chunk_index / chunks_per_row) * chunk_size
 
         -- top left corner of chunk in world
-        local world_x = chunk_x * chunk_size_x8
-        local world_y = chunk_y * chunk_size_x8
+        local world_x = chunk_x * 24
+        local world_y = chunk_y * 24
 
         if draw_above_player and draw_below_player then
           -- draw whole chunk
           if solid_chunks[chunk_index] == 0 then
             -- pass
           elseif solid_chunks[chunk_index] ~= nil then
-            rectfill(world_x, world_y, world_x + chunk_size_x8-1, world_y + chunk_size_x8-1, solid_chunks[chunk_index])
+            rectfill(world_x, world_y, world_x + 23, world_y + 23, solid_chunks[chunk_index]) -- 23 == chunk_size * 8 - 1
           elseif jump_frames > 0 then
             local height = flr(jump_frames/8)
             pal(15, 2)
@@ -1519,7 +1519,7 @@ function draw_map(map_chunks, map_size, draw_below_player, draw_above_player, ha
           for i = 0, chunk_size - 1 do
             local strip_world_y = world_y + i * 8 -- map strip
             local above_player = strip_world_y < player.y
-            local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + chunk_size_x8 and player.x + 5 > world_x - 2
+            local contains_player = player.y - 9 < strip_world_y + 9 and player.y + 7 > strip_world_y and player.x - 6 < world_x + 24 and player.x + 5 > world_x - 2
             if (above_player and draw_above_player) or (not above_player and draw_below_player) or contains_player then
               if not contains_player then
                 map(tile_x, tile_y + i, world_x, strip_world_y, chunk_size, 1)
@@ -1555,7 +1555,7 @@ end
 
 function spawn_trail_manager()
   trail_m = {
-    draw = _trail_manager_draw,
+    --draw = _trail_manager_draw,
     points = {},
     points_i = 1,
     max_points = 1000, -- 10% CPU per 1k
@@ -1674,7 +1674,7 @@ end
 -- Water trail/wake
 function spawn_particle_manager_water()
   local particle_m = {
-    draw = _particle_manager_water_draw, -- updates handled in draw so we can pget for performance
+    --draw = _particle_manager_water_draw, -- updates handled in draw so we can pget for performance
     points = {},
     points_i = 1,
     max_points = 500,
@@ -2038,8 +2038,8 @@ function draw_medals(x, y, time)
   local num_medals = get_num_medals(time, map_settings)
 
   -- Display time requirement for next medal
-  -- Plat medal times are secret (TODO: show plat times after getting gold on all maps)
-  if num_medals < 4 then
+  -- Plat medal times are secret until you average gold across all tracks
+  if num_medals < 3 or (num_medals < 4 and get_total_num_medals() >= #map_settings * 3) then
     print_shadowed('nEXT mDL', x - 7, y + 20, 6)
     local next_medal_frames =
       map_settings.bronze < time and map_settings.bronze 
