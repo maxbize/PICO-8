@@ -1221,9 +1221,9 @@ function _level_manager_draw(self)
   -- End sequence
   if self.state == 3 then
     local x = camera_x + 5
-    local y = camera_y + 19 - max(0, (75 - self.anim_frame)*4)
+    local y = camera_y + 12 - max(0, (75 - self.anim_frame)*4)
 
-    rectfill_outlined(camera_x, y, camera_x + 128, y + 89, 12, 1)
+    rectfill_outlined(camera_x, y, camera_x + 128, y + 99, 12, 1)
 
     print_shadowed('rACE\ncOMPLETE', x, y+4, 7)
     print_shadowed('tIME\n' .. frame_to_time_str(self.frame), x, y+20, 7)
@@ -1233,11 +1233,11 @@ function _level_manager_draw(self)
         self.last_best_time >= self.frame and 11 or 8)
     end
 
-    draw_medals(x + 7, y + 45, get_num_medals(self.frame, map_settings))
-    draw_minimap(x + 33, y)
+    draw_medals(x + 7, y + 42, self.frame)
+    draw_minimap(x + 33, y + 5)
 
     self.menu.x = x + 8
-    self.menu.y = y + 70
+    self.menu.y = y + 81
     self.menu.draw()
   end
 
@@ -2010,20 +2010,7 @@ function _level_select_manager_draw(self)
     print_shadowed(frame_to_time_str(best_time), 3, 60, 7)
 
     if best_time > 0 then
-      local num_medals = get_num_medals(best_time, map_settings)
-      draw_medals(10, 70, num_medals)
-
-      -- Display time requirement for next medal
-      -- Plat medal times are secret
-      if num_medals < 3 then
-        print_shadowed('nEXT mDL', 3, 90, 6)
-        local next_medal_frames =
-          map_settings.bronze < best_time and map_settings.bronze 
-          or map_settings.silver < best_time and map_settings.silver 
-          or map_settings.gold
-        print_shadowed(frame_to_time_str(next_medal_frames), 3, 98, 6)
-
-      end
+      draw_medals(10, 70, best_time)
     end
   else
     -- need 4 more medals
@@ -2047,14 +2034,29 @@ local medal_pal = {
   split('7,7,10,12,9,13,4,2,2,1'), -- plat
 }
 
-function draw_medals(x, y, n)
+function draw_medals(x, y, time)
+  local num_medals = get_num_medals(time, map_settings)
+
+  -- Display time requirement for next medal
+  -- Plat medal times are secret (TODO: show plat times after getting gold on all maps)
+  if num_medals < 4 then
+    print_shadowed('nEXT mDL', x - 7, y + 20, 6)
+    local next_medal_frames =
+      map_settings.bronze < time and map_settings.bronze 
+      or map_settings.silver < time and map_settings.silver 
+      or map_settings.gold < time and map_settings.gold 
+      or map_settings.plat
+    print_shadowed(frame_to_time_str(next_medal_frames), x - 7, y + 28, 6)
+  end
+
+  -- Draw the medals themselves
   local dx = 4
   local dy = -1
 
-  x -= dx * (n - 1) / 2
-  y -= dy * (n - 1) / 2
+  x -= dx * (num_medals - 1) / 2
+  y -= dy * (num_medals - 1) / 2
 
-  for i = 1, n do
+  for i = 1, num_medals do
     pal()
     local medal_p = medal_pal[i]
     for j = 1, #medal_p, 2 do
