@@ -2069,10 +2069,10 @@ end
 
 function get_num_medals(time, settings)
   return 
-       time < settings.plat and 4
-    or time < settings.gold and 3
-    or time < settings.silver and 2
-    or time < settings.bronze and 1
+       time <= settings.plat and 4
+    or time <= settings.gold and 3
+    or time <= settings.silver and 2
+    or time <= settings.bronze and 1
     or 0
 end
 
