@@ -2039,7 +2039,7 @@ function draw_medals(x, y, time)
 
   -- Display time requirement for next medal
   -- Plat medal times are secret until you average gold across all tracks
-  if num_medals < 3 or (num_medals < 4 and get_total_num_medals() >= #map_settings * 3) then
+  if num_medals < 3 or (num_medals < 4 and get_total_num_medals() >= #map_settings_data * 3) then
     print_shadowed('nEXT mDL', x - 7, y + 20, 6)
     local next_medal_frames =
       map_settings.bronze < time and map_settings.bronze 
