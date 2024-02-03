@@ -1,8 +1,6 @@
 --keep: driftmania
 --keep: by max bize
 
--- TODO: Token optimization around duplicated lookups of car state, wheel offsets, etc
-
 --------------------
 -- Global State
 --------------------
@@ -1004,9 +1002,7 @@ function _on_player_moved(self, x, y, z, angle)
       if collides_water then
         self.water_wheels += 1
         local side = i == 4 and 1 or -1
-        if rnd(1) > 0.25 then
-          add_particle_water(particle_water_m, check_x, check_y, 7, rnd2(self.v_y*0.05), rnd2(-self.v_x*0.05), rnd(20)+15, true)
-        end
+        add_particle_water(particle_water_m, check_x, check_y, 7, rnd2(self.v_y*0.05), rnd2(-self.v_x*0.05), rnd(25)+20)
         add_particle_water(particle_water_m, check_x, check_y, 7, self.v_y*0.175*side, -self.v_x*0.175*side, rnd(20)+20)
       end
       local collides_grass = collides_grass_at(check_x, check_y, z)
@@ -1688,15 +1684,16 @@ function spawn_particle_manager_water()
   return particle_m
 end
 
-function add_particle_water(self, x, y, c, v_x, v_y, t, double)
+function add_particle_water(self, x, y, c, v_x, v_y, t)--, double)
   --if rnd(1) > 0.5 then return end
   self.points[self.points_i] = {x=x, y=y, c=c, v_x=v_x, v_y=v_y, t=round(t),}
   self.points_i = (self.points_i % self.max_points) + 1
-  if double then
-    local v_x_greater = abs(v_x) > abs(v_y)
-    self.points[self.points_i] = {x=x+(v_x_greater and 1 or 0), y=y+(v_x_greater and 0 or 1), c=c, v_x=v_x, v_y=v_y, t=round(t+rnd2(t*.2)),}
-    self.points_i = (self.points_i % self.max_points) + 1
-  end
+-- Too many tokens. Cutting this
+--  if double then
+--    local v_x_greater = abs(v_x) > abs(v_y)
+--    self.points[self.points_i] = {x=x+(v_x_greater and 1 or 0), y=y+(v_x_greater and 0 or 1), c=c, v_x=v_x, v_y=v_y, t=round(t+rnd2(t*.2)),}
+--    self.points_i = (self.points_i % self.max_points) + 1
+--  end
 end
 
 function _particle_manager_water_draw(self)
