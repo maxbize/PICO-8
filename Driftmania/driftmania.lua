@@ -295,6 +295,7 @@ function _init()
   particle_water_m = spawn_particle_manager_water()
 
   set_menu_items()
+  music(0)
 
   -- Re-submit best times for achievement tracking
   for level_index, map_settings in pairs(map_settings_data) do
@@ -605,13 +606,13 @@ function _car_update(self)
     self.engine_pitch += sgn(target_pitch - self.engine_pitch) * 0.25
   end
   if self.engine_pitch >= 0 then
-    sfx(8, 0, self.engine_pitch, 0)
+    sfx(50, 0, self.engine_pitch, 0)
   else
-    sfx(8, -2) -- stop sfx
+    sfx(50, -2) -- stop sfx
   end
 
   if d_brake then
-    sfx(17, 1, 0, 0)
+    sfx(58, 1, 0, 0)
   end
 end
 
@@ -684,7 +685,7 @@ function _car_move(self, btns)
     if self.boost_frames <= 87 and not self.is_ghost then
       self.flash_frames = 5
       pause_frames = -2
-      sfx(13)
+      sfx(54)
     end
     self.boost_frames = 90
   end
@@ -832,7 +833,7 @@ function _car_move(self, btns)
   if z_blocked then
     self.v_z = 0
     if self.z == 0 and not self.is_ghost then
-      sfx(9)
+      sfx(51)
       smoke_particles(self, 10)
     end
   end
@@ -964,7 +965,7 @@ function _player_move(self, amount, remainder, x_mask, y_mask, z_mask)
           z = 2
           if not self.is_ghost then
             pause_frames = -3
-            sfx(11)
+            sfx(53)
           end
         end
       end
@@ -1032,7 +1033,7 @@ function _player_collides_at(self, x, y, z, angle, penalize)
         self.wall_penalty_frames = 20
         -- Really annoying to have the car crash effects on level end when it goes off screen
         if level_m.state ~= 3 and not self.is_ghost then
-          sfx(10)
+          sfx(52)
           smoke_particles(self, rnd(2)+1)
         end
       end
@@ -1129,6 +1130,7 @@ function load_level(start)
 
   if start then
     game_state = 0
+    music(-1, 1000)
   end
 end
 
@@ -1154,8 +1156,9 @@ end
 
 function quit_level()
   load_level(false) 
-  sfx(8, -2) 
+  sfx(50, -2) 
   game_state = 2
+  music(0)
 end
 
 function _level_manager_update(self)
@@ -1191,7 +1194,7 @@ function _level_manager_draw(self)
     local y = camera_y + 24 - max(0, (15 - self.anim_frame)*4) - max(0, (self.anim_frame - 150)*4)
     local c = self.anim_frame > 135 and 11 or self.anim_frame > 90 and 9 or self.anim_frame > 45 and 8 or 1
     if self.anim_frame == 45 then
-      sfx(16)
+      sfx(57)
     end
 
     -- Background + perimiter (85 tokens)
@@ -1282,6 +1285,7 @@ function on_checkpoint_crossed(self, car, cp_index)
       -- Completed the track
       if self.lap == map_settings.laps then
         self.state = 3
+        music(20, 1000)
 
         -- If this is the new best time we have a recording of, save it
         if player.ghost_frame <= ghost_best_time then
@@ -1333,10 +1337,10 @@ function on_checkpoint_crossed(self, car, cp_index)
 
         self.lap += 1
       end
-      sfx(15, -1, 0, 10)
+      sfx(56, -1, 0, 10)
     end
   elseif not car.is_ghost then
-    sfx(14, -1, 0, 3)
+    sfx(55, -1, 0, 3)
   end
 
   -- Advance checkpoint marker
@@ -1810,17 +1814,17 @@ function _menu_update(self)
   -- up/down & left/right
   if btnp(self.type == 'vert' and 3 or 1) then
     self.index = (self.index % #self.buttons) + 1
-    sfx(14, -1, 8, 1)
+    sfx(55, -1, 8, 1)
   elseif btnp(self.type == 'vert' and 2 or 0) then
     self.index = self.index == 1 and #self.buttons or self.index - 1
-    sfx(14, -1, 8, 1)
+    sfx(55, -1, 8, 1)
   end
 
   -- update active button
   local button = self.buttons[self.index]
   local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
   if input ~= 0 then
-    sfx(14, -1, 16, 1)
+    sfx(55, -1, 16, 1)
     button.update(self.index, input)
     self.frames = 5
   end
@@ -1964,6 +1968,7 @@ function spawn_level_select_manager()
     end),
     new_button(44, 0, 'sTART', function(self)
       if map_settings.req_medals <= get_total_num_medals() then
+        music(-1, 1000)
         self.menu.index = 1
         game_state = 0 
         ghost_best_time = 0x7fff
