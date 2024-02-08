@@ -680,6 +680,9 @@ function _car_move(self, btns)
     --mod_max_vel = 0.9
     mod_accel = 0.5
     mod_brake = 0.25
+    if speed > 1 and not self.is_ghost then
+      sfx(59, 1)
+    end
   end
   if boost_wheels >= 1 then
     if self.boost_frames <= 87 and not self.is_ghost then
@@ -702,6 +705,9 @@ function _car_move(self, btns)
     mod_turn_rate = 0.75
     mod_corrective = 2
     d_brake = false -- no d-brake in water
+    poke(16264, 144) -- Disable all mods on SFX 50 except dampen
+  else
+    poke(16264, 164) -- Enable dampen, buzz, detune on SFX 50
   end
   self.water_frames = mid(0, 45, self.water_frames + (self.water_wheels > 0 and 5 or -1))
   local mod_max_vel = 1 - self.water_frames / 112.5 -- / 45 * 0.4
@@ -1814,17 +1820,17 @@ function _menu_update(self)
   -- up/down & left/right
   if btnp(self.type == 'vert' and 3 or 1) then
     self.index = (self.index % #self.buttons) + 1
-    sfx(55, -1, 8, 1)
+    sfx(55, 3, 8, 1)
   elseif btnp(self.type == 'vert' and 2 or 0) then
     self.index = self.index == 1 and #self.buttons or self.index - 1
-    sfx(55, -1, 8, 1)
+    sfx(55, 3, 8, 1)
   end
 
   -- update active button
   local button = self.buttons[self.index]
   local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
   if input ~= 0 then
-    sfx(55, -1, 16, 1)
+    sfx(55, 3, 16, 1)
     button.update(self.index, input)
     self.frames = 5
   end
