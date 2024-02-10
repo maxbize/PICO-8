@@ -16,6 +16,8 @@ local level_index = 1
 local pause_frames = 0
 local camera_x = 0
 local camera_y = 0
+local menu_anim_frame = 0 -- menu transition animation
+local menu_anim_cb = nil -- delayed button press processing
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
 local map_road_tiles = nil
@@ -401,6 +403,20 @@ function _draw()
   -- 0% CPU
   for obj in all(objects) do
     obj.draw(obj)
+  end
+
+  if menu_anim_frame > 0 then
+    palt(0b0000000000000001)
+    for x = 0, 128, 8 do
+      for y = 0, 128, 8 do
+        spr(143 + menu_anim_frame, x, y)
+      end
+    end
+    palt()
+    if menu_anim_frame == 8 then
+      menu_anim_cb()
+    end
+    menu_anim_frame -= 1
   end
 
   --_player_debug_draw(player)
@@ -1154,8 +1170,8 @@ function spawn_level_manager()
   cache_checkpoints(level_m, map_checkpoints)
 
   local buttons = {
-    new_button(0, 0, 'rETRY', function() load_level(true) end),
-    new_button(0, 10, 'qUIT', quit_level),
+    new_button(0, 0, 'rETRY', true, function() load_level(true) end),
+    new_button(0, 10, 'qUIT', true, quit_level),
   }
   level_m.menu = new_menu(50, -10, buttons, 'vert', 120)
 end
@@ -1785,8 +1801,9 @@ function set_menu_items()
   end)
 end
 
-function new_button(x, y, txt, update)
-  local obj = {x=x, y=y, txt=txt}
+-- transition -> true when we should trigger the menu transition animation when activating this button
+function new_button(x, y, txt, transition, update)
+  local obj = {x=x, y=y, txt=txt, transition=transition}
   obj.update = function(index, input) update(obj, index, input) end
   return obj
 end
@@ -1829,10 +1846,16 @@ function _menu_update(self)
   -- update active button
   local button = self.buttons[self.index]
   local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
+  local cb = function() button.update(self.index, input) end
   if input ~= 0 then
     sfx(61)
-    button.update(self.index, input)
     self.frames = 5
+    if button.transition then
+      menu_anim_frame = 22
+      menu_anim_cb = cb
+    else
+      cb()
+    end
   end
 end
 
@@ -1886,9 +1909,9 @@ function spawn_customization_manager()
     if dget(0) ~= 0 then
       d.chosen = dget(i)
     end
-    add(buttons, new_button(0, i * 10, d.text, btn_customization))
+    add(buttons, new_button(0, i * 10, d.text, false, btn_customization))
   end
-  add(buttons, new_button(46, 92, 'bACK', function(self) self.menu.index = 1 game_state = 3 end))
+  add(buttons, new_button(46, 92, 'bACK', true, function(self) self.menu.index = 1 game_state = 3 end))
   customization_m.menu = new_menu(15, 15, buttons, 'vert', 1)
   _customization_manager_save(customization_m)
 
@@ -1961,7 +1984,7 @@ end
 
 function spawn_level_select_manager()
   local buttons = {
-    new_button(0, 0, 'lEVEL ' .. map_settings.name, function(self, index, input)
+    new_button(0, 0, 'lEVEL ' .. map_settings.name, false, function(self, index, input)
       -- 1-index hell :(
       local max_level = 1
       local total_medals = get_total_num_medals()
@@ -1972,7 +1995,7 @@ function spawn_level_select_manager()
       load_level(false)
       self.txt = 'lEVEL ' .. map_settings.name
     end),
-    new_button(44, 0, 'sTART', function(self)
+    new_button(44, 0, 'sTART', true, function(self)
       if map_settings.req_medals <= get_total_num_medals() then
         music(-1, 1000)
         self.menu.index = 1
@@ -1984,7 +2007,7 @@ function spawn_level_select_manager()
         end
       end
     end),
-    new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end)
+    new_button(80, 0, 'bACK', true, function(self) self.menu.index = 1 game_state = 3 end)
   }
 
   add(objects, {
@@ -2106,9 +2129,9 @@ end
 
 function spawn_main_menu_manager()
   local buttons = {
-    new_button(0, 0, 'rACE', function() game_state = 2 end),
-    new_button(0, 10, 'gARAGE', function() game_state = 1 end),
-    new_button(-49, 30, 'mAX bIZE', function() poke(0x5ffd) end) -- GPIO signal to open external link
+    new_button(0, 0, 'rACE', true, function() game_state = 2 end),
+    new_button(0, 10, 'gARAGE', true, function() game_state = 1 end),
+    new_button(-49, 30, 'mAX bIZE', true, function() poke(0x5ffd) end) -- GPIO signal to open external link
   }
 
   add(objects, {
