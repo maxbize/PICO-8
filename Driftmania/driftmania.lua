@@ -1819,6 +1819,11 @@ function _menu_update(self)
     return
   end
 
+  -- Skip button updates during menu animations
+  if menu_anim_frame >= 22 then
+    return
+  end
+
   -- up/down & left/right
   if btnp(self.type == 'vert' and 3 or 1) then
     self.index = (self.index % #self.buttons) + 1
