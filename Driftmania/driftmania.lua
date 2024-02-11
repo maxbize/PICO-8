@@ -409,11 +409,11 @@ function _draw()
     palt(0b0000000000000001)
     for x = 0, 128, 8 do
       for y = 0, 128, 8 do
-        spr(143 + menu_anim_frame, x, y)
+        spr(mid(144, 175, 129 + menu_anim_frame + x / 16 + y / 16), x + camera_x, y + camera_y)
       end
     end
     palt()
-    if menu_anim_frame == 8 then
+    if menu_anim_frame == 22 then
       menu_anim_cb()
     end
     menu_anim_frame -= 1
@@ -1025,8 +1025,8 @@ function _on_player_moved(self, x, y, z, angle)
       if collides_water then
         self.water_wheels += 1
         local side = i == 4 and 1 or -1
-        add_particle_water(particle_water_m, check_x, check_y, 7, rnd2(self.v_y*0.05), rnd2(-self.v_x*0.05), rnd(25)+20)
-        add_particle_water(particle_water_m, check_x, check_y, 7, self.v_y*0.175*side, -self.v_x*0.175*side, rnd(20)+20)
+        add_particle_water(particle_water_m, check_x, check_y, rnd2(self.v_y*0.05), rnd2(-self.v_x*0.05), rnd(25)+20)
+        add_particle_water(particle_water_m, check_x, check_y, self.v_y*0.175*side, -self.v_x*0.175*side, rnd(20)+20)
       end
       local collides_grass = collides_grass_at(check_x, check_y, z)
       if collides_grass and not collides_water then
@@ -1710,9 +1710,9 @@ function spawn_particle_manager_water()
   return particle_m
 end
 
-function add_particle_water(self, x, y, c, v_x, v_y, t)--, double)
+function add_particle_water(self, x, y, v_x, v_y, t)--, double)
   --if rnd(1) > 0.5 then return end
-  self.points[self.points_i] = {x=x, y=y, c=c, v_x=v_x, v_y=v_y, t=round(t),}
+  self.points[self.points_i] = {x=x, y=y, v_x=v_x, v_y=v_y, t=round(t),}
   self.points_i = (self.points_i % self.max_points) + 1
 -- Too many tokens. Cutting this
 --  if double then
@@ -1740,11 +1740,7 @@ function _particle_manager_water_draw(self)
       end
       p.t -= 1
 
-      if p.t == 8 then 
-        p.c = 6
-      end
-
-      pset(p.x, p.y, p.c)
+      pset(p.x, p.y, p.t > 8 and 7 or 6)
     end
   end
 end
@@ -1851,7 +1847,7 @@ function _menu_update(self)
     sfx(61)
     self.frames = 5
     if button.transition then
-      menu_anim_frame = 22
+      menu_anim_frame = 45
       menu_anim_cb = cb
     else
       cb()
@@ -1870,7 +1866,7 @@ end
 function btn_customization(self, index, input)
   if input ~= 0 then
     local opt = customization_m.data[index]
-    local num_colors = get_total_num_medals() == #map_road_data * 4 and 32 or 16 -- Allow extra colors if user unlocked all medals
+    local num_colors = get_total_num_medals() == 60 and 32 or 16 -- Allow extra colors if user unlocked all medals
     opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
     -- Customization achievement
     poke(0x5ffe, 1)
@@ -1999,7 +1995,7 @@ function spawn_level_select_manager()
       if map_settings.req_medals <= get_total_num_medals() then
         music(-1, 1000)
         self.menu.index = 1
-        game_state = 0 
+        game_state = 0
         ghost_best_time = 0x7fff
         ghost_playback = {}
         for i = 1, 0x7fff do
@@ -2070,7 +2066,7 @@ function draw_medals(x, y, time)
 
   -- Display time requirement for next medal
   -- Plat medal times are secret until you average gold across all tracks
-  if num_medals < 3 or (num_medals < 4 and get_total_num_medals() >= #map_settings_data * 3) then
+  if num_medals < 3 or (num_medals < 4 and get_total_num_medals() >= 45) then
     print_shadowed('nEXT mDL', x - 7, y + 20, 6)
     local next_medal_frames =
       map_settings.bronze < time and map_settings.bronze 
@@ -2131,7 +2127,7 @@ function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', true, function() game_state = 2 end),
     new_button(0, 10, 'gARAGE', true, function() game_state = 1 end),
-    new_button(-49, 30, 'mAX bIZE', true, function() poke(0x5ffd) end) -- GPIO signal to open external link
+    new_button(-49, 30, 'mAX bIZE', false, function() poke(0x5ffd) end) -- GPIO signal to open external link
   }
 
   add(objects, {
@@ -2181,7 +2177,7 @@ end
 
 -- Color-changing rect to indicate easter egg
 function color_dot(x, y)
-  if get_total_num_medals() == #map_road_data * 4 then
+  if get_total_num_medals() == 60 then -- end of development - hardcoding number of maps
     rect(x, y, x+1, y+1, time()*10)
   end
 end
