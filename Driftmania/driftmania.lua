@@ -16,7 +16,7 @@ local level_index = 1
 local pause_frames = 0
 local camera_x = 0
 local camera_y = 0
-local menu_anim_frame = 0 -- menu transition animation
+local menu_anim_frame = 21 -- menu transition animation
 local menu_anim_cb = nil -- delayed button press processing
 
 -- Current map sprites / chunks. map[x][y] -> sprite/chunk index
