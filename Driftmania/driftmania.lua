@@ -45,7 +45,6 @@ end
 
 -- Settings
 cartdata('mbdriftmania1')
-local dynamic_camera_disabled = dget(9) == 1 -- flag is _disabled so that default is on
 local ghost_enabled = dget(10) == 1
 
 --------------------
@@ -272,7 +271,7 @@ end
 --------------------
 
 function _init()
-  printh('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
+  --printh('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
 
   -- Reset high scores for debugging
   --for i = 11, 64 do
@@ -405,6 +404,7 @@ function _draw()
     obj.draw(obj)
   end
 
+  -- Menu transition animation
   if menu_anim_frame > 0 then
     palt(0b0000000000000001)
     for x = 0, 128, 8 do
@@ -568,18 +568,14 @@ function _car_update(self)
   if self.respawn_frames == 0 then
     d_brake, move_fwd = _car_move(self, level_m.state == 2 and btn() or 0)
     if level_m.state ~= 3 then
-      if dynamic_camera_disabled then
-        camera(self.x - 64, self.y - 64)
-      else
-        local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
-        local speed = dist(self.v_x, self.v_y)
-        local lead = min(speed * 9.9, 30)
-        local target_x = self.x - 64 + flr(fwd_x * lead)
-        local target_y = self.y - 64 + flr(fwd_y * lead)
-        self.camera_target_x += (target_x - self.camera_target_x) * 0.5
-        self.camera_target_y += (target_y - self.camera_target_y) * 0.5
-        camera(self.camera_target_x, self.camera_target_y)
-      end
+      local fwd_x, fwd_y = angle_vector(self.angle_fwd, 1)
+      local speed = dist(self.v_x, self.v_y)
+      local lead = min(speed * 9.9, 30)
+      local target_x = self.x - 64 + flr(fwd_x * lead)
+      local target_y = self.y - 64 + flr(fwd_y * lead)
+      self.camera_target_x += (target_x - self.camera_target_x) * 0.5
+      self.camera_target_y += (target_y - self.camera_target_y) * 0.5
+      camera(self.camera_target_x, self.camera_target_y)
     end
   else
     d_brake, move_fwd = _car_move(self, 0)
@@ -628,7 +624,7 @@ function _car_update(self)
   end
 
   if d_brake then
-    sfx(58, 2, 0, 0)
+    sfx(58, 2)
   end
 end
 
@@ -899,12 +895,12 @@ end
 function boost_particles(self)
   local cone_angle = 0.1
   local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
-  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, self.is_ghost and 2 or 30, 4, true)
+  add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, self.is_ghost and 2 or 30, 4, 1)
 end
 
 function smoke_particles(self, n)
   for i = 1, n do
-    add_particle_vol(particle_vol_m, self.x, self.y, 0, rnd(1) < 0.5 and 6 or 7, rnd2(1.5), rnd2(1.5), 0, 30, 4, false)
+    add_particle_vol(particle_vol_m, self.x, self.y, 0, rnd(1) < 0.5 and 6 or 7, rnd2(1.5), rnd2(1.5), 0, 30, 4, 0)
   end
 end
 
@@ -1621,7 +1617,6 @@ function spawn_particle_manager_vol()
 end
 
 function add_particle_vol(self, x, y, z, c, v_x, v_y, v_z, t, r, relative)
-  relative = relative and 1 or 0
   --self.points[self.points_i] = {x=x, y=y, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85}
   self.points[self.points_i] = {x=x-player.x*relative, y=y-player.y*relative, z=z, c=c, v_x=v_x, v_y=v_y, v_z=v_z, t=t, t_start=t, r=r, d=rnd(0.05)+0.85, relative=relative}
   self.points_i = (self.points_i % self.max_points) + 1
@@ -1783,13 +1778,7 @@ end
 function set_menu_items()
   menuitem(1, 'restart level', function() load_level(true) end)
   menuitem(2, 'quit level', quit_level)
-  menuitem(3, 'camera: ' .. (dynamic_camera_disabled and 'static' or 'dynamic'), function()
-    dynamic_camera_disabled = not dynamic_camera_disabled
-    dset(9, dynamic_camera_disabled and 1 or 0)
-    set_menu_items()
-    return true
-  end)
-  menuitem(4, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
+  menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
     ghost_enabled = not ghost_enabled
     dset(10, ghost_enabled and 1 or 0)
     set_menu_items()
@@ -2161,7 +2150,7 @@ function _main_menu_manager_draw(self)
   sspr(0, 88, 119, 33, 4, 7)
   palt()
   print_shadowed('cREATED bY', 3, 107, 6)
-  print_shadowed('V 0.9.0', 98, 115, 6)
+  print_shadowed('V 1.0.0', 98, 115, 6)
 
   map(124, 44, flr(200 - (time() * 200) % 500), 54)
 
@@ -2194,7 +2183,7 @@ function _main_menu_manager_update(self)
   self.time = (self.time + 0.016666) % 327 -- flr(0x7fff/100) so that we don't overflow car.x
 
   if rnd(1) < 0.5 then
-    add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6, true)
+    add_particle_vol(particle_vol_m, self.car.x - 15, self.car.y, 4, rnd(1) < 0.5 and 10 or 9, -5 + rnd2(-1, 1), rnd2(-1, 1), rnd(0.5)-0.25, 60, 6, 1)
   end
 
   self.menu.update()
@@ -2248,8 +2237,8 @@ function draw_minimap(x, y)
 end
 
 function draw_minimap_chunk(tile_map, x, y, chunk_x, chunk_y)
-  for tile_x = chunk_x, chunk_x + chunk_size - 1 do
-    for tile_y = chunk_y, chunk_y + chunk_size - 1 do
+  for tile_y = chunk_y, chunk_y + chunk_size - 1 do
+    for tile_x = chunk_x, chunk_x + chunk_size - 1 do
       local tile = tile_map[tile_x][tile_y]
       if pset_map[tile] ~= nil then
         pset(x + tile_x, y + tile_y, pset_map[tile])
