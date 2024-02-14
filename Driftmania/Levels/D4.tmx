@@ -5,7 +5,7 @@
   <property name="gold" type="float" value="35.05"/>
   <property name="laps" type="int" value="3"/>
   <property name="name" value="d4"/>
-  <property name="plat" type="float" value="32.5"/>
+  <property name="plat" type="float" value="32.6"/>
   <property name="req_medals" type="int" value="25"/>
   <property name="silver" type="float" value="38.75"/>
  </properties>
