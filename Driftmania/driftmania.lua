@@ -45,7 +45,7 @@ end
 
 -- Settings
 cartdata('mbdriftmania1')
-local ghost_enabled = dget(10) == 1
+local ghost_enabled = dget(10) == 0
 
 --------------------
 -- Token saving convenience methods
@@ -1780,7 +1780,7 @@ function set_menu_items()
   menuitem(2, 'quit level', quit_level)
   menuitem(3, 'ghost: ' .. (ghost_enabled and 'on' or 'off'), function()
     ghost_enabled = not ghost_enabled
-    dset(10, ghost_enabled and 1 or 0)
+    dset(10, ghost_enabled and 0 or 1)
     set_menu_items()
     return true
   end)
