@@ -893,8 +893,9 @@ function _car_move(self, btns)
 end
 
 function boost_particles(self)
-  local cone_angle = 0.1
-  local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
+  --local cone_angle = 0.1
+  --local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(cone_angle/2)-cone_angle/4, 6)
+  local offset_x, y = angle_vector(self.angle_fwd+0.5 + rnd(0.05)-0.025, 6)
   add_particle_vol(particle_vol_m, self.x + offset_x, self.y + y, self.z + 2, rnd(1) < 0.5 and 10 or 9, offset_x, y, rnd(0.5)-0.25, self.is_ghost and 2 or 30, 4, 1)
 end
 
@@ -1108,9 +1109,10 @@ function collides_part_at(x, y, z, h, tile_map, full_col_sprites, part_col_sprit
   if full_col_sprites[sprite_index] then
     return true
   elseif part_col_sprites[sprite_index] then
-    local sx = (sprite_index % 16) * 8 + x % 8
-    local sy = flr(sprite_index / 16) * 8 + y % 8
-    local col = sget(sx, sy)
+    --local sx = (sprite_index % 16) * 8 + x % 8
+    --local sy = flr(sprite_index / 16) * 8 + y % 8
+    --local col = sget(sx, sy)
+    local col = sget((sprite_index % 16) * 8 + x % 8, flr(sprite_index / 16) * 8 + y % 8)
     return col == c1 or col == c2
   end
   return false
@@ -1166,8 +1168,8 @@ function spawn_level_manager()
   cache_checkpoints(level_m, map_checkpoints)
 
   local buttons = {
-    new_button(0, 0, 'rETRY', true, function() load_level(true) end),
-    new_button(0, 10, 'qUIT', true, quit_level),
+    new_button(0, 0, 'rETRY', function() load_level(true) end, true),
+    new_button(0, 10, 'qUIT', quit_level, true),
   }
   level_m.menu = new_menu(50, -10, buttons, 1, 120)
 end
@@ -1294,8 +1296,7 @@ function on_checkpoint_crossed(self, car, cp_index)
 
     if not car.is_ghost then
       -- Save/Load best time for this lap
-      local data_index = get_lap_time_index(level_index, self.lap)
-      self.last_best_time = dget(data_index)
+      self.last_best_time = dget(get_lap_time_index(level_index, self.lap))
       add(self.lap_frames, self.frame)
 
       self.anim_frame = 1
@@ -1749,8 +1750,7 @@ function init_outline_cache(t, x)
     pd_rotate(0,0,i/32,x,63.5,2,true,1)
     for x = -15, 15 do
       for y = -15, 15 do
-        local c = pget(x, y)
-        if c == 7 then
+        if pget(x, y) == 7 then
           add(t[rot], {x=x, y=y})
         end
       end
@@ -1785,8 +1785,9 @@ function set_menu_items()
 end
 
 -- transition -> true when we should trigger the menu transition animation when activating this button
-function new_button(x, y, txt, transition, update)
-  local obj = {x=x, y=y, txt=txt, transition=transition}
+-- arrows_can_update -> true when arrows can be used instead of Z/X
+function new_button(x, y, txt, update, transition, arrows_can_update)
+  local obj = {x=x, y=y, txt=txt, transition=transition, arrows_can_update=arrows_can_update}
   obj.update = function(index, input) update(obj, index, input) end
   return obj
 end
@@ -1834,6 +1835,16 @@ function _menu_update(self)
   -- update active button
   local button = self.buttons[self.index]
   local input = (btnp(5) and 1 or 0) - (btnp(4) and 1 or 0)
+  if button.arrows_can_update then
+--    if self.type == 1 then
+--      input += (btnp(1) and 1 or 0) - (btnp(0) and 1 or 0)
+--    else
+--      input += (btnp(2) and 1 or 0) - (btnp(3) and 1 or 0)
+--    end
+    -- Condensed to save bytes. Equivalent to above
+    input += (btnp(self.type == 1 and 1 or 2) and 1 or 0) 
+           - (btnp(self.type == 1 and 0 or 3) and 1 or 0)
+  end
   local cb = function() button.update(self.index, input) end
   if input ~= 0 then
     sfx(61)
@@ -1858,8 +1869,9 @@ end
 function btn_customization(self, index, input)
   if input ~= 0 then
     local opt = customization_m.data[index]
-    local num_colors = get_total_num_medals() == 60 and 32 or 16 -- Allow extra colors if user unlocked all medals
-    opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
+    --local num_colors = get_total_num_medals() == 60 and 32 or 16 -- Allow extra colors if user unlocked all medals
+    --opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
+    opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or (get_total_num_medals() == 60 and 32 or 16))
     -- Customization achievement
     poke(0x5ffe, 1)
   end
@@ -1897,9 +1909,9 @@ function spawn_customization_manager()
     if dget(0) ~= 0 then
       d.chosen = dget(i)
     end
-    add(buttons, new_button(0, i * 10, d.text, false, btn_customization))
+    add(buttons, new_button(0, i * 10, d.text, btn_customization, false, true))
   end
-  add(buttons, new_button(46, 92, 'bACK', true, function(self) self.menu.index = 1 game_state = 3 end))
+  add(buttons, new_button(46, 92, 'bACK', function(self) self.menu.index = 1 game_state = 3 end, true))
   customization_m.menu = new_menu(15, 15, buttons, 1, 1)
   _customization_manager_save(customization_m)
 
@@ -1917,12 +1929,11 @@ function _customization_manager_draw(self)
 
   color_dot(80, 20)
 
-  local c = self.data[2].chosen
   ovalfill(69, 50, 113, 86, 5)
   oval    (69, 50, 113, 86, 6)
   for i = -1, 1, 2 do
     clip(83 + sin(time() * 0.25) * 22 * i, 60 - cos(time() * 0.25) * 18 * i, 16, 16)
-    oval(69, 50, 113, 86, c)
+    oval(69, 50, 113, 86, self.data[2].chosen)
   end
   clip()
 
@@ -1972,18 +1983,17 @@ end
 
 function spawn_level_select_manager()
   local buttons = {
-    new_button(0, 0, 'lEVEL ' .. map_settings.name, false, function(self, index, input)
+    new_button(0, 0, 'lEVEL ' .. map_settings.name, function(self, index, input)
       -- 1-index hell :(
       local max_level = 1
-      local total_medals = get_total_num_medals()
-      while map_settings_data[max_level].req_medals <= total_medals and max_level < #map_settings_data do
+      while map_settings_data[max_level].req_medals <= get_total_num_medals() and max_level < #map_settings_data do
         max_level += 1
       end
       level_index = ((level_index - 1 + input) % max_level) + 1
       load_level(false)
       self.txt = 'lEVEL ' .. map_settings.name
-    end),
-    new_button(44, 0, 'sTART', true, function(self)
+    end, false, true),
+    new_button(44, 0, 'sTART', function(self)
       if map_settings.req_medals <= get_total_num_medals() then
         music(-1, 1000)
         self.menu.index = 1
@@ -1994,8 +2004,8 @@ function spawn_level_select_manager()
           add(ghost_playback, -1)
         end
       end
-    end),
-    new_button(80, 0, 'bACK', true, function(self) self.menu.index = 1 game_state = 3 end)
+    end, true),
+    new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end, true)
   }
 
   add(objects, {
@@ -2117,9 +2127,9 @@ end
 
 function spawn_main_menu_manager()
   local buttons = {
-    new_button(0, 0, 'rACE', true, function() game_state = 2 end),
-    new_button(0, 10, 'gARAGE', true, function() game_state = 1 end),
-    new_button(-49, 30, 'mAX bIZE', false, function() poke(0x5ffd) end) -- GPIO signal to open external link
+    new_button(0, 0, 'rACE', function() game_state = 2 end, true),
+    new_button(0, 10, 'gARAGE', function() game_state = 1 end, true),
+    new_button(-49, 30, 'mAX bIZE', function() poke(0x5ffd) end) -- GPIO signal to open external link
   }
 
   add(objects, {
