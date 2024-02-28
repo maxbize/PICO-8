@@ -1169,7 +1169,7 @@ function spawn_level_manager()
     new_button(0, 0, 'rETRY', true, function() load_level(true) end),
     new_button(0, 10, 'qUIT', true, quit_level),
   }
-  level_m.menu = new_menu(50, -10, buttons, 'vert', 120)
+  level_m.menu = new_menu(50, -10, buttons, 1, 120)
 end
 
 function quit_level()
@@ -1440,8 +1440,7 @@ function load_map(data, data_offset, map_size)
 
   -- Parse data
   local data_decomp = decomp_str(data, data_offset)
-  local num_chunks = #data_decomp
-  for i = 0, num_chunks - 1 do
+  for i = 0, #data_decomp - 1 do
     -- The actual chunk index
     local chunk_index = data_decomp[i+1]
 
@@ -1729,8 +1728,8 @@ function _particle_manager_water_draw(self)
       local c = pget(p.x, p.y)
       if c == 5 or c == 3 then
         p.v_x *= -1
-        p.x += p.v_x
         p.v_y *= -1
+        p.x += p.v_x
         p.y += p.v_y
       end
       p.t -= 1
@@ -1762,10 +1761,9 @@ end
 
 function draw_water_outline(rot, car_x, car_y, car_z)
   for offset in all(outline_cache[rot]) do
-    local x = car_x + offset.x
-    local y = car_y + offset.y
-    if collides_water_at(x, y, car_z) then
-      pset(x, y, 7)
+    -- Repeated math is to save on compressed space
+    if collides_water_at(car_x + offset.x, car_y + offset.y, car_z) then
+      pset(car_x + offset.x, car_y + offset.y, 7)
     end
   end
 end
@@ -1794,7 +1792,7 @@ function new_button(x, y, txt, transition, update)
 end
 
 -- A menu is just a list of buttons + navigation
--- type one of 'vert', 'hor'
+-- type one of 0 (horizontal) or 1 (vertical)
 function new_menu(x, y, buttons, type, idle_duration)
   local obj = {x=x, y=y, buttons=buttons, type=type, idle_duration=idle_duration, index=1, frames=0, last_time=0, idle_frames=0}
   obj.update = function() return _menu_update(obj) end
@@ -1825,10 +1823,10 @@ function _menu_update(self)
   end
 
   -- up/down & left/right
-  if btnp(self.type == 'vert' and 3 or 1) then
+  if btnp(self.type == 1 and 3 or 1) then
     self.index = (self.index % #self.buttons) + 1
     sfx(60)
-  elseif btnp(self.type == 'vert' and 2 or 0) then
+  elseif btnp(self.type == 1 and 2 or 0) then
     self.index = self.index == 1 and #self.buttons or self.index - 1
     sfx(60)
   end
@@ -1902,7 +1900,7 @@ function spawn_customization_manager()
     add(buttons, new_button(0, i * 10, d.text, false, btn_customization))
   end
   add(buttons, new_button(46, 92, 'bACK', true, function(self) self.menu.index = 1 game_state = 3 end))
-  customization_m.menu = new_menu(15, 15, buttons, 'vert', 1)
+  customization_m.menu = new_menu(15, 15, buttons, 1, 1)
   _customization_manager_save(customization_m)
 
   add(objects, customization_m)
@@ -2003,7 +2001,7 @@ function spawn_level_select_manager()
   add(objects, {
     update = _level_select_manager_update,
     draw = _level_select_manager_draw,
-    menu = new_menu(15, 23, buttons, 'hor', 1)
+    menu = new_menu(15, 23, buttons, 0, 1)
   })
 end
 
@@ -2127,7 +2125,7 @@ function spawn_main_menu_manager()
   add(objects, {
     update = _main_menu_manager_update,
     draw = _main_menu_manager_draw,
-    menu = new_menu(60, 85, buttons, 'vert', 1),
+    menu = new_menu(60, 85, buttons, 1, 1),
     car = {
       --x = 90,
       --y = 65,
