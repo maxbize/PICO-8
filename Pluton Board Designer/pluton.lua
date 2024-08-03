@@ -55,7 +55,12 @@ function setup_palette()
   for i,c in ipairs(palette) do
     poke4(0x5000 + 4 * (i-1), c)
   end
+
+  -- Copy palette to gfx and map editors
   send_palette()
+
+  -- Enable transparency for fillp with drawing functions
+  poke(0x550b,0x3f)
 end
 
 function setup_camera()
@@ -106,13 +111,55 @@ function mouse_corrected(grid_aligned)
   return mouse_x, mouse_y, mouse_b
 end
 
+-- Checks if x and y are within 1, bound
+function in_bounds(x, y, bound)
+  return mid(1, x, bound) == x and mid(1, y, bound) == y
+end
+
+function fillp_checkerboard()
+  fillp(0b10101010,
+        0b01010101,
+        0b10101010,
+        0b01010101,
+        0b10101010,
+        0b01010101,
+        0b10101010,
+        0b01010101)
+end
+
+-- Converts an array of trace positions to a map[x][y]
+-- TODO: Could be more generic if needed for other purposes
+function trace_arry_to_map(arr)
+
+
+  -- Create the empty map
+  local map = {}
+  for x = 1, 32 do
+    add(map, {})
+    for y = 1, 32 do
+      add(map[x], false)
+    end
+  end
+
+  -- Override the defaults with array items
+  for item in all(arr) do
+    if in_bounds(item.x, item.y, 32) then
+      map[item.x][item.y] = true
+    end
+  end
+
+  return map
+end
+
 --------------------------
 -- (Level) Editor
 --------------------------
 
--- Proposed trace
-local trace_start_x = nil
-local trace_start_y = nil
+-- Trace editing
+local trace_start_x = 0
+local trace_start_y = 0
+local trace_actions = {none=0, add=1, del=2}
+local trace_action = trace_actions.none
 
 function editor_init(level)
   -- TODO: load map traces from a stored level definition
@@ -127,56 +174,62 @@ end
 
 function editor_update()
   local mouse_x, mouse_y, mouse_b = mouse_corrected(true)
-  -- Start a new trace
-  if mouse_b & 0x1 > 0 and trace_start_x == nil then
-    local grid_x = flr(mouse_x/2) + 1
-    local grid_y = flr(mouse_y/2) + 1
-    if mid(1, grid_x, 32) == grid_x and mid(1, grid_y, 32) == grid_y then
+  local grid_x = flr(mouse_x/2) + 1
+  local grid_y = flr(mouse_y/2) + 1
+  local grid_in_bounds = in_bounds(grid_x, grid_y, 32)
+  local left_click = mouse_b & 0x1 > 0
+  local right_click = mouse_b & 0x2 > 0
+
+  if trace_action == trace_actions.none then
+    -- Start a new trace
+    if grid_in_bounds and (left_click or right_click) then
       trace_start_x = grid_x
       trace_start_y = grid_y
+      trace_action = left_click and trace_actions.add or trace_actions.del
     end
-  
-  -- Commit the current proposed trace
-  elseif mouse_b & 0x1 == 0 and trace_start_x ~= nil then
-    local trace_positions = get_projected_trace(mouse_x, mouse_y)
-    for i = 1, validate_projected_trace(trace_positions) do
-      map_traces[trace_positions[i].x][trace_positions[i].y] = true
+  elseif trace_action == trace_actions.add then
+    -- Commit the current proposed trace addition
+    if not left_click then
+      trace_action = trace_actions.none
+      local trace_positions = get_projected_trace(mouse_x, mouse_y)
+      for i = 1, validate_projected_trace(trace_positions) do
+        map_traces[trace_positions[i].x][trace_positions[i].y] = true
+      end
     end
-
-    trace_start_x = nil
-    trace_start_y = nil
+  elseif trace_action == trace_actions.del then
+    -- Commit the current proposed trace deletion
+    if not right_click then
+      trace_action = trace_actions.none
+      local trace_positions = get_projected_trace(mouse_x, mouse_y)
+      for i = 1, count(trace_positions) do
+        map_traces[trace_positions[i].x][trace_positions[i].y] = false
+      end
+    end
   end
+
 end
 
 function editor_draw()
   local mouse_x, mouse_y = mouse_corrected(true)
+  local trace_positions = get_projected_trace(mouse_x, mouse_y)
+  local last_valid_pos = validate_projected_trace(trace_positions)
+  local trace_map = trace_arry_to_map(trace_positions)
 
-  -- Render set traces
+  -- Render set traces, minus proposed deletions
   for x = 1, 32 do
     for y = 1, 32 do
-      if map_traces[x][y] then
+      if map_traces[x][y] and (trace_action ~= trace_actions.del or not trace_map[x][y]) then
         draw_trace_piece(x, y)
       end
     end
   end
 
-  -- Render proposed trace
-  if trace_start_x ~= nil then
-    local trace_positions = get_projected_trace(mouse_x, mouse_y)
-    local last_valid_pos = validate_projected_trace(trace_positions)
-    for i = 1, count(trace_positions) do
-      draw_trace_piece(trace_positions[i].x, trace_positions[i].y, i > last_valid_pos and 6 or 9)
-      -- checkerboard pattern
+  -- Render proposed trace addition
+  if trace_action == trace_actions.add then
+    for i, trace_pos in ipairs(trace_positions) do
+      draw_trace_piece(trace_pos.x, trace_pos.y, i > last_valid_pos and 6 or 9)
       if i == last_valid_pos then
-        fillp(0b10101010,
-              0b01010101,
-              0b10101010,
-              0b01010101,
-              0b10101010,
-              0b01010101,
-              0b10101010,
-              0b01010101)
-        poke(0x550b,0x3f)
+        fillp_checkerboard()
         palt(0, true)
       end
     end
@@ -219,8 +272,14 @@ function validate_projected_trace(trace_positions)
       or check_trace_square(trace_x  , trace_y-1, trace_positions, i)
       or check_trace_square(trace_x  , trace_y  , trace_positions, i)
     then
-      return i-1
+      return i - 1
     end
+
+    -- Check in bounds
+    if not in_bounds(trace_x, trace_y, 32) then
+      return i - 1
+    end
+
   end
 
   -- Entire projected path is valid
@@ -233,7 +292,7 @@ end
 function check_trace_square(grid_x, grid_y, trace_positions, trace_i)
   -- If either grid position is out of bounds then a square is impossible
   -- Note the use of 31 - the whole square has to be within the grid
-  if mid(1, grid_x, 31) ~= grid_x or mid(1, grid_y, 31) ~= grid_y then
+  if not in_bounds(grid_x, grid_y, 31) then
     return false
   end
 
