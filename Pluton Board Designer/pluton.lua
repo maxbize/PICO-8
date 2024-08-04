@@ -2,6 +2,10 @@
 -- Global State
 ------------------
 
+-- Definitions:
+-- - Grid: 32x32 grid composed of 2x2 cells on the 64x64 playfield
+-- - Cell: A 2x2 chunk that's grid-aligned
+
 -- Clip offsets due to us using a 64x64 centered portion of the screen
 local clip_offset_x = (160-64)/2
 local clip_offset_y = (90-64)/2
@@ -11,8 +15,23 @@ local palette = {0x000000,0x3e3546,0x625565,0x966c6c,0xab947a,0x694f62,0x7f708a,
 local game_modes = {menu=0, editor=1, designer=2, simulator=3}
 local game_mode = game_modes.editor
 
-
 local map_traces = nil -- 32x32 boolean for trace locations
+local map_parts = nil -- Flat array of parts
+
+-- Notes:
+-- - Runtime information to be stored separately
+-- - width/height are in grid-space
+-- - traces are their own thing and not in parts
+local part_definitions = {
+  source = {
+    name = 'SOURCE',
+    sprite = 1,
+    width = 5,
+    height = 5,
+    draw_offset_x = 3,
+    draw_offset_y = 6,
+  }
+}
 
 ------------------
 -- Built-in Methods
@@ -21,6 +40,9 @@ local map_traces = nil -- 32x32 boolean for trace locations
 function _init()
   setup_palette()
   setup_camera()
+
+  -- Load PICO-8 font
+  poke(0x4000, get(fetch("/system/fonts/p8.font")))
 
   if game_mode == game_modes.editor then
     editor_init()
@@ -44,6 +66,8 @@ function _draw()
   end
 
   -- Debug draws
+  print(flr(stat(1)*100)..'%', 1, 1, 2) -- CPU
+
 end
 
 --------------------------
@@ -151,9 +175,39 @@ function trace_arry_to_map(arr)
   return map
 end
 
+-- Helper method to enforce consistency on map part schema
+function new_map_part(grid_x, grid_y, definition)
+  return {
+    def=definition,
+    x=grid_x,
+    y=grid_y
+  }
+end
+
+-- Convert from 32x32 grid space to 64x64 pixel space
+function grid_to_px(grid_x, grid_y)
+  return (grid_x - 1) * 2, (grid_y - 1) * 2
+end
+
+-- Only searches parts, not traces/etc!
+-- TODO: store 32x32 grid with references back to parts *if* too slow
+function get_part_at(grid_x, grid_y)
+  for i, part in ipairs(map_parts) do
+    if    mid(part.x, grid_x, part.x + part.def.width - 1) == grid_x
+      and mid(part.y, grid_y, part.y + part.def.height - 1) == grid_y
+    then
+      return i, part
+    end
+  end
+  return 0, nil
+end
+
 --------------------------
 -- (Level) Editor
 --------------------------
+
+local editor_brushes = {trace='TRACE', source='SOURCE'}
+local editor_brush = editor_brushes.trace
 
 -- Trace editing
 local trace_start_x = 0
@@ -161,8 +215,11 @@ local trace_start_y = 0
 local trace_actions = {none=0, add=1, del=2}
 local trace_action = trace_actions.none
 
+
+
+
 function editor_init(level)
-  -- TODO: load map traces from a stored level definition
+  -- TODO: load map info from a stored level definition
   map_traces = {}
   for x = 1, 32 do
     add(map_traces, {})
@@ -170,6 +227,8 @@ function editor_init(level)
       add(map_traces[x], false)
     end
   end
+
+  map_parts = {}
 end
 
 function editor_update()
@@ -180,33 +239,61 @@ function editor_update()
   local left_click = mouse_b & 0x1 > 0
   local right_click = mouse_b & 0x2 > 0
 
-  if trace_action == trace_actions.none then
-    -- Start a new trace
-    if grid_in_bounds and (left_click or right_click) then
-      trace_start_x = grid_x
-      trace_start_y = grid_y
-      trace_action = left_click and trace_actions.add or trace_actions.del
-    end
-  elseif trace_action == trace_actions.add then
-    -- Commit the current proposed trace addition
-    if not left_click then
-      trace_action = trace_actions.none
-      local trace_positions = get_projected_trace(mouse_x, mouse_y)
-      for i = 1, validate_projected_trace(trace_positions) do
-        map_traces[trace_positions[i].x][trace_positions[i].y] = true
+  -------------
+  -- Brush selection
+  -------------
+  -- Switch brush
+  if keyp('1') then editor_brush = editor_brushes.trace end
+  if keyp('2') then editor_brush = editor_brushes.source end
+
+
+  -------------
+  -- Trace brush
+  -------------
+  if editor_brush == editor_brushes.trace then
+    if trace_action == trace_actions.none then
+      -- Start a new trace
+      if grid_in_bounds and (left_click or right_click) then
+        trace_start_x = grid_x
+        trace_start_y = grid_y
+        trace_action = left_click and trace_actions.add or trace_actions.del
+      end
+    elseif trace_action == trace_actions.add then
+      -- Commit the current proposed trace addition
+      if not left_click then
+        trace_action = trace_actions.none
+        local trace_positions = get_projected_trace(mouse_x, mouse_y)
+        for i = 1, validate_projected_trace(trace_positions) do
+          map_traces[trace_positions[i].x][trace_positions[i].y] = true
+        end
+      end
+    elseif trace_action == trace_actions.del then
+      -- Commit the current proposed trace deletion
+      if not right_click then
+        trace_action = trace_actions.none
+        local trace_positions = get_projected_trace(mouse_x, mouse_y)
+        for i = 1, count(trace_positions) do
+          map_traces[trace_positions[i].x][trace_positions[i].y] = false
+        end
       end
     end
-  elseif trace_action == trace_actions.del then
-    -- Commit the current proposed trace deletion
-    if not right_click then
-      trace_action = trace_actions.none
-      local trace_positions = get_projected_trace(mouse_x, mouse_y)
-      for i = 1, count(trace_positions) do
-        map_traces[trace_positions[i].x][trace_positions[i].y] = false
-      end
+
+  -------------
+  -- Source brush
+  -------------
+  elseif editor_brush == editor_brushes.source then
+    -- Add source
+    if left_click then
+      -- Shift grid_x, grid_y to center of new source instead of top-left corner
+      local center_x = grid_x - flr(part_definitions.source.width/2)
+      local center_y = grid_y - flr(part_definitions.source.height/2)
+
+      add_source(center_x, center_y)
+    -- Delete source
+    elseif right_click then
+      delete_source(grid_x, grid_y)
     end
   end
-
 end
 
 function editor_draw()
@@ -229,7 +316,7 @@ function editor_draw()
     for i, trace_pos in ipairs(trace_positions) do
       draw_trace_piece(trace_pos.x, trace_pos.y, i > last_valid_pos and 6 or 9)
       if i == last_valid_pos then
-        fillp_checkerboard()
+        --fillp_checkerboard() Doesn't look great
         palt(0, true)
       end
     end
@@ -237,8 +324,56 @@ function editor_draw()
     palt()
   end
 
+  -- Render parts
+  for part in all(map_parts) do
+    local draw_x, draw_y = grid_to_px(part.x, part.y)
+    spr(part.def.sprite, draw_x - part.def.draw_offset_x, draw_y - part.def.draw_offset_y)
+  end
+
+  -- Current brush
+  print(editor_brush, 64 - #editor_brush*4, 1, 3)
+
   -- Render cursor
   rectfill(mouse_x, mouse_y, mouse_x + 1, mouse_y + 1, 15)
+end
+
+function add_source(grid_x, grid_y)
+
+  -- Create a candidate part (not stored yet)
+  local source = new_map_part(grid_x, grid_y, part_definitions.source)
+
+  -- Check if source can be added at this location
+  for check_x = grid_x, grid_x + source.def.width - 1 do
+    for check_y = grid_y, grid_y + source.def.height - 1 do
+      -- Check overlaps an existing part
+      if get_part_at(check_x, check_y) > 0 then
+        return
+      end
+
+      -- Check overlaps out of bounds
+      if not in_bounds(check_x, check_y, 32) then
+        return
+      end
+    end
+  end
+
+  -- Delete any overlapping traces
+  -- Note: We _could_ block part creation, but this might be less annoying as a user
+  for check_x = grid_x, grid_x + source.def.width - 1 do
+    for check_y = grid_y, grid_y + source.def.height - 1 do
+      map_traces[check_x][check_y] = false
+    end
+  end
+
+  -- Store it
+  add(map_parts, source)
+end
+
+function delete_source(grid_x, grid_y)
+  local i, part = get_part_at(grid_x, grid_y)
+  if i > 0 and part.def == part_definitions.source then
+    deli(map_parts, i)
+  end
 end
 
 -- Returns an array of (x,y) tuples of projected/snapped trace positions
@@ -277,6 +412,11 @@ function validate_projected_trace(trace_positions)
 
     -- Check in bounds
     if not in_bounds(trace_x, trace_y, 32) then
+      return i - 1
+    end
+
+    -- Check for parts
+    if get_part_at(trace_x, trace_y) > 0 then
       return i - 1
     end
 
@@ -342,4 +482,14 @@ function get_snapped_trace_end(mouse_x, mouse_y)
 
   return trace_end_x, trace_end_y
 end
+
+
+--------------------------
+-- Simulation
+--------------------------
+
+
+
+
+
 
