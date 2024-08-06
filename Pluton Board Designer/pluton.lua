@@ -36,7 +36,7 @@ local part_definitions = {
       {x = 0, y= 2},
       {x = 4, y= 2},
       {x = 2, y= 4},
-    }
+    },
   }
 }
 
@@ -58,8 +58,16 @@ function _init()
 end
 
 function _update()
+  if keyp('q') then
+    game_mode = game_modes.simulator
+    init_sim()
+  end
+
+
   if game_mode == game_modes.editor then
     editor_update()
+  elseif game_mode == game_modes.simulator then
+    update_sim()
   end
 end
 
@@ -70,6 +78,8 @@ function _draw()
 
   if game_mode == game_modes.editor then
     editor_draw()
+  elseif game_mode == game_modes.simulator then
+    draw_sim()
   end
 
   -- Debug draws
@@ -144,6 +154,7 @@ end
 
 -- Checks if x and y are within 1, bound
 function in_bounds(x, y, bound)
+  bound = bound or 32
   return mid(1, x, bound) == x and mid(1, y, bound) == y
 end
 
@@ -164,17 +175,11 @@ function trace_arry_to_map(arr)
 
 
   -- Create the empty map
-  local map = {}
-  for x = 1, 32 do
-    add(map, {})
-    for y = 1, 32 do
-      add(map[x], false)
-    end
-  end
+  local map = build_grid_table(false)
 
   -- Override the defaults with array items
   for item in all(arr) do
-    if in_bounds(item.x, item.y, 32) then
+    if in_bounds(item.x, item.y) then
       map[item.x][item.y] = true
     end
   end
@@ -196,6 +201,11 @@ function grid_to_px(grid_x, grid_y)
   return (grid_x - 1) * 2, (grid_y - 1) * 2
 end
 
+-- Convert from 64x64 grid space to 32x32 pixel space
+function px_to_grid(x, y)
+  return flr(x / 2) + 1, flr(y / 2) + 1
+end
+
 -- Only searches parts, not traces/etc!
 -- TODO: store 32x32 grid with references back to parts *if* too slow
 function get_part_at(grid_x, grid_y)
@@ -208,6 +218,48 @@ function get_part_at(grid_x, grid_y)
   end
   return 0, nil
 end
+
+-- Returns x,y of _first found_ neighboring trace, if any
+function get_connected_trace(grid_x, grid_y)
+  if in_bounds(grid_x - 1, grid_y    ) and map_traces[grid_x - 1][grid_y    ] then return grid_x - 1, grid_y     end
+  if in_bounds(grid_x + 1, grid_y    ) and map_traces[grid_x + 1][grid_y    ] then return grid_x + 1, grid_y     end
+  if in_bounds(grid_x    , grid_y - 1) and map_traces[grid_x    ][grid_y - 1] then return grid_x    , grid_y - 1 end
+  if in_bounds(grid_x    , grid_y + 1) and map_traces[grid_x    ][grid_y + 1] then return grid_x    , grid_y + 1 end
+  return nil
+end
+
+-- Returns a table[grid_x][grid_y] = default
+function build_grid_table(default)
+  local map = {}
+  for x = 1, 32 do
+    add(map, {})
+    for y = 1, 32 do
+      if type(default) == 'table' then
+        add(map[x], clone_table(default))
+      else
+        add(map[x], default)
+      end
+    end
+  end
+  return map
+end
+
+-- Shallow clone
+function clone_table(original)
+  local clone = {}
+  for k,v in pairs(original) do
+    clone[k] = v
+  end
+  return clone
+end
+
+-- Helper array with 4 cardinal dirs
+local dirs4 = {
+  {x=-1, y= 0},
+  {x= 1, y= 0},
+  {x= 0, y=-1},
+  {x= 0, y= 1},
+}
 
 --------------------------
 -- (Level) Editor
@@ -223,18 +275,9 @@ local trace_actions = {none=0, add=1, del=2}
 local trace_action = trace_actions.none
 
 
-
-
 function editor_init(level)
   -- TODO: load map info from a stored level definition
-  map_traces = {}
-  for x = 1, 32 do
-    add(map_traces, {})
-    for y = 1, 32 do
-      add(map_traces[x], false)
-    end
-  end
-
+  map_traces = build_grid_table(false)
   map_parts = {}
 end
 
@@ -242,7 +285,7 @@ function editor_update()
   local mouse_x, mouse_y, mouse_b = mouse_corrected(true)
   local grid_x = flr(mouse_x/2) + 1
   local grid_y = flr(mouse_y/2) + 1
-  local grid_in_bounds = in_bounds(grid_x, grid_y, 32)
+  local grid_in_bounds = in_bounds(grid_x, grid_y)
   local left_click = mouse_b & 0x1 > 0
   local right_click = mouse_b & 0x2 > 0
 
@@ -280,7 +323,7 @@ function editor_update()
         trace_action = trace_actions.none
         local trace_positions = get_projected_trace(mouse_x, mouse_y)
         for i = 1, count(trace_positions) do
-          if in_bounds(trace_positions[i].x, trace_positions[i].y, 32) then
+          if in_bounds(trace_positions[i].x, trace_positions[i].y) then
             map_traces[trace_positions[i].x][trace_positions[i].y] = false
           end
         end
@@ -360,7 +403,7 @@ function add_source(grid_x, grid_y)
       end
 
       -- Check overlaps out of bounds
-      if not in_bounds(check_x, check_y, 32) then
+      if not in_bounds(check_x, check_y) then
         return
       end
     end
@@ -424,7 +467,7 @@ function validate_projected_trace(trace_positions)
     end
 
     -- Check in bounds
-    if not in_bounds(trace_x, trace_y, 32) then
+    if not in_bounds(trace_x, trace_y) then
       return i - 1
     end
 
@@ -500,9 +543,172 @@ end
 --------------------------
 -- Simulation
 --------------------------
+local sim_ticks = 0
+
+-- Stores the state of all plutons in the sim. TODO: Move somewhere else?
+local sim_plutons = {}
+
+-- Map[grid_x][grid_y] of tace switch states (T intersections)
+local sim_switches = {}
 
 
+function init_sim()
+  sim_ticks = 0
 
+  -- Inject a fresh `state` table into all parts
+  for part in all(map_parts) do
+    sim_init__source(part)
+    part.def.sim_init(part)
+  end
+
+  -- Initialize sim_switches
+  sim_switches = build_grid_table(nil)
+
+end
+
+function update_sim()
+  sim_ticks += 1
+
+  -- Update all parts
+  for part in all(map_parts) do
+    part.def.sim_update(part, sim_ticks)
+  end
+
+  -- Update all plutons
+  for pluton in all(sim_plutons) do
+    update_pluton(pluton)
+  end
+end
+
+function draw_sim()
+  -- Draw all traces
+  for x = 1, 32 do
+    for y = 1, 32 do
+      if map_traces[x][y] and (trace_action ~= trace_actions.del or not trace_map[x][y]) then
+        draw_trace_piece(x, y)
+      end
+    end
+  end
+
+  -- Draw all parts
+  for part in all(map_parts) do
+    part.def.sim_draw(part)
+  end
+
+  -- Draw all plutons
+  for pluton in all(sim_plutons) do
+    draw_pluton(pluton)
+  end
+end
+
+function sim_init__source(source)
+  source.state = {
+    last_spawn_ticks = 0,
+    last_spawn_port = 2,
+    spawns_remaining = 3,
+  }
+end
+
+function sim_update__source(source, ticks)
+  -- Check if we should spawn a pluton
+  if ticks - source.state.last_spawn_ticks > 60 and source.state.spawns_remaining > 0 then
+    source.state.last_spawn_ticks = ticks
+
+    -- Find the next port
+    local next_port = source.state.last_spawn_port + 1
+    local iters = 0
+    local num_ports = count(source.def.port_offsets)
+    while iters < num_ports do
+      if next_port > num_ports then
+        next_port = 1
+      end
+
+      local port_x = source.x + source.def.port_offsets[next_port].x
+      local port_y = source.y + source.def.port_offsets[next_port].y
+      local connected_trace_x, connected_trace_y = get_connected_trace(port_x, port_y)
+      if connected_trace_x ~= nil then
+        source.state.spawns_remaining -= 1
+        source.state.last_spawn_port = next_port
+        spawn_pluton(port_x, port_y, connected_trace_x - port_x, connected_trace_y - port_y)
+        break
+      end
+
+      next_port += 1
+    end
+  end
+end
+
+function sim_draw__source(source, ticks)
+  -- Draw base part
+  draw_part(source)
+
+  -- Overlay animation
+  if source.state.spawns_remaining < 3 then
+    local draw_x, draw_y = grid_to_px(source.x, source.y)
+    draw_x = draw_x + 3
+    draw_y = draw_y - 3
+    -- Top section that's lighter
+    rectfill(draw_x, draw_y, draw_x + 3, draw_y + 2, 8)
+    -- Front section that's darker
+    rectfill(draw_x, draw_y + 3, draw_x + 3, draw_y + 7 - 2*source.state.spawns_remaining, 7)
+  end
+end
+
+-- Standard draw using part definition
+function draw_part(part)
+  local draw_x, draw_y = grid_to_px(part.x, part.y)
+  spr(part.def.sprite, draw_x - part.def.anchor_x, draw_y - part.def.anchor_y)
+end
+
+function spawn_pluton(grid_x, grid_y, dir_x, dir_y)
+  local x, y = grid_to_px(grid_x, grid_y)
+  add(sim_plutons, {
+    -- x,y are in pixel space for smoother animation
+    x = x,
+    y = y,
+    dir_x = dir_x,
+    dir_y = dir_y,
+  })
+end
+
+function update_pluton(pluton)
+  local grid_x, grid_y = px_to_grid(pluton.x, pluton.y)
+  local candidate_x = grid_x + pluton.dir_x
+  local candidate_y = grid_y + pluton.dir_y
+
+  -- Look ahead to see if there's a trace
+  if in_bounds(candidate_x, candidate_y) and map_traces[candidate_x][candidate_y] then
+    pluton.x += pluton.dir_x
+    pluton.y += pluton.dir_y
+  -- Find a new direction to travel
+  else
+    for dir in all(dirs4) do
+      candidate_x = grid_x + dir.x
+      candidate_y = grid_y + dir.y
+      if dir.x ~= pluton.dir_x and dir.y ~= pluton.dir_y 
+          and in_bounds(candidate_x, candidate_y) 
+          and map_traces[candidate_x][candidate_y] then
+        pluton.dir_x = dir.x
+        pluton.dir_y = dir.y
+        pluton.x, pluton.y = grid_to_px(candidate_x, candidate_y)
+        break
+      end
+    end
+  end
+
+end
+
+function draw_pluton(pluton)
+  rectfill(pluton.x, pluton.y - 2, pluton.x + 1, pluton.y - 1, 18)
+  rectfill(pluton.x, pluton.y, pluton.x + 1, pluton.y + 1, 17)
+end
+
+
+-- TODO: Clean up this hack
+-- Can't hook up function refs in part_definitions because functions are declared further down
+part_definitions.source.sim_init = sim_init__source
+part_definitions.source.sim_update = sim_update__source
+part_definitions.source.sim_draw = sim_draw__source
 
 
 
