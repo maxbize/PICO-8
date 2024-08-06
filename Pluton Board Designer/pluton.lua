@@ -20,16 +20,23 @@ local map_parts = nil -- Flat array of parts
 
 -- Notes:
 -- - Runtime information to be stored separately
--- - width/height are in grid-space
+-- - width, height, port_offsets are in grid-space
 -- - traces are their own thing and not in parts
+-- - anchor: the top-left corner of the ground plane of the sprite. Offset is in pixels, but points to the top-left pixel in grid-space
+-- - port offsets are relative to the anchor
 local part_definitions = {
   source = {
     name = 'SOURCE',
     sprite = 1,
     width = 5,
     height = 5,
-    draw_offset_x = 3,
-    draw_offset_y = 6,
+    anchor_x = 3,
+    anchor_y = 6,
+    port_offsets = {
+      {x = 0, y= 2},
+      {x = 4, y= 2},
+      {x = 2, y= 4},
+    }
   }
 }
 
@@ -273,7 +280,9 @@ function editor_update()
         trace_action = trace_actions.none
         local trace_positions = get_projected_trace(mouse_x, mouse_y)
         for i = 1, count(trace_positions) do
-          map_traces[trace_positions[i].x][trace_positions[i].y] = false
+          if in_bounds(trace_positions[i].x, trace_positions[i].y, 32) then
+            map_traces[trace_positions[i].x][trace_positions[i].y] = false
+          end
         end
       end
     end
@@ -327,7 +336,7 @@ function editor_draw()
   -- Render parts
   for part in all(map_parts) do
     local draw_x, draw_y = grid_to_px(part.x, part.y)
-    spr(part.def.sprite, draw_x - part.def.draw_offset_x, draw_y - part.def.draw_offset_y)
+    spr(part.def.sprite, draw_x - part.def.anchor_x, draw_y - part.def.anchor_y)
   end
 
   -- Current brush
@@ -367,6 +376,11 @@ function add_source(grid_x, grid_y)
 
   -- Store it
   add(map_parts, source)
+
+  -- Debugging: add ports to traces for validation
+  --for port_offset in all(source.def.port_offsets) do
+  --  map_traces[source.x + port_offset.x][source.y + port_offset.y] = true
+  --end
 end
 
 function delete_source(grid_x, grid_y)
@@ -395,7 +409,6 @@ end
 -- Returns the index of the last valid trace piece, or 0 if the start is invalid.
 -- Validations:
 -- - No squares in the traces (i.e. solid 2x2)
--- - TODO: Does not cross parts
 function validate_projected_trace(trace_positions)
   for i = 1, count(trace_positions) do
     local trace_x = trace_positions[i].x
