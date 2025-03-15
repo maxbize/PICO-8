@@ -1139,6 +1139,8 @@ function load_level(start)
   map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 345, map_settings.size) -- global props_offset
   map_bounds_chunks = load_map(map_bounds_data[level_index], 0, map_settings.size)
 
+  load_minimap()
+
   spawn_level_manager()
   player = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, false)
   ghost = nil -- If someone switched ghost enabled -> disabled make sure we clear out the existing one
@@ -2202,61 +2204,26 @@ function _main_menu_manager_update(self)
   self.menu.update()
 end
 
--- todo: minimap should be cached in sprite sheet
--- todo: find enough spare tokens to enable this?
---local decal_pset_map = {[10]=11,[11]=11,[27]=11,[28]=11,[12]=9,[13]=9,[14]=9,[15]=9,[21]=10,[22]=10,[23]=10,[24]=10,[25]=10,[64]=12,[67]=12,[68]=12,[83]=12,[84]=12}
---function draw_minimap2()
---  local offset = 0--128 - map_settings.size
---  --rect(player.x + offset, player.y + offset, player.x + 30 + offset - 1, player.y + 30 + offset - 1, 6)
---  for tile_x = 0, #map_road_tiles - 1 do
---    for tile_y = 0, #map_road_tiles[0] - 1 do
---      local road_tile = map_road_tiles[tile_x][tile_y]
---      if road_tile >= 1 and road_tile <= 5 then
---        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 5)
---      end
---      local decal_tile = map_decal_tiles[tile_x][tile_y]
---      if decal_pset_map[decal_tile] ~= nil then
---        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, decal_pset_map[decal_tile])
---      end
---      local prop_tile = map_prop_tiles[tile_x][tile_y]
---      if prop_tile > 0 then
---        pset(offset + camera_x + tile_x, offset + camera_y + tile_y, 7)
---      end
---    end
---  end
---  pset(flr(offset + camera_x + player.x/8), flr(offset + camera_y + player.y/8), 7)
---end
-
--- todo: minimap should not be redrawn every frame. Where to store 90x90 sprite though... :(
 local pset_map = parse_hash_map("1,5,2,5,3,5,4,5,5,5,10,11,11,11,27,11,28,11,12,9,13,9,14,9,15,9,21,10,22,10,23,10,24,10,25,10,29,7,31,7,37,15,38,15,39,15,40,15,41,15,42,7,43,7,44,7,45,7,46,7,47,7,58,7,59,7,60,7,61,7,62,7,63,7,64,12,67,12,68,12,83,12,84,12")
+local minimap = {} -- Storage
+function load_minimap()
+  minimap = {}
+  for i = 0, #map_road_tiles do
+    minimap[i] = {}
+    for j = 0, #map_road_tiles do
+      -- Neat trick: we only want to draw the top-most non-null layer. Chain `nil` -> or evaluation to find it
+      minimap[i][j] = pset_map[map_prop_tiles[i][j]] or pset_map[map_decal_tiles[i][j]] or pset_map[map_road_tiles[i][j]]
+    end
+  end
+end
+
 function draw_minimap(x, y)
-  for chunk_x = 0, #map_road_chunks do
-    for chunk_y = 0, #map_road_chunks do
-
-      -- Duplicated logic is purposely inlined to reduce CPU cost while redrawing every frame
-      if solid_chunks[map_road_chunks[chunk_x][chunk_y]] ~= 0 then
-        draw_minimap_chunk(map_road_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
-      end
-      if solid_chunks[map_decal_chunks[chunk_x][chunk_y]] ~= 0 then
-        draw_minimap_chunk(map_decal_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
-      end
-      if solid_chunks[map_prop_chunks[chunk_x][chunk_y]] ~= 0 then
-        draw_minimap_chunk(map_prop_tiles, x, y, chunk_x * chunk_size, chunk_y * chunk_size)
-      end
-
-    end
-  end
-  pset(flr(x + map_settings.spawn_x/8), flr(y + map_settings.spawn_y/8), 8)
-end
-
-function draw_minimap_chunk(tile_map, x, y, chunk_x, chunk_y)
-  for tile_y = chunk_y, chunk_y + chunk_size - 1 do
-    for tile_x = chunk_x, chunk_x + chunk_size - 1 do
-      local tile = tile_map[tile_x][tile_y]
-      if pset_map[tile] ~= nil then
-        pset(x + tile_x, y + tile_y, pset_map[tile])
+  for i = 0, #map_road_tiles do
+    for j = 0, #map_road_tiles do
+      local c = minimap[i][j]
+      if c ~= nil then
+        pset(x + i, y + j, c)
       end
     end
   end
 end
-
