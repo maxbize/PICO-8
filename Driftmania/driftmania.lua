@@ -299,11 +299,11 @@ function _init()
   music(0)
 
   -- Re-submit best times for achievement tracking
-  for level_index, map_settings in pairs(map_settings_data) do
-    local data_index = get_lap_time_index(level_index, map_settings.laps)
-    local best_time = dget(data_index)
-    post_time_to_gpio(level_index, best_time)
-  end
+  --for level_index, map_settings in pairs(map_settings_data) do
+  --  local data_index = get_lap_time_index(level_index, map_settings.laps)
+  --  local best_time = dget(data_index)
+  --  post_time_to_gpio(level_index, best_time)
+  --end
 end
 
 function _update60()
@@ -1330,9 +1330,9 @@ function on_checkpoint_crossed(self, car, cp_index)
         post_time_to_gpio(level_index, self.frame)
 
         -- Race Against Ghost achievement
-        if ghost ~= nil then
-          poke(0x5fff, 1)
-        end
+        --if ghost ~= nil then
+        --  poke(0x5fff, 1)
+        --end
 
       else
         -- Display checkpoint time and delta
@@ -1369,9 +1369,9 @@ function on_checkpoint_crossed(self, car, cp_index)
   return true
 end
 
-function post_time_to_gpio(level, frames)
-  poke4(0x5f80 + level * 4, flr(frames/60) + (frames % 60 / 60 * 100 >> 16))
-end
+--function post_time_to_gpio(level, frames)
+--  poke4(0x5f80 + level * 4, flr(frames/60) + (frames % 60 / 60 * 100 >> 16))
+--end
 
 function get_lap_time_index(level_idx, lap)
   local data_index = 10 -- end of car customization + settings
@@ -1875,7 +1875,7 @@ function btn_customization(self, index, input)
     --opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or num_colors)
     opt.chosen = (opt.chosen + input) % (opt.text == 'tYPE' and 4 or (get_total_num_medals() == 60 and 32 or 16))
     -- Customization achievement
-    poke(0x5ffe, 1)
+    --poke(0x5ffe, 1)
   end
 end
 
@@ -2131,7 +2131,7 @@ function spawn_main_menu_manager()
   local buttons = {
     new_button(0, 0, 'rACE', function() game_state = 2 end, true),
     new_button(0, 10, 'gARAGE', function() game_state = 1 end, true),
-    new_button(-49, 30, 'mAX bIZE', function() poke(0x5ffd) end) -- GPIO signal to open external link
+    --new_button(-49, 30, 'mAX bIZE', function() poke(0x5ffd) end) -- GPIO signal to open external link
   }
 
   add(objects, {
