@@ -2162,10 +2162,11 @@ function _main_menu_manager_draw(self)
   rect(-1, 43, 128, 78, 6)
 
   palt(0b0000000000000001)
-  sspr(0, 88, 119, 33, 4, 7)
+  sspr(0, 88, 119, 33, 2, 7)
   palt()
   print_shadowed('cREATED bY', 3, 107, 6)
-  print_shadowed('V 1.1.0', 98, 115, 6)
+  print_shadowed('mAX bIZE', 11, 115, 6)
+  print_shadowed('V 1.1.1', 98, 115, 6)
 
   map(124, 44, flr(200 - (time() * 200) % 500), 54)
 
