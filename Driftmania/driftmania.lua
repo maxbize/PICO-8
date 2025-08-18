@@ -1327,7 +1327,7 @@ function on_checkpoint_crossed(self, car, cp_index)
         end
 
         -- Always post time for leaderboard
-        post_time_to_gpio(level_index, self.frame)
+        --post_time_to_gpio(level_index, self.frame)
 
         -- Race Against Ghost achievement
         --if ghost ~= nil then
