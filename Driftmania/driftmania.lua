@@ -1219,12 +1219,9 @@ function _level_manager_draw(self)
       sfx(57)
     end
 
-    -- Background + perimiter (85 tokens)
-    circfill(x + 9,  y + 9, 10, c)
-    circfill(x + 37, y + 9, 10, c)
-    rectfill_outlined(x + 8, y, x + 38, y + 18, c, 0)
-    circfill(x + 9,  y + 9, 9, 0)
-    circfill(x + 37, y + 9, 9, 0)
+    -- Background + perimiter
+    rrectfill(x - 1, y -1, 49, 21, 8, c)
+    rrectfill(x, y, 47, 19, 8, 0)
 
     -- Middle circles
     for i = 0, 2 do
