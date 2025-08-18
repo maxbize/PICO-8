@@ -11,7 +11,7 @@ local trail_m = nil
 local particle_vol_m = nil
 local particle_water_m = nil
 local customization_m = nil
-local game_state = 3 -- 0=race, 1=customization, 2=level select, 3=main menu
+local game_state = 4 -- 0=race, 1=customization, 2=level select, 3=main menu, 4=controls pre-screen
 local level_index = 1
 local pause_frames = 0
 local camera_x = 0
@@ -289,6 +289,7 @@ function _init()
 
   load_level(false)
 
+  spawn_controls_menu_manager()
   spawn_level_select_manager()
   spawn_customization_manager()
   spawn_main_menu_manager()
@@ -296,7 +297,7 @@ function _init()
   particle_water_m = spawn_particle_manager_water()
 
   set_menu_items()
-  music(0)
+  --music(0)
 
   -- Re-submit best times for achievement tracking
   --for level_index, map_settings in pairs(map_settings_data) do
@@ -1181,6 +1182,7 @@ function quit_level()
   sfx(50, -2) 
   game_state = 2
   music(0)
+  camera()
 end
 
 function _level_manager_update(self)
@@ -1945,7 +1947,7 @@ function _customization_manager_update(self)
     return
   end
 
-  camera()
+  --camera()
   --self.car.angle_fwd += 0.003
   local a = self.data[min(self.menu.index, 8)].target_angle
   local b = self.car.angle_fwd
@@ -2119,7 +2121,7 @@ function _level_select_manager_update(self)
   if game_state ~= 2 then
     return
   end
-  camera()
+  --camera()
 
   self.menu.update()
 end
@@ -2189,7 +2191,7 @@ function _main_menu_manager_update(self)
     self.time = 0
     return
   end
-  camera()
+  --camera()
 
   self.car.x = min(90, self.time * 100) + flr(cos(self.time * 0.3) * 3.9)
   self.car.y = 65 + cos(self.time * 0.25)
@@ -2224,4 +2226,31 @@ function draw_minimap(x, y)
       end
     end
   end
+end
+
+function spawn_controls_menu_manager()
+  local buttons = {
+    new_button(0, 0, '', function() game_state = 3 music(0) end, true),
+  }
+
+  add(objects, {
+    update = function(self) 
+      if game_state == 4 then 
+        camera()
+        self.menu.update() 
+      end 
+    end,
+    draw = function()
+      if game_state == 4 then
+        rectfill_outlined(0, 20, 128, 107, 12, 1)
+
+        print_shadowed("\^ucONTROLS", 48, 24, 7)
+        --print_shadowed("⬆️  z | aCCELERATE\n\|jx     | d-bRAKE\n\|j⬅️ ➡️ | tURN\n\|j⬇️    | bREAK + rEVERSE\n\|jr     | rESTART lEVEL\n\|jp     | pAUSE + oPTIONS", 19, 39, 6)
+        print_shadowed("z  ⬆️ | aCCELERATE\n\|jx     | d-bRAKE\n\|j⬅️ ➡️ | tURN\n\|j⬇️    | bREAK + rEVERSE\n\|jr     | rESTART lEVEL\n\|jp     | pAUSE + oPTIONS", 19, 39, 6)
+        --print_shadowed("    x | d-bRAKE\n\|j⬆️  z | aCCELERATE\n\|j⬅️ ➡️ | tURN\n\|j   ⬇️ | bREAK + rEVERSE\n\|j    r | rESTART lEVEL\n\|j    p | pAUSE + oPTIONS", 19, 39, 6)
+        print_shadowed("pRESS z OR x TO CONTINUE", 17, 99, 7)
+      end
+    end,
+    menu = new_menu(0, 0, buttons, 1, 1),
+  })
 end
