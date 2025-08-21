@@ -37,7 +37,7 @@ local ghost = nil
 local ghost_recording = {0}
 local ghost_playbacks = {}
 local ghost_best_times = {}
-local ghost_max_len = 2^12
+local ghost_max_len = 4096 -- 2^12
 -- Allocate buffers on init (ghost_max_len * 8 bytes per buffer)
 for i = 2, ghost_max_len do
   add(ghost_recording, -1)
@@ -197,6 +197,7 @@ local map_bounds_data = {
 --  "1/1/1/1ほ", -- WIP1.tmx bounds
 }
 
+-- Note: map_settings.size hard-coded to 30 to reduce compressed size
 local map_settings_data = parse_table_arr(--[[member]]"name,req_medals,laps,size,spawn_x,spawn_y,spawn_dir,bronze,silver,gold,plat",
   "|a1,0,3,30,312,264,0.5,2880,2433,2160,1980" .. -- A1.tmx settings
   "|a2,1,3,30,264,216,0.25,2928,2136,1794,1650" .. -- A2.tmx settings
@@ -355,9 +356,9 @@ function _draw()
     cls(3)
 
     -- 7% CPU
-    draw_map(map_road_chunks, map_settings.size, true, true, false)
+    draw_map(map_road_chunks, 30, true, true, false)
     -- 3% CPU
-    draw_map(map_decal_chunks, map_settings.size, true, true, true)
+    draw_map(map_decal_chunks, 30, true, true, true)
 
     draw_cp_highlights(level_m)
 
@@ -383,9 +384,9 @@ function _draw()
     _particle_manager_vol_draw_bg(particle_vol_m)
 
     -- 11% CPU
-    draw_map(map_prop_chunks, map_settings.size, player.z > 3, true, false)
+    draw_map(map_prop_chunks, 30, player.z > 3, true, false)
 
-    --draw_map(map_bounds_chunks, map_settings.size, true, true, true)
+    --draw_map(map_bounds_chunks, 30, true, true, true)
 
     if ghost ~= nil then
       _car_draw(ghost)
@@ -396,7 +397,7 @@ function _draw()
   
     -- 12% CPU
     if player.z <= 3 then
-      draw_map(map_prop_chunks, map_settings.size, true, false, false)
+      draw_map(map_prop_chunks, 30, true, false, false)
     end
 
     -- 1% CPU (idle)
@@ -1157,10 +1158,10 @@ function load_level(start)
   map_jump_frames = split('0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
 
   -- Note: offsets automated by mapPacker
-  map_road_chunks, map_road_tiles = load_map(map_road_data[level_index], 0, map_settings.size)
-  map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], 102, map_settings.size) -- global decals_offset
-  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 345, map_settings.size) -- global props_offset
-  map_bounds_chunks = load_map(map_bounds_data[level_index], 0, map_settings.size)
+  map_road_chunks, map_road_tiles = load_map(map_road_data[level_index], 0, 30)
+  map_decal_chunks, map_decal_tiles = load_map(map_decals_data[level_index], 102, 30) -- global decals_offset
+  map_prop_chunks, map_prop_tiles = load_map(map_props_data[level_index], 345, 30) -- global props_offset
+  map_bounds_chunks = load_map(map_bounds_data[level_index], 0, 30)
 
   load_minimap()
 
@@ -2048,7 +2049,7 @@ function _level_select_manager_draw(self)
   local medals_to_unlock = map_settings.req_medals - get_total_num_medals()
 
   if medals_to_unlock <= 0 then
-    draw_minimap(83 - map_settings.size*chunk_size/2, 33)
+    draw_minimap(83 - 30*chunk_size/2, 33)
 
     local data_index = get_lap_time_index(level_index, map_settings.laps)
     local best_time = dget(data_index)
