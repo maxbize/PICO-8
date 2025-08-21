@@ -34,11 +34,11 @@ local map_jump_frames = nil
 
 -- Ghost cars
 local ghost = nil
-local ghost_recording = {}
-local ghost_playback = {}
+local ghost_recording = {0}
+local ghost_playback = {0}
 local ghost_best_time = 0x7fff
 -- Allocate buffers on init (256 KB per buffer)
-for i = 1, 0x7fff do
+for i = 1, 0x7ffe do
   add(ghost_recording, -1)
   add(ghost_playback, -1)
 end
@@ -545,8 +545,8 @@ end
 --------------------
 function create_car(x, y, dir, is_ghost)
   -- Car creation is split into static and dynamic parts to save tokens
-  local car = parse_table(--[[member]]'z,x_remainder,y_remainder,z_remainder,v_x,v_y,v_z,turn_rate_fwd,turn_rate_vel,accel,brake,max_speed_fwd,max_speed_rev,f_friction,f_corrective,boost_frames,flash_frames,water_wheels,water_frames,scale,respawn_frames,respawn_start_x,respawn_start_y,engine_pitch,ghost_frame,wall_penalty_frames,next_checkpoint',
-    '0,0,0,0,0,0,0,0.0060,0.0050,0.075,0.05,2.2,0.5,0.02,0.1,0,0,0,0,1,0,0,0,0,1,0,2')
+  local car = parse_table(--[[member]]'z,x_remainder,y_remainder,z_remainder,v_x,v_y,v_z,turn_rate_fwd,turn_rate_vel,accel,brake,max_speed_fwd,max_speed_rev,f_friction,f_corrective,boost_frames,flash_frames,water_wheels,water_frames,scale,respawn_frames,respawn_start_x,respawn_start_y,engine_pitch,ghost_index,ghost_repeat,wall_penalty_frames,next_checkpoint',
+    '0,0,0,0,0,0,0,0.0060,0.0050,0.075,0.05,2.2,0.5,0.02,0.1,0,0,0,0,1,0,0,0,0,1,0,0,2')
 
   car.x = x
   car.y = y
@@ -630,10 +630,15 @@ function _car_update(self)
 end
 
 function _ghost_update(self)
-  local btns = self.buffer[self.ghost_frame]
+  local btns = self.buffer[self.ghost_index]
+  local btns_repeat = self.buffer[self.ghost_index + 1]
   if btns ~= -1 then
     _car_move(self, btns)
-    self.ghost_frame += 1
+    self.ghost_repeat += 1
+    if self.ghost_repeat == btns_repeat then
+      self.ghost_repeat = 0
+      self.ghost_index += 2
+    end
   else
     _car_move(self, 0)
   end
@@ -884,9 +889,17 @@ function _car_move(self, btns)
 
 
   -- Record ghost
-  if not self.is_ghost and self.ghost_frame < 0x7fff then
-    ghost_recording[self.ghost_frame] = btns
-    self.ghost_frame += 1
+  if not self.is_ghost and self.ghost_index < 0x7fff then
+    -- RLE. If buttons have changed or limit is reached, record and advance
+    self.ghost_repeat += 1
+    if btns ~= ghost_recording[self.ghost_index] or self.ghost_repeat == 0x7fff then
+      ghost_recording[self.ghost_index + 1] = self.ghost_repeat - 1
+      self.ghost_index += 2
+      self.ghost_repeat = 1
+      ghost_recording[self.ghost_index] = btns
+    else
+      ghost_recording[self.ghost_index + 1] = self.ghost_repeat
+    end
   end
 
   -- Return results for processing
@@ -1308,12 +1321,12 @@ function on_checkpoint_crossed(self, car, cp_index)
         music(20, 1000)
 
         -- If this is the new best time we have a recording of, save it
-        if player.ghost_frame <= ghost_best_time then
-          ghost_best_time = player.ghost_frame
+        if self.frame <= ghost_best_time then
+          ghost_best_time = self.frame
           ghost_playback = ghost_recording
         end
-        ghost_recording = {}
-        for i = 1, 0x7fff do
+        ghost_recording = {0}
+        for i = 1, 0x7ffe do
           add(ghost_recording, -1)
         end
 
@@ -2245,9 +2258,9 @@ function spawn_controls_menu_manager()
         rectfill_outlined(0, 20, 128, 107, 12, 1)
 
         print_shadowed("\^ucONTROLS", 48, 24, 7)
-        --print_shadowed("⬆️  z | aCCELERATE\n\|jx     | d-bRAKE\n\|j⬅️ ➡️ | tURN\n\|j⬇️    | bREAK + rEVERSE\n\|jr     | rESTART lEVEL\n\|jp     | pAUSE + oPTIONS", 19, 39, 6)
+        -- print_shadowed("⬆️  z | aCCELERATE\n\|jx     | d-bRAKE\n\|j⬅️ ➡️ | tURN\n\|j⬇️    | bREAK + rEVERSE\n\|jr     | rESTART lEVEL\n\|jp     | pAUSE + oPTIONS", 19, 39, 6)
         print_shadowed("z  ⬆️ | aCCELERATE\n\|jx     | d-bRAKE\n\|j⬅️ ➡️ | tURN\n\|j⬇️    | bREAK + rEVERSE\n\|jr     | rESTART lEVEL\n\|jp     | pAUSE + oPTIONS", 19, 39, 6)
-        --print_shadowed("    x | d-bRAKE\n\|j⬆️  z | aCCELERATE\n\|j⬅️ ➡️ | tURN\n\|j   ⬇️ | bREAK + rEVERSE\n\|j    r | rESTART lEVEL\n\|j    p | pAUSE + oPTIONS", 19, 39, 6)
+        -- print_shadowed("    x | d-bRAKE\n\|j⬆️  z | aCCELERATE\n\|j⬅️ ➡️ | tURN\n\|j   ⬇️ | bREAK + rEVERSE\n\|j    r | rESTART lEVEL\n\|j    p | pAUSE + oPTIONS", 19, 39, 6)
         print_shadowed("pRESS z OR x TO CONTINUE", 17, 99, 7)
       end
     end,
