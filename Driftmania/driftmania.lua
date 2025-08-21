@@ -35,12 +35,19 @@ local map_jump_frames = nil
 -- Ghost cars
 local ghost = nil
 local ghost_recording = {0}
-local ghost_playback = {0}
-local ghost_best_time = 0x7fff
--- Allocate buffers on init (256 KB per buffer)
-for i = 1, 0x7ffe do
+local ghost_playbacks = {}
+local ghost_best_times = {}
+local ghost_max_len = 2^12
+-- Allocate buffers on init (ghost_max_len * 8 bytes per buffer)
+for i = 2, ghost_max_len do
   add(ghost_recording, -1)
-  add(ghost_playback, -1)
+end
+for i = 1, 15 do
+  add(ghost_best_times, 0x7fff)
+  add(ghost_playbacks, {})
+  for j = 1, ghost_max_len do
+    add(ghost_playbacks[i], -1)
+  end
 end
 
 -- Settings
@@ -421,7 +428,9 @@ function _draw()
   end
 
   --_player_debug_draw(player)
+  --print(player.ghost_index, player.x, player.y - 20, 0)
   --print(stat(0), player.x, player.y - 20, 0)
+  --print(stat(0), 1, 1, 7)
   --print(level_m.frame, player.x, player.y - 30, 0)
   --print(dist(player.v_x, player.v_y), player.x, player.y - 20, 0)
 
@@ -889,7 +898,7 @@ function _car_move(self, btns)
 
 
   -- Record ghost
-  if not self.is_ghost and self.ghost_index < 0x7fff then
+  if not self.is_ghost and self.ghost_index < ghost_max_len then
     -- RLE. If buttons have changed or limit is reached, record and advance
     self.ghost_repeat += 1
     if btns ~= ghost_recording[self.ghost_index] or self.ghost_repeat == 0x7fff then
@@ -1158,9 +1167,9 @@ function load_level(start)
   spawn_level_manager()
   player = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, false)
   ghost = nil -- If someone switched ghost enabled -> disabled make sure we clear out the existing one
-  if start and ghost_playback[1] ~= -1 and ghost_enabled then
+  if ghost_playbacks[level_index][1] ~= -1 and ghost_enabled then
     ghost = create_car(map_settings.spawn_x, map_settings.spawn_y, map_settings.spawn_dir, true)
-    ghost.buffer = ghost_playback
+    ghost.buffer = ghost_playbacks[level_index]
   end
   spawn_trail_manager()
 
@@ -1321,12 +1330,12 @@ function on_checkpoint_crossed(self, car, cp_index)
         music(20, 1000)
 
         -- If this is the new best time we have a recording of, save it
-        if self.frame <= ghost_best_time then
-          ghost_best_time = self.frame
-          ghost_playback = ghost_recording
+        if self.frame <= ghost_best_times[level_index] then
+          ghost_best_times[level_index] = self.frame
+          ghost_playbacks[level_index] = ghost_recording
         end
         ghost_recording = {0}
-        for i = 1, 0x7ffe do
+        for i = 2, ghost_max_len do
           add(ghost_recording, -1)
         end
 
@@ -2012,11 +2021,6 @@ function spawn_level_select_manager()
         music(-1, 1000)
         self.menu.index = 1
         game_state = 0
-        ghost_best_time = 0x7fff
-        ghost_playback = {}
-        for i = 1, 0x7fff do
-          add(ghost_playback, -1)
-        end
       end
     end, true),
     new_button(80, 0, 'bACK', function(self) self.menu.index = 1 game_state = 3 end, true)
